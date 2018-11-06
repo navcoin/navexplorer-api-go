@@ -8,7 +8,7 @@ import (
 type Address struct {
 	ID               bson.ObjectId `bson:"_id" json:"id"`
 	Hash             string        `bson:"hash" json:"hash"`
-	Received	     float64       `bson:"received" json:"received"`
+	Received         float64       `bson:"received" json:"received"`
 	ReceivedCount    int           `bson:"receivedCount" json:"receivedCount"`
 	Sent             float64       `bson:"sent" json:"sent"`
 	SentCount        int           `bson:"sentCount" json:"sentCount"`
