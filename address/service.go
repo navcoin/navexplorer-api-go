@@ -28,8 +28,8 @@ func(s *Service) GetAddresses(count int) (addresses []Address, err error) {
 	return addresses, err
 }
 
-func(s *Service) GetAddressTransactions(address string, types []string, dir string, size int, offset string) (transactions []Transaction, err error) {
-	transactions, err = repository.FindTransactionsByAddress(address, types, dir, size, offset)
+func(s *Service) GetTransactions(address string, dir string, size int, offset string, types []string) (transactions []Transaction, err error) {
+	transactions, err = repository.FindTransactionsByAddress(address, dir, size, offset, types)
 
 	return transactions, err
 }
