@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"github.com/NavExplorer/navexplorer-api-go/address"
+	"github.com/NavExplorer/navexplorer-api-go/block"
 )
 
 func setupRouter() *gin.Engine {
@@ -14,13 +15,18 @@ func setupRouter() *gin.Engine {
 	})
 
 	api := r.Group("/api")
-	addressGroup := api.Group("/address")
-	{
-		addressController := new (address.Controller)
-		addressGroup.GET("/", addressController.GetAddresses)
-		addressGroup.GET("/:hash", addressController.GetAddress)
-		addressGroup.GET("/:hash/tx", addressController.GetAddressTransactions)
-	}
+	addressController := new (address.Controller)
+	api.GET("/address", addressController.GetAddresses)
+	api.GET("/address/:hash", addressController.GetAddress)
+	api.GET("/address/:hash/tx", addressController.GetTransactions)
+
+	blockController := new (block.Controller)
+	api.GET("/block", blockController.GetBlocks)
+	api.GET("/block/:hash", blockController.GetBlock)
+	api.GET("/block/:hash/tx", blockController.GetBlockTransactions)
+
+	api.GET("/tx", blockController.GetTransactions)
+	api.GET("/tx/:hash", blockController.GetTransaction)
 
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Resource Not Found"})
