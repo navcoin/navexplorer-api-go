@@ -48,7 +48,7 @@ func (controller *Controller) GetAddress(c *gin.Context) {
 	}
 }
 
-func (controller *Controller) GetAddressTransactions(c *gin.Context) {
+func (controller *Controller) GetTransactions(c *gin.Context) {
 	hash := c.Param("hash")
 	types := strings.Split(c.Query("types"), ",")
 	dir := c.DefaultQuery("dir", "DESC")
@@ -58,9 +58,9 @@ func (controller *Controller) GetAddressTransactions(c *gin.Context) {
 		size = 100
 	}
 
-	offset := c.Query("offset")
+	offset := c.DefaultQuery("offset", "")
 
-	transactions, _ := service.GetAddressTransactions(hash, types, dir, size, offset)
+	transactions, _ := service.GetTransactions(hash, dir, size, offset, types)
 
 	if transactions == nil {
 		transactions = make([]Transaction, 0)

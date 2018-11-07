@@ -29,7 +29,7 @@ func (r *Repository) GetRichListPosition(address Address) (count int) {
 	return count
 }
 
-func (r *Repository) FindTransactionsByAddress(address string, types []string, dir string, size int, offset string) (txs []Transaction, err error) {
+func (r *Repository) FindTransactionsByAddress(address string, dir string, size int, offset string, types []string) (txs []Transaction, err error) {
 	c := db.NewConnection().Use("addressTransaction")
 
 	conditions := make(bson.M, 0)
