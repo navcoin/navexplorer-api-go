@@ -41,7 +41,10 @@ func (r *Repository) FindTransactionsByAddress(address string, dir string, size 
 
 	conditions := make(bson.M, 0)
 	conditions["address"] = address
-	conditions["type"] = bson.M{"$in": types}
+
+	if len(types) > 0 {
+		conditions["type"] = bson.M{"$in": types}
+	}
 
 	if offset != "" && bson.IsObjectIdHex(offset) {
 		if dir == "ASC" {

@@ -50,7 +50,13 @@ func (controller *Controller) GetAddress(c *gin.Context) {
 
 func (controller *Controller) GetTransactions(c *gin.Context) {
 	hash := c.Param("hash")
-	types := strings.Split(c.Query("types"), ",")
+
+	typesParam := c.DefaultQuery("types", "")
+	types := make([]string, 0)
+	if typesParam != "" {
+		types = strings.Split(typesParam, ",")
+	}
+
 	dir := c.DefaultQuery("dir", "DESC")
 
 	size, sizeErr := strconv.Atoi(c.Query("size"))
