@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"github.com/NavExplorer/navexplorer-api-go/address"
 	"github.com/NavExplorer/navexplorer-api-go/block"
+	"github.com/NavExplorer/navexplorer-api-go/softFork"
 )
 
 func setupRouter() *gin.Engine {
@@ -27,6 +28,9 @@ func setupRouter() *gin.Engine {
 
 	api.GET("/tx", blockController.GetTransactions)
 	api.GET("/tx/:hash", blockController.GetTransaction)
+
+	softForkController := new (softFork.Controller)
+	api.GET("/soft-fork", softForkController.GetSoftForks)
 
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Resource Not Found"})
