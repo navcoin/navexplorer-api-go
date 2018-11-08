@@ -15,14 +15,19 @@ func (r *Repository) FindOneAddressByHash(hash string) (address Address, err err
 }
 
 func (r *Repository) FindTopAddressesOrderByBalanceDesc(count int) (addresses []Address, err error){
-	c := db.NewConnection().Use( "address")
+	dbConnection := db.NewConnection()
+	c := dbConnection.Use( "address")
+	defer dbConnection.Close()
+
 	err = c.Find(bson.M{"balance": bson.M{"$gt": 0}}).Sort("-balance").Limit(count).All(&addresses)
 
 	return addresses, err
 }
 
 func (r *Repository) GetRichListPosition(address Address) (count int) {
-	c := db.NewConnection().Use( "address")
+	dbConnection := db.NewConnection()
+	c := dbConnection.Use( "address")
+	defer dbConnection.Close()
 
 	count, _ = c.Find(bson.M{"balance": bson.M{"$gte": address.Balance}}).Count()
 
@@ -30,7 +35,9 @@ func (r *Repository) GetRichListPosition(address Address) (count int) {
 }
 
 func (r *Repository) FindTransactionsByAddress(address string, dir string, size int, offset string, types []string) (txs []Transaction, err error) {
-	c := db.NewConnection().Use("addressTransaction")
+	dbConnection := db.NewConnection()
+	c := dbConnection.Use( "addressTransaction")
+	defer dbConnection.Close()
 
 	conditions := make(bson.M, 0)
 	conditions["address"] = address
