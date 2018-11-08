@@ -1,6 +1,6 @@
 package softFork
 
-import "github.com/NavExplorer/navexplorer-api-go/service/blockce/block"
+import "github.com/NavExplorer/navexplorer-api-go/service/block"
 
 type Service struct{
 	repository *Repository
