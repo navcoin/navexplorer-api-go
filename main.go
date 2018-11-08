@@ -3,9 +3,9 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"github.com/NavExplorer/navexplorer-api-go/address"
-	"github.com/NavExplorer/navexplorer-api-go/block"
-	"github.com/NavExplorer/navexplorer-api-go/softFork"
+	"github.com/NavExplorer/navexplorer-api-go/service/address"
+	"github.com/NavExplorer/navexplorer-api-go/service/block"
+	"github.com/NavExplorer/navexplorer-api-go/service/softFork"
 )
 
 func setupRouter() *gin.Engine {
