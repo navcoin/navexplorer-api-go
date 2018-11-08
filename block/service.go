@@ -14,6 +14,16 @@ func (s *Service) GetBlocks(dir string, size int, offset string) (blocks []Block
 	return blocks, err
 }
 
+func (s * Service) GetBestBlock() (block Block) {
+	blocks, err := s.GetBlocks("DESC", 1, "")
+
+	if err != nil || blocks == nil {
+		return
+	}
+
+	return blocks[0]
+}
+
 func (s *Service) GetBlockByHashOrHeight(hashOrHeight string) (block Block, err error) {
 	block, err = repository.FindOneBlockByHash(hashOrHeight)
 
