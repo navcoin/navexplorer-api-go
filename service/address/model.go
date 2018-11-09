@@ -19,7 +19,7 @@ type Address struct {
 	Balance          float64       `bson:"balance" json:"balance"`
 	BlockIndex       int           `bson:"blockIndex" json:"blockIndex"`
 
-	RichListPosition *int          `bson:"-" json:"richListPosition"`
+	RichListPosition int           `json:"richListPosition"`
 }
 
 type Transaction struct {
