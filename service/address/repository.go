@@ -34,7 +34,7 @@ func (r *Repository) GetRichListPosition(address Address) (count int) {
 	return count
 }
 
-func (r *Repository) FindTransactionsByAddress(address string, dir string, size int, offset string, types []string) (txs []Transaction, err error) {
+func (r *Repository) FindTransactionsByAddress(address string, dir string, size int, offset string, types []string) (txs []Transaction, total int, err error) {
 	dbConnection := db.NewConnection()
 	c := dbConnection.Use( "addressTransaction")
 	defer dbConnection.Close()
@@ -55,6 +55,8 @@ func (r *Repository) FindTransactionsByAddress(address string, dir string, size 
 	}
 
 	q := c.Find(conditions)
+	total, _ = q.Count()
+
 	if dir == "ASC" {
 		q.Sort("_id")
 	} else {
@@ -65,5 +67,5 @@ func (r *Repository) FindTransactionsByAddress(address string, dir string, size 
 
 	err = q.All(&txs)
 
-	return txs, err
+	return txs, total, err
 }
