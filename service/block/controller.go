@@ -1,6 +1,7 @@
 package block
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"fmt"
 	"strconv"
@@ -23,14 +24,11 @@ func (controller *Controller) GetBlocks(c *gin.Context) {
 
 	blocks, paginator, _ := service.GetBlocks(dir, size, offset)
 
-	if size == 1 {
-		c.JSON(200, blocks[0])
-	} else {
-		c.JSON(200, gin.H{
-			"paginator": paginator,
-			"content": blocks,
-		})
-	}
+	pagination, _ := json.Marshal(paginator)
+	c.Writer.Header().Set("X-Pagination", string(pagination))
+
+	c.JSON(200, blocks)
+
 }
 
 func (controller *Controller) GetBlock(c *gin.Context) {

@@ -1,6 +1,7 @@
 package address
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"fmt"
 	"strconv"
@@ -68,8 +69,8 @@ func (controller *Controller) GetTransactions(c *gin.Context) {
 
 	transactions, paginator, _ := service.GetTransactions(hash, dir, size, offset, types)
 
-	c.JSON(200, gin.H{
-		"paginator": paginator,
-		"content": transactions,
-	})
+	pagination, _ := json.Marshal(paginator)
+	c.Writer.Header().Set("X-Pagination", string(pagination))
+
+	c.JSON(200, transactions)
 }
