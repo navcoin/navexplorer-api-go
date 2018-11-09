@@ -8,6 +8,7 @@ type SoftForks struct {
 	FirstBlock      int      `json:"firstBlock"`
 	CurrentBlock    int      `json:"currentBlock"`
 	BlocksRemaining int      `json:"blocksRemaining"`
+	BlocksRequired  int      `json:"blocksRequired"`
 	SoftForks []    SoftFork `json:"softForks"`
 }
 

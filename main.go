@@ -16,6 +16,7 @@ func setupRouter() *gin.Engine {
 	})
 
 	api := r.Group("/api")
+
 	addressController := new (address.Controller)
 	api.GET("/address", addressController.GetAddresses)
 	api.GET("/address/:hash", addressController.GetAddress)
