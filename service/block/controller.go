@@ -16,21 +16,20 @@ func (controller *Controller) GetBlocks(c *gin.Context) {
 
 	size, sizeErr := strconv.Atoi(c.Query("size"))
 	if sizeErr != nil {
-		size = 100
+		size = 50
 	}
 
 	offset := c.DefaultQuery("offset", "")
 
-	blocks, _ := service.GetBlocks(dir, size, offset)
-
-	if blocks == nil {
-		blocks = make([]Block, 0)
-	}
+	blocks, paginator, _ := service.GetBlocks(dir, size, offset)
 
 	if size == 1 {
 		c.JSON(200, blocks[0])
 	} else {
-		c.JSON(200, blocks)
+		c.JSON(200, gin.H{
+			"paginator": paginator,
+			"content": blocks,
+		})
 	}
 }
 

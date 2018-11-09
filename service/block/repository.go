@@ -7,7 +7,7 @@ import (
 
 type Repository struct{}
 
-func (r *Repository) FindBlocks(dir string, size int, offset string) (blocks []Block, err error){
+func (r *Repository) FindBlocks(dir string, size int, offset string) (blocks []Block, total int, err error){
 	dbConnection := db.NewConnection()
 	c := dbConnection.Use( "block")
 	defer dbConnection.Close()
@@ -23,6 +23,8 @@ func (r *Repository) FindBlocks(dir string, size int, offset string) (blocks []B
 	}
 
 	q := c.Find(conditions)
+	total, _ = q.Count()
+
 	if dir == "ASC" {
 		q.Sort("_id")
 	} else {
@@ -33,7 +35,7 @@ func (r *Repository) FindBlocks(dir string, size int, offset string) (blocks []B
 
 	err = q.All(&blocks)
 
-	return blocks, err
+	return blocks, total, err
 }
 
 func (r *Repository) FindOneBlockByHash(hash string) (block Block, err error) {

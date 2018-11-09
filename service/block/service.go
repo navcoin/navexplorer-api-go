@@ -1,6 +1,9 @@
 package block
 
-import "strconv"
+import (
+	"github.com/NavExplorer/navexplorer-api-go/db/pagination"
+	"strconv"
+)
 
 type Service struct{
 	repository *Repository
@@ -8,14 +11,16 @@ type Service struct{
 
 var repository = new(Repository)
 
-func (s *Service) GetBlocks(dir string, size int, offset string) (blocks []Block, err error) {
-	blocks, err = repository.FindBlocks(dir, size, offset)
+func (s *Service) GetBlocks(dir string, size int, offset string) (blocks []Block, paginator pagination.Paginator, err error) {
+	blocks, total, err := repository.FindBlocks(dir, size, offset)
 
-	return blocks, err
+	paginator = pagination.NewPaginator(len(blocks), total, size, dir, offset)
+
+	return blocks, paginator, err
 }
 
 func (s * Service) GetBestBlock() (block Block) {
-	blocks, err := s.GetBlocks("DESC", 1, "")
+	blocks, _, err := s.GetBlocks("DESC", 1, "")
 
 	if err != nil || blocks == nil {
 		return
