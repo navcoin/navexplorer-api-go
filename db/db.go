@@ -1,6 +1,9 @@
 package db
 
-import "github.com/globalsign/mgo"
+import (
+	"github.com/NavExplorer/navexplorer-api-go/config"
+	"github.com/globalsign/mgo"
+)
 
 type DBConnection struct {
 	session *mgo.Session
