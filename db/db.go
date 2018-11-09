@@ -9,8 +9,9 @@ type DBConnection struct {
 	session *mgo.Session
 }
 
-var server = "127.0.0.1"
-var dbName = "testnet"
+var server = config.Get().Database.Host
+var dbName = config.Get().Database.Name
+
 
 func NewConnection() (conn *DBConnection) {
 	session, err := mgo.Dial(server)
