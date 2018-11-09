@@ -8,7 +8,10 @@ import (
 type Repository struct{}
 
 func (r *Repository) FindOneAddressByHash(hash string) (address Address, err error) {
-	c := db.NewConnection().Use("address")
+	dbConnection := db.NewConnection()
+	c := dbConnection.Use("address")
+	defer dbConnection.Close()
+
 	err = c.Find(bson.M{"hash": hash}).One(&address)
 
 	return address, err
