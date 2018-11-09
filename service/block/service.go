@@ -43,20 +43,21 @@ func (s *Service) GetBlockByHashOrHeight(hashOrHeight string) (block Block, err 
 	return block, err
 }
 
-func (s *Service) GetTransactions(dir string, size int, offset string, types []string) (transactions []Transaction, err error) {
-	transactions, err = repository.FindTransactions(dir, size, offset, types)
+func (s *Service) GetTransactions(dir string, size int, offset string, types []string) (transactions []Transaction, paginator pagination.Paginator, err error) {
+	transactions, total, err := repository.FindTransactions(dir, size, offset, types)
+	if transactions == nil {
+		transactions = make([]Transaction, 0)
+	}
 
-	return transactions, err
+	paginator = pagination.NewPaginator(len(transactions), total, size, dir, offset)
+
+	return transactions, paginator, err
 }
 
-func (s *Service) GetTransactionsByBlock(hash string) (transactions []Transaction, err error) {
-	transactions, err = repository.FindAllTransactionsByBlockHash(hash)
-
-	return transactions, err
+func (s *Service) GetTransactionsByHash(hash string) (transactions []Transaction, err error) {
+	return repository.FindAllTransactionsByBlockHash(hash)
 }
 
 func (s *Service) GetTransactionByHash(hash string) (transaction Transaction, err error) {
-	transaction, err = repository.FindOneTransactionByHash(hash)
-
-	return transaction, err
+	return repository.FindOneTransactionByHash(hash)
 }

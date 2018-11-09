@@ -50,18 +50,18 @@ type Transaction struct {
 
 type Input struct {
 	Index               int      `bson:"index" json:"index"`
-	Addresses           []string `bson:"addresses" json:"addresses,omitempty"`
+	Addresses           []string `bson:"addresses" json:"addresses"`
 	Amount              float64  `bson:"amount" json:"amount"`
-	PreviousOutput      string   `bson:"previousOutput" json:"previousOutput,omitempty"`
-	PreviousOutputBlock int      `bson:"previousOutputBlock" json:"previousOutputBlock,omitempty"`
+	PreviousOutput      string   `bson:"previousOutput" json:"previousOutput"`
+	PreviousOutputBlock int      `bson:"previousOutputBlock" json:"previousOutputBlock"`
 }
 
 type Output struct {
 	Index      int        `bson:"index" json:"index"`
 	Type       string     `bson:"type" json:"type"`
-	Addresses  []string   `bson:"addresses" json:"addresses,omitempty"`
+	Addresses  []string   `bson:"addresses" json:"addresses"`
 	Amount     float64    `bson:"amount" json:"amount"`
-	RedeemedIn RedeemedIn `bson:"redeemedIn" json:"redeemedIn,omitempty"`
+	RedeemedIn RedeemedIn `bson:"redeemedIn" json:"redeemedIn"`
 	Hash       string     `bson:"hash" json:"hash,omitempty"`
 }
 

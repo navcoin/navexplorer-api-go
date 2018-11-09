@@ -58,7 +58,7 @@ func (r *Repository) FindOneBlockByHeight(height int) (block Block, err error) {
 	return block, err
 }
 
-func (r *Repository) FindTransactions(dir string, size int, offset string, types []string) (transactions []Transaction, err error){
+func (r *Repository) FindTransactions(dir string, size int, offset string, types []string) (transactions []Transaction, total int, err error){
 	dbConnection := db.NewConnection()
 	c := dbConnection.Use( "blockTransaction")
 	defer dbConnection.Close()
@@ -75,6 +75,8 @@ func (r *Repository) FindTransactions(dir string, size int, offset string, types
 	}
 
 	q := c.Find(conditions)
+	total, _ = q.Count()
+
 	if dir == "ASC" {
 		q.Sort("_id")
 	} else {
@@ -85,15 +87,15 @@ func (r *Repository) FindTransactions(dir string, size int, offset string, types
 
 	err = q.All(&transactions)
 
-	return transactions, err
+	return transactions, total, err
 }
 
-func (r *Repository) FindAllTransactionsByBlockHash(hash string) (transactions []Transaction, err error) {
+func (r *Repository) FindAllTransactionsByBlockHash(blockHash string) (transactions []Transaction, err error) {
 	dbConnection := db.NewConnection()
 	c := dbConnection.Use( "blockTransaction")
 	defer dbConnection.Close()
 
-	err = c.Find(bson.M{"blockHash": hash}).Sort("id").All(&transactions)
+	err = c.Find(bson.M{"blockHash": blockHash}).Sort("id").All(&transactions)
 
 	return transactions, err
 }
