@@ -34,6 +34,12 @@ func setupRouter() *gin.Engine {
 	api.GET("/tx", blockController.GetTransactions)
 	api.GET("/tx/:hash", blockController.GetTransaction)
 
+	communityFundController := new (communityFund.Controller)
+	api.GET("/community-fund/block-cycle", communityFundController.GetBlockCycle)
+	api.GET("/community-fund/proposal", communityFundController.GetProposals)
+	api.GET("/community-fund/proposal/:hash", communityFundController.GetProposal)
+	api.GET("/community-fund/proposal/:hash/payment-request", communityFundController.GetPaymentRequests)
+
 	softForkController := new (softFork.Controller)
 	api.GET("/soft-fork", softForkController.GetSoftForks)
 
