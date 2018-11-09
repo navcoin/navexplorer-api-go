@@ -51,7 +51,7 @@ func (controller *Controller) GetAddress(c *gin.Context) {
 func (controller *Controller) GetTransactions(c *gin.Context) {
 	hash := c.Param("hash")
 
-	typesParam := c.DefaultQuery("types", "")
+	typesParam := c.DefaultQuery("filters", "")
 	types := make([]string, 0)
 	if typesParam != "" {
 		types = strings.Split(typesParam, ",")
@@ -61,16 +61,15 @@ func (controller *Controller) GetTransactions(c *gin.Context) {
 
 	size, sizeErr := strconv.Atoi(c.Query("size"))
 	if sizeErr != nil {
-		size = 100
+		size = 50
 	}
 
 	offset := c.DefaultQuery("offset", "")
 
-	transactions, _ := service.GetTransactions(hash, dir, size, offset, types)
+	transactions, paginator, _ := service.GetTransactions(hash, dir, size, offset, types)
 
-	if transactions == nil {
-		transactions = make([]Transaction, 0)
-	}
-
-	c.JSON(200, transactions)
+	c.JSON(200, gin.H{
+		"paginator": paginator,
+		"content": transactions,
+	})
 }
