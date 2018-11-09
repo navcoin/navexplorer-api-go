@@ -9,7 +9,6 @@ type Repository struct{}
 
 func (r *Repository) FindAll() (softForks []SoftFork, err error) {
 	dbConnection := db.NewConnection()
-
 	c := dbConnection.Use("softFork")
 	err = c.Find(bson.M{}).Sort("signalBit").All(&softForks)
 
