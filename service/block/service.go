@@ -32,6 +32,9 @@ func (s *Service) GetBlockByHashOrHeight(hashOrHeight string) (block Block, err 
 		block, err = repository.FindOneBlockByHeight(height)
 	}
 
+	bestBlock := service.GetBestBlock()
+	block.Confirmations = (bestBlock.Height - block.Height) + 1
+
 	return block, err
 }
 
