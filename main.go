@@ -4,11 +4,11 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/config"
 	"github.com/NavExplorer/navexplorer-api-go/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/service/block"
+	"github.com/NavExplorer/navexplorer-api-go/service/communityFund"
 	"github.com/NavExplorer/navexplorer-api-go/service/softFork"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"os"
 )
 
 func setupRouter() *gin.Engine {
@@ -46,12 +46,6 @@ func setupRouter() *gin.Engine {
 
 func main() {
 	r := setupRouter()
-
-	var env = "dev"
-	if len(os.Args) > 1 {
-		env = os.Args[1]
-	}
-	config.Init(env)
 
 	r.Run(":" + config.Get().Server.Port)
 }
