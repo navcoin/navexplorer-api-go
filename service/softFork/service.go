@@ -1,29 +1,39 @@
 package softFork
 
-import "github.com/NavExplorer/navexplorer-api-go/service/block"
+import (
+	"encoding/json"
+	"github.com/NavExplorer/navexplorer-api-go/config"
+	"github.com/NavExplorer/navexplorer-api-go/elasticsearch"
+	"github.com/NavExplorer/navexplorer-api-go/service/block"
+	"log"
+)
 
-type Service struct{
-	repository *Repository
-}
+var IndexSoftFork = config.Get().Network + ".softfork"
 
-var repository = new(Repository)
-var blocksInCycle = 20160
+func GetSoftForks() (softForks SoftForks, err error) {
+	client := elasticsearch.NewClient()
 
-var blockService = new(block.Service)
+	results, err := client.Search().Index(IndexSoftFork).Do()
 
-func (s *Service) GetSoftForks() (softForks SoftForks, err error) {
-	softFork, err := repository.FindAll()
-	if softFork == nil {
-		softFork = make([]SoftFork, 0)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	softForks.SoftForks = softFork
-	softForks.BlocksInCycle = blocksInCycle
-	softForks.CurrentBlock = blockService.GetBestBlock().Height
-	softForks.BlockCycle = (softForks.CurrentBlock) / (blocksInCycle) + 1
-	softForks.FirstBlock = (softForks.CurrentBlock / blocksInCycle) * blocksInCycle
-	softForks.BlocksRemaining = softForks.FirstBlock + blocksInCycle - softForks.CurrentBlock
-	softForks.BlocksRequired = int(float64(softForks.BlocksInCycle) * float64(0.75))
+	bestBlock, _ := block.GetBestBlock()
+
+	softForks.BlocksInCycle = config.Get().SoftFork.BlocksInCycle
+	softForks.CurrentBlock = bestBlock.Height
+	softForks.BlockCycle = (softForks.CurrentBlock) / (softForks.BlocksInCycle) + 1
+	softForks.FirstBlock = (softForks.CurrentBlock / softForks.BlocksInCycle) * softForks.BlocksInCycle
+	softForks.BlocksRemaining = softForks.FirstBlock + softForks.BlocksInCycle - softForks.CurrentBlock
+
+	for _, hit := range results.Hits.Hits {
+		var softFork SoftFork
+		err := json.Unmarshal(*hit.Source, &softFork)
+		if err == nil {
+			softForks.SoftForks = append(softForks.SoftForks, softFork)
+		}
+	}
 
 	return softForks, err
 }
