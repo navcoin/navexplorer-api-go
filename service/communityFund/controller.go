@@ -27,6 +27,9 @@ func (controller *Controller) GetProposals(c *gin.Context) {
 	}
 
 	proposals, total, _ := GetProposalsByState(c.Query("state"), size, dir == "ASC", offset)
+	if proposals == nil {
+		proposals = make([]Proposal, 0)
+	}
 
 	paginator := pagination.NewPaginator(len(proposals), total, size, dir == "ASC", offset)
 	c.Writer.Header().Set("X-Pagination", string(paginator.GetHeader()))
