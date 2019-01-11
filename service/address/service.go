@@ -73,6 +73,7 @@ func GetTransactions(address string, types string, size int, ascending bool, off
 
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewMatchQuery("address", address))
+	query = query.MustNot(elastic.NewTermQuery("standard", false))
 
 	if len(types) != 0 {
 		query = query.Must(elastic.NewMatchQuery("type", types))
