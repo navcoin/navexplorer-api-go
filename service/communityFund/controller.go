@@ -77,6 +77,9 @@ func (controller *Controller) GetProposalPaymentRequests(c *gin.Context) {
 
 func (controller *Controller) GetPaymentRequestsByState(c *gin.Context) {
 	paymentRequests, _ := GetPaymentRequestsByState(c.Query("state"))
+	if paymentRequests == nil {
+		paymentRequests = make([]PaymentRequest, 0)
+	}
 
 	c.JSON(200, paymentRequests)
 }
