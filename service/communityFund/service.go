@@ -171,7 +171,6 @@ func GetPaymentRequestsByState(state string) (paymentRequests []PaymentRequest, 
 
 	for _, hit := range results.Hits.Hits {
 		var paymentRequest PaymentRequest
-		log.Print(*hit.Source)
 		err := json.Unmarshal(*hit.Source, &paymentRequest)
 		if err == nil {
 			paymentRequests = append(paymentRequests, paymentRequest)
