@@ -1,24 +1,22 @@
 package address
 
 import (
-	"encoding/json"
-	"github.com/gin-gonic/gin"
 	"fmt"
+	"github.com/NavExplorer/navexplorer-api-go/pagination"
+	"github.com/gin-gonic/gin"
 	"strconv"
 	"strings"
 )
 
-var service = new(Service)
-
 type Controller struct{}
 
 func (controller *Controller) GetAddresses(c *gin.Context) {
-	count, err := strconv.Atoi(c.Request.URL.Query().Get("count"))
+	size, err := strconv.Atoi(c.Request.URL.Query().Get("size"))
 	if err != nil {
-		count = 100
+		size = 100
 	}
 
-	addresses, err := service.GetAddresses(count)
+	addresses, err := GetAddresses(size)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -35,7 +33,7 @@ func (controller *Controller) GetAddresses(c *gin.Context) {
 func (controller *Controller) GetAddress(c *gin.Context) {
 	hash := c.Param("hash")
 
-	address, err := service.GetAddress(hash)
+	address, err := GetAddress(hash)
 
 	if err != nil {
 		c.JSON(404, gin.H{
@@ -52,10 +50,10 @@ func (controller *Controller) GetAddress(c *gin.Context) {
 func (controller *Controller) GetTransactions(c *gin.Context) {
 	hash := c.Param("hash")
 
-	typesParam := c.DefaultQuery("filters", "")
-	types := make([]string, 0)
-	if typesParam != "" {
-		types = strings.Split(typesParam, ",")
+	filtersParam := c.DefaultQuery("filters", "")
+	filters := make([]string, 0)
+	if filtersParam != "" {
+		filters = strings.Split(filtersParam, ",")
 	}
 
 	dir := c.DefaultQuery("dir", "DESC")
@@ -65,12 +63,15 @@ func (controller *Controller) GetTransactions(c *gin.Context) {
 		size = 50
 	}
 
-	offset := c.DefaultQuery("offset", "")
+	offset, err := strconv.Atoi(c.DefaultQuery("offset", ""))
+	if err != nil {
+		offset = 0
+	}
 
-	transactions, paginator, _ := service.GetTransactions(hash, dir, size, offset, types)
+	transactions, total, _ := GetTransactions(hash, strings.Join(filters, " "), size, dir == "ASC", offset)
 
-	pagination, _ := json.Marshal(paginator)
-	c.Writer.Header().Set("X-Pagination", string(pagination))
+	paginator := pagination.NewPaginator(len(transactions), total, size, dir == "ASC", offset)
+	c.Writer.Header().Set("X-Pagination", string(paginator.GetHeader()))
 
 	c.JSON(200, transactions)
 }
