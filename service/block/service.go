@@ -1,63 +1,165 @@
 package block
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/db/pagination"
+	"encoding/json"
+	"errors"
+	"github.com/NavExplorer/navexplorer-api-go/config"
+	"github.com/NavExplorer/navexplorer-api-go/elasticsearch"
+	"github.com/olivere/elastic"
+	"log"
 	"strconv"
 )
 
-type Service struct{
-	repository *Repository
-}
+var IndexBlock = config.Get().Network + ".block"
+var IndexBlockTransaction = config.Get().Network + ".blocktransaction"
 
-var repository = new(Repository)
+func GetBlocks(size int, ascending bool, offset int) (blocks []Block, total int64, err error) {
+	client := elasticsearch.NewClient()
 
-func (s *Service) GetBlocks(dir string, size int, offset string) (blocks []Block, paginator pagination.Paginator, err error) {
-	blocks, total, err := repository.FindBlocks(dir, size, offset)
-
-	paginator = pagination.NewPaginator(len(blocks), total, size, dir, offset)
-
-	return blocks, paginator, err
-}
-
-func (s * Service) GetBestBlock() (block Block) {
-	blocks, _, err := s.GetBlocks("DESC", 1, "")
-
-	if err != nil || blocks == nil {
-		return
+	if size > 1000 {
+		size = 1000
 	}
 
-	return blocks[0]
-}
+	var offsetQuery elastic.RangeQuery
+	if ascending == false && offset > 0 {
+		offsetQuery = elastic.NewRangeQuery("height").Lt(offset)
+	} else {
+		offsetQuery = elastic.NewRangeQuery("height").Gt(offset)
+	}
 
-func (s *Service) GetBlockByHashOrHeight(hashOrHeight string) (block Block, err error) {
-	block, err = repository.FindOneBlockByHash(hashOrHeight)
+	results, err := client.Search().Index(IndexBlock).
+		Query(offsetQuery).
+		Sort("height", ascending).
+		Size(size).
+		Do()
 
 	if err != nil {
-		height, _ := strconv.Atoi(hashOrHeight)
-		block, err = repository.FindOneBlockByHeight(height)
+		log.Print(err)
 	}
 
-	bestBlock := service.GetBestBlock()
-	block.Confirmations = (bestBlock.Height - block.Height) + 1
+	bestBlock, err := GetBestBlock()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, hit := range results.Hits.Hits {
+		var block Block
+		err := json.Unmarshal(*hit.Source, &block)
+		if err == nil {
+			block.Confirmations = bestBlock.Height - block.Height + 1
+			blocks = append(blocks, block)
+		}
+	}
+
+	return blocks, results.Hits.TotalHits, err
+}
+
+func GetBlockByHashOrHeight(hash string) (block Block, err error) {
+	block, err = GetBlockByHash(hash)
+	if err != nil {
+		height, _ := strconv.Atoi(hash)
+		block, err = GetBlockByHeight(height)
+	}
+
+	bestBlock, err := GetBestBlock()
+	if err != nil {
+		panic(err)
+	}
+
+	block.Confirmations = bestBlock.Height - block.Height + 1
 
 	return block, err
 }
 
-func (s *Service) GetTransactions(dir string, size int, offset string, types []string) (transactions []Transaction, paginator pagination.Paginator, err error) {
-	transactions, total, err := repository.FindTransactions(dir, size, offset, types)
-	if transactions == nil {
-		transactions = make([]Transaction, 0)
+func GetBlockByHash(hash string) (block Block, err error) {
+	client := elasticsearch.NewClient()
+
+	results, _ := client.Search().Index(IndexBlock).
+		Query(elastic.NewTermQuery("hash", hash)).
+		Size(1).
+		Do()
+
+	if results.TotalHits() == 0 {
+		return block, errors.New("block not found")
 	}
 
-	paginator = pagination.NewPaginator(len(transactions), total, size, dir, offset)
+	hit := results.Hits.Hits[0]
+	err = json.Unmarshal(*hit.Source, &block)
 
-	return transactions, paginator, err
+	return block, err
 }
 
-func (s *Service) GetTransactionsByHash(hash string) (transactions []Transaction, err error) {
-	return repository.FindAllTransactionsByBlockHash(hash)
+func GetBlockByHeight(height int) (block Block, err error) {
+	client := elasticsearch.NewClient()
+
+	results, _ := client.Search().Index(IndexBlock).
+		Query(elastic.NewTermQuery("height", height)).
+		Size(1).
+		Do()
+
+	if results.TotalHits() == 0 {
+		return block, errors.New("block not found")
+	}
+
+	hit := results.Hits.Hits[0]
+	err = json.Unmarshal(*hit.Source, &block)
+
+	return block, err
 }
 
-func (s *Service) GetTransactionByHash(hash string) (transaction Transaction, err error) {
-	return repository.FindOneTransactionByHash(hash)
+func GetBestBlock() (block Block, err error) {
+	client := elasticsearch.NewClient()
+
+	results, _ := client.Search().Index(IndexBlock).
+		Sort("height", false).
+		Size(1).
+		Do()
+
+	if results.TotalHits() == 0 {
+		return block, errors.New("block not found")
+	}
+
+	hit := results.Hits.Hits[0]
+	err = json.Unmarshal(*hit.Source, &block)
+
+	return block, err
+}
+
+func GetTransactionsByHash(blockHash string) (transactions []Transaction, err error) {
+	client := elasticsearch.NewClient()
+
+	results, _ := client.Search().Index(IndexBlockTransaction).
+		Query(elastic.NewTermQuery("blockHash", blockHash)).
+		Do()
+
+	if results.Hits.TotalHits == 0 {
+		return make([]Transaction, 0), err
+	}
+
+	for _, hit := range results.Hits.Hits {
+		var transaction Transaction
+		err := json.Unmarshal(*hit.Source, &transaction)
+		if err != nil {
+		}
+
+		transactions = append(transactions, transaction)
+	}
+
+	return transactions, err
+}
+
+func GetTransactionByHash(hash string) (transaction Transaction, err error) {
+	client := elasticsearch.NewClient()
+
+	results, _ := client.Search().Index(IndexBlockTransaction).
+		Query(elastic.NewTermQuery("hash", hash)).
+		Size(1).
+		Do()
+
+	if results.TotalHits() == 1 {
+		hit := results.Hits.Hits[0]
+		err = json.Unmarshal(*hit.Source, &transaction)
+	}
+
+	return transaction, err
 }
