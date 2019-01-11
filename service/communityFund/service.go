@@ -1,30 +1,34 @@
 package communityFund
 
 import (
+	"encoding/json"
+	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/config"
+	"github.com/NavExplorer/navexplorer-api-go/elasticsearch"
 	"github.com/NavExplorer/navexplorer-api-go/service/block"
+	"github.com/olivere/elastic"
+	"log"
 )
 
-type Service struct{
-	repository *Repository
-}
+var IndexProposal = config.Get().Network + ".communityfundproposal"
+var IndexProposalVote = config.Get().Network + ".communityfundproposalvote"
+var IndexPaymentRequest = config.Get().Network + ".communityfundpaymentrequest"
+var IndexPaymentRequestVote = config.Get().Network + ".communityfundpaymentrequestvote"
 
-var repository = new(Repository)
+func GetBlockCycle() (blockCycle BlockCycle) {
+	communityFund := config.Get().CommunityFund
 
-var blockService = new(block.Service)
+	blockCycle.BlocksInCycle = communityFund.BlocksInCycle
+	blockCycle.MinQuorum = communityFund.MinQuorum
+	blockCycle.ProposalVoting.Cycles = communityFund.ProposalVoting.Cycles
+	blockCycle.ProposalVoting.Accept = communityFund.ProposalVoting.Accept
+	blockCycle.ProposalVoting.Reject = communityFund.ProposalVoting.Reject
+	blockCycle.PaymentVoting.Cycles = communityFund.PaymentVoting.Cycles
+	blockCycle.PaymentVoting.Accept = communityFund.PaymentVoting.Accept
+	blockCycle.PaymentVoting.Reject = communityFund.PaymentVoting.Reject
 
-func (s *Service) GetBlockCycle() (blockCycle BlockCycle) {
-	cfConfig := config.Get().CommunityFund
-
-	blockCycle.BlocksInCycle = cfConfig.BlocksInCycle
-	blockCycle.MinQuorum = cfConfig.MinQuorum
-	blockCycle.ProposalVoting.Cycles = cfConfig.ProposalVoting.Cycles
-	blockCycle.ProposalVoting.Accept = cfConfig.ProposalVoting.Accept
-	blockCycle.ProposalVoting.Reject = cfConfig.ProposalVoting.Reject
-	blockCycle.PaymentVoting.Cycles = cfConfig.PaymentVoting.Cycles
-	blockCycle.PaymentVoting.Accept = cfConfig.PaymentVoting.Accept
-	blockCycle.PaymentVoting.Reject = cfConfig.PaymentVoting.Reject
-	blockCycle.Height = blockService.GetBestBlock().Height
+	bestBlock, _ := block.GetBestBlock()
+	blockCycle.Height = bestBlock.Height
 
 	blockCycle.Cycle = (blockCycle.Height) / (blockCycle.BlocksInCycle) + 1
 	blockCycle.FirstBlock = (blockCycle.Height / blockCycle.BlocksInCycle) * blockCycle.BlocksInCycle
@@ -34,24 +38,196 @@ func (s *Service) GetBlockCycle() (blockCycle BlockCycle) {
 	return blockCycle
 }
 
-func (s *Service) GetProposalsByState(state string) (proposals []Proposal, err error) {
-	proposals, err = repository.FindProposalsByState(state)
-	if proposals == nil {
-		proposals = make([]Proposal, 0)
+func GetProposalsByState(state string, size int, ascending bool, offset int) (proposals []Proposal, total int64, err error) {
+	client := elasticsearch.NewClient()
+
+	query := elastic.NewBoolQuery()
+	if state != "" {
+		query = query.Must(elastic.NewMatchQuery("state", state))
 	}
 
-	return proposals, err
+	if ascending == false && offset > 0 {
+		query = query.Must(elastic.NewRangeQuery("height").Lt(offset))
+	} else {
+		query = query.Must(elastic.NewRangeQuery("height").Gt(offset))
+	}
+
+	results, err := client.Search().Index(IndexProposal).
+		Pretty(true).
+		Query(query).
+		Sort("height", ascending).
+		Size(size).
+		Do()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, hit := range results.Hits.Hits {
+		var proposal Proposal
+		err := json.Unmarshal(*hit.Source, &proposal)
+		if err == nil {
+			proposals = append(proposals, proposal)
+		}
+	}
+
+	return proposals, results.Hits.TotalHits, err
 }
 
-func (s *Service) GetProposalByHash(hash string) (proposal Proposal, err error) {
-	return repository.FindProposalByHash(hash)
+func GetProposalByHash(hash string) (proposal Proposal, err error) {
+	client := elasticsearch.NewClient()
+
+	results, _ := client.Search(IndexProposal).
+		Query(elastic.NewMatchQuery("hash", hash)).
+		Size(1).
+		Do()
+
+	if results.TotalHits() == 0 {
+		return proposal, errors.New("proposal not found")
+	}
+
+	hit := results.Hits.Hits[0]
+	err = json.Unmarshal(*hit.Source, &proposal)
+
+	return proposal, err
 }
 
-func (s *Service) GetPaymentRequests(proposalHash string) (paymentRequests []PaymentRequest, err error) {
-	paymentRequests, err = repository.FindPaymentRequestsByProposalHash(proposalHash)
-	if paymentRequests == nil {
-		paymentRequests = make([]PaymentRequest, 0)
+func GetProposalPaymentRequests(hash string) (paymentRequests []PaymentRequest, err error) {
+	client := elasticsearch.NewClient()
+
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewMatchQuery("proposalHash", hash))
+
+	results, err := client.Search().Index(IndexPaymentRequest).
+		Query(query).
+		Do()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, hit := range results.Hits.Hits {
+		var paymentRequest PaymentRequest
+		err := json.Unmarshal(*hit.Source, &paymentRequest)
+		if err == nil {
+			paymentRequests = append(paymentRequests, paymentRequest)
+		}
 	}
 
 	return paymentRequests, err
+}
+
+func GetProposalVotes(hash string, vote bool) (votes []Votes, err error) {
+	client := elasticsearch.NewClient()
+
+	blockCycle := GetBlockCycle()
+
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewMatchQuery("proposal", hash))
+	query = query.Must(elastic.NewMatchQuery("vote", vote))
+	query = query.Must(elastic.NewRangeQuery("height").Gte(blockCycle.FirstBlock))
+
+	aggregation := elastic.NewTermsAggregation().Field("address").OrderByCountDesc().Size(2147483647)
+
+	results, err := client.Search(IndexProposalVote).
+		Query(query).
+		Aggregation("address", aggregation).
+		Size(0).
+		Do()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if agg, found := results.Aggregations.Terms("address"); found {
+		for _, bucket := range agg.Buckets {
+			votes = append(votes, Votes{
+				Address: bucket.Key.(string),
+				Votes: bucket.DocCount,
+			})
+		}
+	}
+
+	return votes, err
+}
+
+func GetPaymentRequestsByState(state string) (paymentRequests []PaymentRequest, err error) {
+	client := elasticsearch.NewClient()
+
+	query := elastic.NewBoolQuery()
+	if state != "" {
+		query = query.Must(elastic.NewMatchQuery("state", state))
+	}
+
+	results, err := client.Search().Index(IndexPaymentRequest).
+		Query(query).
+		Sort("createdAt", false).
+		Do()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, hit := range results.Hits.Hits {
+		var paymentRequest PaymentRequest
+		log.Print(*hit.Source)
+		err := json.Unmarshal(*hit.Source, &paymentRequest)
+		if err == nil {
+			paymentRequests = append(paymentRequests, paymentRequest)
+		}
+	}
+
+	return paymentRequests, err
+}
+
+func GetPaymentRequestByHash(hash string) (paymentRequest PaymentRequest, err error) {
+	client := elasticsearch.NewClient()
+
+	results, _ := client.Search(IndexPaymentRequest).
+		Query(elastic.NewMatchQuery("hash", hash)).
+		Size(1).
+		Do()
+
+	if results.TotalHits() == 0 {
+		return paymentRequest, errors.New("payment request not found")
+	}
+
+	hit := results.Hits.Hits[0]
+	err = json.Unmarshal(*hit.Source, &paymentRequest)
+
+	return paymentRequest, err
+}
+
+func GetPaymentRequestVotes(hash string, vote bool) (votes []Votes, err error) {
+	client := elasticsearch.NewClient()
+
+	blockCycle := GetBlockCycle()
+
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewMatchQuery("paymentRequest", hash))
+	query = query.Must(elastic.NewMatchQuery("vote", vote))
+	query = query.Must(elastic.NewRangeQuery("height").Gte(blockCycle.FirstBlock))
+
+	aggregation := elastic.NewTermsAggregation().Field("address").OrderByCountDesc().Size(2147483647)
+
+	results, err := client.Search(IndexPaymentRequestVote).
+		Query(query).
+		Aggregation("address", aggregation).
+		Size(0).
+		Do()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if agg, found := results.Aggregations.Terms("address"); found {
+		for _, bucket := range agg.Buckets {
+			votes = append(votes, Votes{
+				Address: bucket.Key.(string),
+				Votes: bucket.DocCount,
+			})
+		}
+	}
+
+	return votes, err
 }
