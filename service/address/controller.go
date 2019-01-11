@@ -69,6 +69,9 @@ func (controller *Controller) GetTransactions(c *gin.Context) {
 	}
 
 	transactions, total, _ := GetTransactions(hash, strings.Join(filters, " "), size, dir == "ASC", offset)
+	if transactions == nil {
+		transactions = make([]Transaction, 0)
+	}
 
 	paginator := pagination.NewPaginator(len(transactions), total, size, dir == "ASC", offset)
 	c.Writer.Header().Set("X-Pagination", string(paginator.GetHeader()))
