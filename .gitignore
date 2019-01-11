@@ -13,3 +13,5 @@
 
 vendor/*
 !vendor/vendor.json
+
+*-linux-amd64
