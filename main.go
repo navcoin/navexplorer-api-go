@@ -30,15 +30,20 @@ func setupRouter() *gin.Engine {
 	api.GET("/block", blockController.GetBlocks)
 	api.GET("/block/:hash", blockController.GetBlock)
 	api.GET("/block/:hash/tx", blockController.GetBlockTransactions)
-
-	api.GET("/tx", blockController.GetTransactions)
 	api.GET("/tx/:hash", blockController.GetTransaction)
 
 	communityFundController := new (communityFund.Controller)
 	api.GET("/community-fund/block-cycle", communityFundController.GetBlockCycle)
 	api.GET("/community-fund/proposal", communityFundController.GetProposals)
 	api.GET("/community-fund/proposal/:hash", communityFundController.GetProposal)
-	api.GET("/community-fund/proposal/:hash/payment-request", communityFundController.GetPaymentRequests)
+	api.GET("/community-fund/proposal/:hash/vote/:vote", communityFundController.GetProposalVotes)
+	api.GET("/community-fund/proposal/:hash/payment-request", communityFundController.GetProposalPaymentRequests)
+	api.GET("/community-fund/payment-request", communityFundController.GetPaymentRequestsByState)
+	api.GET("/community-fund/payment-request/:hash", communityFundController.GetPaymentRequestByHash)
+	api.GET("/community-fund/payment-request/:hash/vote/:vote", communityFundController.GetPaymentRequestVotes)
+
+	//groupController := new (group.Controller)
+	//api.GET("/group/block/{category}/{count}", groupController.GetBlockGroup)
 
 	softForkController := new (softFork.Controller)
 	api.GET("/soft-fork", softForkController.GetSoftForks)
@@ -52,6 +57,5 @@ func setupRouter() *gin.Engine {
 
 func main() {
 	r := setupRouter()
-
 	r.Run(":" + config.Get().Server.Port)
 }
