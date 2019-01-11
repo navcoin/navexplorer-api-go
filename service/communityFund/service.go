@@ -1,6 +1,7 @@
 package communityFund
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/config"
@@ -57,7 +58,7 @@ func GetProposalsByState(state string, size int, ascending bool, offset int) (pr
 		Query(query).
 		Sort("height", ascending).
 		Size(size).
-		Do()
+		Do(context.Background())
 
 	if err != nil {
 		log.Fatal(err)
@@ -80,7 +81,7 @@ func GetProposalByHash(hash string) (proposal Proposal, err error) {
 	results, _ := client.Search(IndexProposal).
 		Query(elastic.NewMatchQuery("hash", hash)).
 		Size(1).
-		Do()
+		Do(context.Background())
 
 	if results.TotalHits() == 0 {
 		return proposal, errors.New("proposal not found")
@@ -100,7 +101,7 @@ func GetProposalPaymentRequests(hash string) (paymentRequests []PaymentRequest, 
 
 	results, err := client.Search().Index(IndexPaymentRequest).
 		Query(query).
-		Do()
+		Do(context.Background())
 
 	if err != nil {
 		log.Fatal(err)
@@ -133,7 +134,7 @@ func GetProposalVotes(hash string, vote bool) (votes []Votes, err error) {
 		Query(query).
 		Aggregation("address", aggregation).
 		Size(0).
-		Do()
+		Do(context.Background())
 
 	if err != nil {
 		log.Fatal(err)
@@ -162,7 +163,7 @@ func GetPaymentRequestsByState(state string) (paymentRequests []PaymentRequest, 
 	results, err := client.Search().Index(IndexPaymentRequest).
 		Query(query).
 		Sort("createdAt", false).
-		Do()
+		Do(context.Background())
 
 	if err != nil {
 		log.Fatal(err)
@@ -186,7 +187,7 @@ func GetPaymentRequestByHash(hash string) (paymentRequest PaymentRequest, err er
 	results, _ := client.Search(IndexPaymentRequest).
 		Query(elastic.NewMatchQuery("hash", hash)).
 		Size(1).
-		Do()
+		Do(context.Background())
 
 	if results.TotalHits() == 0 {
 		return paymentRequest, errors.New("payment request not found")
@@ -214,7 +215,7 @@ func GetPaymentRequestVotes(hash string, vote bool) (votes []Votes, err error) {
 		Query(query).
 		Aggregation("address", aggregation).
 		Size(0).
-		Do()
+		Do(context.Background())
 
 	if err != nil {
 		log.Fatal(err)

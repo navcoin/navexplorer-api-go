@@ -1,6 +1,7 @@
 package block
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/config"
@@ -20,7 +21,7 @@ func GetBlocks(size int, ascending bool, offset int) (blocks []Block, total int6
 		size = 1000
 	}
 
-	var offsetQuery elastic.RangeQuery
+	var offsetQuery *elastic.RangeQuery
 	if ascending == false && offset > 0 {
 		offsetQuery = elastic.NewRangeQuery("height").Lt(offset)
 	} else {
@@ -31,7 +32,7 @@ func GetBlocks(size int, ascending bool, offset int) (blocks []Block, total int6
 		Query(offsetQuery).
 		Sort("height", ascending).
 		Size(size).
-		Do()
+		Do(context.Background())
 
 	if err != nil {
 		log.Print(err)
@@ -77,7 +78,7 @@ func GetBlockByHash(hash string) (block Block, err error) {
 	results, _ := client.Search().Index(IndexBlock).
 		Query(elastic.NewTermQuery("hash", hash)).
 		Size(1).
-		Do()
+		Do(context.Background())
 
 	if results.TotalHits() == 0 {
 		return block, errors.New("block not found")
@@ -95,7 +96,7 @@ func GetBlockByHeight(height int) (block Block, err error) {
 	results, _ := client.Search().Index(IndexBlock).
 		Query(elastic.NewTermQuery("height", height)).
 		Size(1).
-		Do()
+		Do(context.Background())
 
 	if results.TotalHits() == 0 {
 		return block, errors.New("block not found")
@@ -113,7 +114,7 @@ func GetBestBlock() (block Block, err error) {
 	results, _ := client.Search().Index(IndexBlock).
 		Sort("height", false).
 		Size(1).
-		Do()
+		Do(context.Background())
 
 	if results.TotalHits() == 0 {
 		return block, errors.New("block not found")
@@ -130,7 +131,7 @@ func GetTransactionsByHash(blockHash string) (transactions []Transaction, err er
 
 	results, _ := client.Search().Index(IndexBlockTransaction).
 		Query(elastic.NewTermQuery("blockHash", blockHash)).
-		Do()
+		Do(context.Background())
 
 	if results.Hits.TotalHits == 0 {
 		return make([]Transaction, 0), err
@@ -154,7 +155,7 @@ func GetTransactionByHash(hash string) (transaction Transaction, err error) {
 	results, _ := client.Search().Index(IndexBlockTransaction).
 		Query(elastic.NewTermQuery("hash", hash)).
 		Size(1).
-		Do()
+		Do(context.Background())
 
 	if results.TotalHits() == 1 {
 		hit := results.Hits.Hits[0]

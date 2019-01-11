@@ -1,6 +1,7 @@
 package address
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/config"
@@ -22,7 +23,7 @@ func GetAddresses(size int) (addresses []Address, err error) {
 	results, err := client.Search().Index(IndexAddress).
 		Sort("balance", false).
 		Size(size).
-		Do()
+		Do(context.Background())
 
 	for index, hit := range results.Hits.Hits {
 		var address Address
@@ -42,7 +43,7 @@ func GetAddress(hash string) (address Address, err error) {
 	results, err := client.Search().Index(IndexAddress).
 		Query(elastic.NewMatchQuery("hash", hash)).
 		Size(1).
-		Do()
+		Do(context.Background())
 
 	if results.TotalHits() == 0 {
 		return address, errors.New("address not found")
@@ -64,7 +65,7 @@ func GetRichListPosition(balance float64) (position int64, err error) {
 
 	return client.Count().Index(IndexAddress).
 		Query(elastic.NewRangeQuery("balance").Gte(balance)).
-		Do()
+		Do(context.Background())
 }
 
 func GetTransactions(address string, types string, size int, ascending bool, offset int) (transactions []Transaction, total int64, err error) {
@@ -87,7 +88,7 @@ func GetTransactions(address string, types string, size int, ascending bool, off
 		Query(query).
 		Sort("height", ascending).
 		Size(size).
-		Do()
+		Do(context.Background())
 
 	if err != nil {
 		log.Print(err)

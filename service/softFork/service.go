@@ -1,6 +1,7 @@
 package softFork
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/NavExplorer/navexplorer-api-go/config"
 	"github.com/NavExplorer/navexplorer-api-go/elasticsearch"
@@ -13,7 +14,7 @@ var IndexSoftFork = config.Get().Network + ".softfork"
 func GetSoftForks() (softForks SoftForks, err error) {
 	client := elasticsearch.NewClient()
 
-	results, err := client.Search().Index(IndexSoftFork).Do()
+	results, err := client.Search().Index(IndexSoftFork).Do(context.Background())
 
 	if err != nil {
 		log.Fatal(err)
