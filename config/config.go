@@ -8,13 +8,16 @@ import (
 )
 
 type Config struct {
-	Database struct{
-		Host string
-		Name string
-	}
-
 	Server struct{
 		Port string
+	}
+
+	Network string
+
+	ElasticSearch struct {
+		Urls string
+		Sniff bool
+		HealthCheck bool
 	}
 
 	CommunityFund struct {
@@ -30,6 +33,11 @@ type Config struct {
 			Accept float64
 			Reject float64
 		}
+	}
+
+	SoftFork struct {
+		BlocksInCycle int
+		Accept        float64
 	}
 }
 
