@@ -23,6 +23,9 @@ func (controller *Controller) GetBlocks(c *gin.Context) {
 	}
 
 	blocks, total, _ := GetBlocks(size, dir == "ASC", offset)
+	if blocks == nil {
+		blocks = make([]Block, 0)
+	}
 
 	paginator := pagination.NewPaginator(len(blocks), total, size, dir == "ASC", offset)
 	c.Writer.Header().Set("X-Pagination", string(paginator.GetHeader()))
