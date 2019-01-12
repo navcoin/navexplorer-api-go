@@ -138,7 +138,7 @@ func (controller *Controller) GetPaymentRequestVotingTrend(c *gin.Context) {
 		})
 		c.Abort()
 	} else {
-		trend, _ := GetPaymentRequestTrend(c.Param("hash"))
+		trend, _ := GetPaymentRequestTrend(paymentRequest.Hash)
 		c.JSON(200, trend)
 	}
 }
