@@ -47,6 +47,16 @@ type Votes struct {
 	Votes    int64  `json:"votes"`
 }
 
+type Trend struct {
+	Start        int     `json:"start"`
+	End          int     `json:"end"`
+	VotesYes     int     `json:"votesYes"`
+	VotesNo      int     `json:"votesNo"`
+	TrendYes     float64 `json:"trendYes"`
+	TrendNo      float64 `json:"trendNo"`
+	TrendAbstain float64 `json:"trendAbstain"`
+}
+
 type BlockCycle struct {
 	BlocksInCycle   int              `json:"blocksInCycle"`
 	MinQuorum       float64          `json:"minQuorum"`

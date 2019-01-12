@@ -36,10 +36,12 @@ func setupRouter() *gin.Engine {
 	api.GET("/community-fund/block-cycle", communityFundController.GetBlockCycle)
 	api.GET("/community-fund/proposal", communityFundController.GetProposals)
 	api.GET("/community-fund/proposal/:hash", communityFundController.GetProposal)
+	api.GET("/community-fund/proposal/:hash/trend", communityFundController.GetProposalVotingTrend)
 	api.GET("/community-fund/proposal/:hash/vote/:vote", communityFundController.GetProposalVotes)
 	api.GET("/community-fund/proposal/:hash/payment-request", communityFundController.GetProposalPaymentRequests)
 	api.GET("/community-fund/payment-request", communityFundController.GetPaymentRequestsByState)
 	api.GET("/community-fund/payment-request/:hash", communityFundController.GetPaymentRequestByHash)
+	api.GET("/community-fund/payment-request/:hash/trend", communityFundController.GetPaymentRequestVotingTrend)
 	api.GET("/community-fund/payment-request/:hash/vote/:vote", communityFundController.GetPaymentRequestVotes)
 
 	//groupController := new (group.Controller)

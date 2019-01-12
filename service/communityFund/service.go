@@ -125,8 +125,11 @@ func GetProposalVotes(hash string, vote bool) (votes []Votes, err error) {
 
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewMatchQuery("proposal", hash))
-	query = query.Must(elastic.NewMatchQuery("vote", vote))
+	query = query.Must(	elastic.NewMatchQuery("vote", vote))
 	query = query.Must(elastic.NewRangeQuery("height").Gte(blockCycle.FirstBlock))
+	src, _ := query.Source()
+	data, _ := json.Marshal(src)
+	log.Print(string(data))
 
 	aggregation := elastic.NewTermsAggregation().Field("address").OrderByCountDesc().Size(2147483647)
 
@@ -150,6 +153,55 @@ func GetProposalVotes(hash string, vote bool) (votes []Votes, err error) {
 	}
 
 	return votes, err
+}
+
+func GetProposalTrend(hash string) (trends []Trend, err error) {
+	log.Printf("Voting trend for proposal: %s", hash)
+	client := elasticsearch.NewClient()
+
+	blockCycle := GetBlockCycle()
+
+	height := blockCycle.Height
+	segments := 10
+	segmentSize := blockCycle.BlocksInCycle / segments
+
+	for segment := 0; segment < 10; segment++ {
+		var trend Trend
+
+		trend.End = height - (segment * segmentSize)
+		trend.Start = trend.End - segmentSize
+
+		query := elastic.NewBoolQuery()
+		query = query.Must(elastic.NewMatchQuery("proposal", hash))
+		query = query.Must(elastic.NewRangeQuery("height").From(trend.Start).To(trend.End).IncludeLower(false))
+
+		results, err := client.Search().Index(IndexProposalVote).Pretty(true).
+			Query(query).
+			Size(0).
+			Aggregation("VotesFor", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", true))).
+			Aggregation("VotesAgainst", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", false))).
+			Do(context.Background())
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if agg, found := results.Aggregations.Filter("VotesFor"); found {
+			trend.VotesYes = int(agg.DocCount)
+		}
+
+		if agg, found := results.Aggregations.Filter("VotesAgainst"); found {
+			trend.VotesNo = int(agg.DocCount)
+		}
+
+		trend.TrendYes = (float64(trend.VotesYes) / float64(segmentSize)) * 100
+		trend.TrendNo = (float64(trend.VotesNo) / float64(segmentSize)) * 100
+		trend.TrendAbstain = (float64(segmentSize - trend.VotesYes - trend.VotesNo) / float64(segmentSize)) * 100
+
+		trends = append(trends, trend)
+	}
+
+	return trends, err
 }
 
 func GetPaymentRequestsByState(state string) (paymentRequests []PaymentRequest, err error) {

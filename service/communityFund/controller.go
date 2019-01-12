@@ -69,6 +69,23 @@ func (controller *Controller) GetProposalVotes(c *gin.Context) {
 	}
 }
 
+func (controller *Controller) GetProposalVotingTrend(c *gin.Context) {
+	proposal, err := GetProposalByHash(c.Param("hash"))
+
+	if err != nil {
+		c.JSON(404, gin.H{
+			"error":   "Not Found",
+			"status":  404,
+			"message": fmt.Sprintf("Could not find proposal: %s", c.Param("hash")),
+		})
+		c.Abort()
+	}
+
+	trend, _ := GetProposalTrend(proposal.Hash)
+
+	c.JSON(200, trend)
+}
+
 func (controller *Controller) GetProposalPaymentRequests(c *gin.Context) {
 	paymentRequests, _ := GetProposalPaymentRequests(c.Query("hash"))
 
@@ -105,4 +122,8 @@ func (controller *Controller) GetPaymentRequestVotes(c *gin.Context) {
 	} else {
 		c.JSON(200, votes)
 	}
+}
+
+func (controller *Controller) GetPaymentRequestVotingTrend(c *gin.Context) {
+
 }
