@@ -156,7 +156,6 @@ func GetProposalVotes(hash string, vote bool) (votes []Votes, err error) {
 }
 
 func GetProposalTrend(hash string) (trends []Trend, err error) {
-	log.Printf("Voting trend for proposal: %s", hash)
 	client := elasticsearch.NewClient()
 
 	blockCycle := GetBlockCycle()
@@ -165,7 +164,7 @@ func GetProposalTrend(hash string) (trends []Trend, err error) {
 	segments := 10
 	segmentSize := blockCycle.BlocksInCycle / segments
 
-	for segment := 0; segment < 10; segment++ {
+	for segment := 0; segment < segments; segment++ {
 		var trend Trend
 
 		trend.End = height - (segment * segmentSize)
@@ -282,4 +281,52 @@ func GetPaymentRequestVotes(hash string, vote bool) (votes []Votes, err error) {
 	}
 
 	return votes, err
+}
+
+func GetPaymentRequestTrend(hash string) (trends []Trend, err error) {
+	client := elasticsearch.NewClient()
+
+	blockCycle := GetBlockCycle()
+
+	height := blockCycle.Height
+	segments := 10
+	segmentSize := blockCycle.BlocksInCycle / segments
+
+	for segment := 0; segment < segments; segment++ {
+		var trend Trend
+
+		trend.End = height - (segment * segmentSize)
+		trend.Start = trend.End - segmentSize
+
+		query := elastic.NewBoolQuery()
+		query = query.Must(elastic.NewMatchQuery("paymentRequest", hash))
+		query = query.Must(elastic.NewRangeQuery("height").From(trend.Start).To(trend.End).IncludeLower(false))
+
+		results, err := client.Search().Index(IndexPaymentRequestVote).Pretty(true).
+			Query(query).
+			Size(0).
+			Aggregation("VotesFor", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", true))).
+			Aggregation("VotesAgainst", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", false))).
+			Do(context.Background())
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if agg, found := results.Aggregations.Filter("VotesFor"); found {
+			trend.VotesYes = int(agg.DocCount)
+		}
+
+		if agg, found := results.Aggregations.Filter("VotesAgainst"); found {
+			trend.VotesNo = int(agg.DocCount)
+		}
+
+		trend.TrendYes = (float64(trend.VotesYes) / float64(segmentSize)) * 100
+		trend.TrendNo = (float64(trend.VotesNo) / float64(segmentSize)) * 100
+		trend.TrendAbstain = (float64(segmentSize - trend.VotesYes - trend.VotesNo) / float64(segmentSize)) * 100
+
+		trends = append(trends, trend)
+	}
+
+	return trends, err
 }
