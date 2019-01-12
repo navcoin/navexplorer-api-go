@@ -79,15 +79,18 @@ func (controller *Controller) GetProposalVotingTrend(c *gin.Context) {
 			"message": fmt.Sprintf("Could not find proposal: %s", c.Param("hash")),
 		})
 		c.Abort()
+	} else {
+		trend, _ := GetProposalTrend(proposal.Hash)
+		c.JSON(200, trend)
 	}
-
-	trend, _ := GetProposalTrend(proposal.Hash)
-
-	c.JSON(200, trend)
 }
 
 func (controller *Controller) GetProposalPaymentRequests(c *gin.Context) {
-	paymentRequests, _ := GetProposalPaymentRequests(c.Query("hash"))
+	paymentRequests, _ := GetProposalPaymentRequests(c.Param("hash"))
+
+	if paymentRequests == nil {
+		paymentRequests = make([]PaymentRequest, 0)
+	}
 
 	c.JSON(200, paymentRequests)
 }
@@ -102,7 +105,7 @@ func (controller *Controller) GetPaymentRequestsByState(c *gin.Context) {
 }
 
 func (controller *Controller) GetPaymentRequestByHash(c *gin.Context) {
-	paymentRequests, _ := GetPaymentRequestByHash(c.Query("hash"))
+	paymentRequests, _ := GetPaymentRequestByHash(c.Param("hash"))
 
 	c.JSON(200, paymentRequests)
 }
@@ -125,5 +128,17 @@ func (controller *Controller) GetPaymentRequestVotes(c *gin.Context) {
 }
 
 func (controller *Controller) GetPaymentRequestVotingTrend(c *gin.Context) {
+	paymentRequest, err := GetPaymentRequestByHash(c.Param("hash"))
 
+	if err != nil {
+		c.JSON(404, gin.H{
+			"error":   "Not Found",
+			"status":  404,
+			"message": fmt.Sprintf("Could not find proposal: %s", c.Param("hash")),
+		})
+		c.Abort()
+	} else {
+		trend, _ := GetPaymentRequestTrend(c.Param("hash"))
+		c.JSON(200, trend)
+	}
 }
