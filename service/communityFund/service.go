@@ -174,7 +174,7 @@ func GetProposalTrend(hash string) (trends []Trend, err error) {
 		query = query.Must(elastic.NewMatchQuery("proposal", hash))
 		query = query.Must(elastic.NewRangeQuery("height").From(trend.Start).To(trend.End).IncludeLower(false))
 
-		results, err := client.Search().Index(IndexProposalVote).Pretty(true).
+		results, err := client.Search().Index(IndexProposalVote).
 			Query(query).
 			Size(0).
 			Aggregation("VotesFor", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", true))).
