@@ -8,6 +8,8 @@ import (
 )
 
 type Config struct {
+	Debug bool
+
 	Server struct{
 		Port string
 	}
