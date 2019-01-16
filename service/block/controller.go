@@ -22,8 +22,19 @@ func (controller *Controller) GetBlocks(c *gin.Context) {
 		offset = 0
 	}
 
-	blocks, total, _ := GetBlocks(size, dir == "ASC", offset)
-	if blocks == nil {
+	blocks, total, err := GetBlocks(size, dir == "ASC", offset)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": "Unable to get blocks",
+			"status": 500,
+			"message": err.Error(),
+		})
+		c.Abort()
+
+		return
+	}
+
+ 	if blocks == nil {
 		blocks = make([]Block, 0)
 	}
 
@@ -40,15 +51,26 @@ func (controller *Controller) GetBlock(c *gin.Context) {
 	block, err := GetBlockByHashOrHeight(hash)
 
 	if err != nil {
-		c.JSON(404, gin.H{
-			"error": "Not Found",
-			"status": 404,
-			"message": fmt.Sprintf("Could not find block: %s", hash),
-		})
+		if err.Error() == "Unable to connect to elastic search" {
+			c.JSON(500, gin.H{
+				"error": "Unable to get block",
+				"status": 500,
+				"message": err.Error(),
+			})
+		} else {
+			c.JSON(404, gin.H{
+				"error":   "Not Found",
+				"status":  404,
+				"message": fmt.Sprintf("Could not find block: %s", hash),
+			})
+		}
+
 		c.Abort()
-	} else {
-		c.JSON(200, block)
+
+		return
 	}
+
+	c.JSON(200, block)
 }
 
 func (controller *Controller) GetBlockTransactions(c *gin.Context) {
@@ -56,19 +78,29 @@ func (controller *Controller) GetBlockTransactions(c *gin.Context) {
 	transactions, err := GetTransactionsByHash(block.Hash)
 
 	if err != nil {
-		c.JSON(404, gin.H{
-			"error": "Not Found",
-			"status": 404,
-			"message": fmt.Sprintf("Could not find transactions for block: %s", block.Hash),
-		})
-		c.Abort()
-	} else {
-		if transactions == nil {
-			transactions = make([]Transaction, 0)
+		if err.Error() == "Unable to connect to elastic search" {
+			c.JSON(500, gin.H{
+				"error": "Unable to get transactions",
+				"status": 500,
+				"message": err.Error(),
+			})
+		} else {
+			c.JSON(404, gin.H{
+				"error": "Not Found",
+				"status": 404,
+				"message": fmt.Sprintf("Could not find transactions for block: %s", block.Hash),
+			})
 		}
+		c.Abort()
 
-		c.JSON(200, transactions)
+		return
 	}
+
+	if transactions == nil {
+		transactions = make([]Transaction, 0)
+	}
+
+	c.JSON(200, transactions)
 }
 
 func (controller *Controller) GetTransaction(c *gin.Context) {
@@ -77,13 +109,24 @@ func (controller *Controller) GetTransaction(c *gin.Context) {
 	transaction, err := GetTransactionByHash(hash)
 
 	if err != nil {
-		c.JSON(404, gin.H{
-			"error": "Not Found",
-			"status": 404,
-			"message": fmt.Sprintf("Could not find transaction: %s", hash),
-		})
+		if err.Error() == "Unable to connect to elastic search" {
+			c.JSON(500, gin.H{
+				"error":   "Unable to get transaction",
+				"status":  500,
+				"message": err.Error(),
+			})
+		} else {
+			c.JSON(404, gin.H{
+				"error":   "Not Found",
+				"status":  404,
+				"message": fmt.Sprintf("Could not find transaction: %s", hash),
+			})
+		}
+
 		c.Abort()
-	} else {
-		c.JSON(200, transaction)
+
+		return
 	}
+
+	c.JSON(200, transaction)
 }

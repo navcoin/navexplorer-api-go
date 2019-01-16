@@ -15,7 +15,10 @@ var IndexBlock = config.Get().Network + ".block"
 var IndexBlockTransaction = config.Get().Network + ".blocktransaction"
 
 func GetBlocks(size int, ascending bool, offset int) (blocks []Block, total int64, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return blocks, 0, err
+	}
 
 	if size > 1000 {
 		size = 1000
@@ -73,7 +76,10 @@ func GetBlockByHashOrHeight(hash string) (block Block, err error) {
 }
 
 func GetBlockByHash(hash string) (block Block, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return block, err
+	}
 
 	results, _ := client.Search().Index(IndexBlock).
 		Query(elastic.NewTermQuery("hash", hash)).
@@ -91,7 +97,10 @@ func GetBlockByHash(hash string) (block Block, err error) {
 }
 
 func GetBlockByHeight(height int) (block Block, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return block, err
+	}
 
 	results, _ := client.Search().Index(IndexBlock).
 		Query(elastic.NewTermQuery("height", height)).
@@ -109,7 +118,10 @@ func GetBlockByHeight(height int) (block Block, err error) {
 }
 
 func GetBestBlock() (block Block, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return block, err
+	}
 
 	results, _ := client.Search().Index(IndexBlock).
 		Sort("height", false).
@@ -127,7 +139,10 @@ func GetBestBlock() (block Block, err error) {
 }
 
 func GetTransactionsByHash(blockHash string) (transactions []Transaction, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return transactions, err
+	}
 
 	results, _ := client.Search().Index(IndexBlockTransaction).
 		Query(elastic.NewTermQuery("blockHash", blockHash)).
@@ -150,7 +165,10 @@ func GetTransactionsByHash(blockHash string) (transactions []Transaction, err er
 }
 
 func GetTransactionByHash(hash string) (transaction Transaction, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return transaction, err
+	}
 
 	results, _ := client.Search().Index(IndexBlockTransaction).
 		Query(elastic.NewTermQuery("hash", hash)).
