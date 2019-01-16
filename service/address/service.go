@@ -14,7 +14,10 @@ var IndexAddress = config.Get().Network + ".address"
 var IndexAddressTransaction = config.Get().Network + ".addresstransaction"
 
 func GetAddresses(size int) (addresses []Address, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return addresses, err
+	}
 
 	if size > 1000 {
 		size = 1000
@@ -38,7 +41,10 @@ func GetAddresses(size int) (addresses []Address, err error) {
 }
 
 func GetAddress(hash string) (address Address, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return address, err
+	}
 
 	results, err := client.Search().Index(IndexAddress).
 		Query(elastic.NewMatchQuery("hash", hash)).
@@ -61,7 +67,10 @@ func GetAddress(hash string) (address Address, err error) {
 }
 
 func GetRichListPosition(balance float64) (position int64, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return -1, err
+	}
 
 	return client.Count().Index(IndexAddress).
 		Query(elastic.NewRangeQuery("balance").Gte(balance)).
@@ -69,7 +78,10 @@ func GetRichListPosition(balance float64) (position int64, err error) {
 }
 
 func GetTransactions(address string, types string, size int, ascending bool, offset int) (transactions []Transaction, total int64, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return transactions, 0, err
+	}
 
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewMatchQuery("address", address))

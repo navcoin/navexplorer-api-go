@@ -20,14 +20,16 @@ func (controller *Controller) GetAddresses(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(500, gin.H{
-			"error": "Unable to retrieve addresses",
-			"status": 500,
-			"message": err,
+			"error":   "Unable to retrieve addresses",
+			"status":  500,
+			"message": err.Error(),
 		})
 		c.Abort()
-	} else {
-		c.JSON(200, addresses)
+
+		return
 	}
+
+	c.JSON(200, addresses)
 }
 
 func (controller *Controller) GetAddress(c *gin.Context) {
@@ -36,15 +38,26 @@ func (controller *Controller) GetAddress(c *gin.Context) {
 	address, err := GetAddress(hash)
 
 	if err != nil {
-		c.JSON(404, gin.H{
-			"error": "Not Found",
-			"status": 404,
-			"message": fmt.Sprintf("Could not find address: %s", hash),
-		})
+		if err.Error() == "Unable to connect to elastic search" {
+			c.JSON(500, gin.H{
+				"error": "Unable to get address",
+				"status": 500,
+				"message": err.Error(),
+			})
+		} else {
+			c.JSON(404, gin.H{
+				"error":   "Not Found",
+				"status":  404,
+				"message": fmt.Sprintf("Could not find address: %s", hash),
+			})
+		}
+
 		c.Abort()
-	} else {
-		c.JSON(200, address)
+
+		return
 	}
+
+	c.JSON(200, address)
 }
 
 func (controller *Controller) GetTransactions(c *gin.Context) {
@@ -68,7 +81,18 @@ func (controller *Controller) GetTransactions(c *gin.Context) {
 		offset = 0
 	}
 
-	transactions, total, _ := GetTransactions(hash, strings.Join(filters, " "), size, dir == "ASC", offset)
+	transactions, total, err := GetTransactions(hash, strings.Join(filters, " "), size, dir == "ASC", offset)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": "Unable to get transactions",
+			"status": 500,
+			"message": err.Error(),
+		})
+		c.Abort()
+
+		return
+	}
+
 	if transactions == nil {
 		transactions = make([]Transaction, 0)
 	}
