@@ -12,7 +12,10 @@ import (
 var IndexSoftFork = config.Get().Network + ".softfork"
 
 func GetSoftForks() (softForks SoftForks, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return softForks, err
+	}
 
 	results, err := client.Search().Index(IndexSoftFork).Do(context.Background())
 

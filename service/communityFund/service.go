@@ -43,7 +43,10 @@ func GetBlockCycle() (blockCycle BlockCycle) {
 }
 
 func GetProposalsByState(state string, size int, ascending bool, offset int) (proposals []Proposal, total int64, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return proposals, 0, err
+	}
 
 	query := elastic.NewBoolQuery()
 	if state != "" {
@@ -79,7 +82,10 @@ func GetProposalsByState(state string, size int, ascending bool, offset int) (pr
 }
 
 func GetProposalByHash(hash string) (proposal Proposal, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return proposal, err
+	}
 
 	results, _ := client.Search(IndexProposal).
 		Query(elastic.NewMatchQuery("hash", hash)).
@@ -97,7 +103,10 @@ func GetProposalByHash(hash string) (proposal Proposal, err error) {
 }
 
 func GetProposalPaymentRequests(hash string) (paymentRequests []PaymentRequest, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return paymentRequests, err
+	}
 
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewMatchQuery("proposalHash", hash))
@@ -122,7 +131,10 @@ func GetProposalPaymentRequests(hash string) (paymentRequests []PaymentRequest, 
 }
 
 func GetProposalVotes(hash string, vote bool) (votes []Votes, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return votes, err
+	}
 
 	blockCycle := GetBlockCycle()
 
@@ -159,7 +171,10 @@ func GetProposalVotes(hash string, vote bool) (votes []Votes, err error) {
 }
 
 func GetProposalTrend(hash string) (trends []Trend, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return trends, err
+	}
 
 	blockCycle := GetBlockCycle()
 
@@ -221,7 +236,10 @@ func GetProposalTrend(hash string) (trends []Trend, err error) {
 }
 
 func GetPaymentRequestsByState(state string) (paymentRequests []PaymentRequest, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return paymentRequests, err
+	}
 
 	query := elastic.NewBoolQuery()
 	if state != "" {
@@ -249,7 +267,10 @@ func GetPaymentRequestsByState(state string) (paymentRequests []PaymentRequest, 
 }
 
 func GetPaymentRequestByHash(hash string) (paymentRequest PaymentRequest, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return paymentRequest, err
+	}
 
 	results, _ := client.Search(IndexPaymentRequest).
 		Query(elastic.NewMatchQuery("hash", hash)).
@@ -267,7 +288,10 @@ func GetPaymentRequestByHash(hash string) (paymentRequest PaymentRequest, err er
 }
 
 func GetPaymentRequestVotes(hash string, vote bool) (votes []Votes, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return votes, err
+	}
 
 	blockCycle := GetBlockCycle()
 
@@ -301,7 +325,10 @@ func GetPaymentRequestVotes(hash string, vote bool) (votes []Votes, err error) {
 }
 
 func GetPaymentRequestTrend(hash string) (trends []Trend, err error) {
-	client := elasticsearch.NewClient()
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return trends, err
+	}
 
 	blockCycle := GetBlockCycle()
 
