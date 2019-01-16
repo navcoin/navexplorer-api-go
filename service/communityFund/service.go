@@ -177,7 +177,7 @@ func GetProposalTrend(hash string) (trends []Trend, err error) {
 	agg.SubAggregation("yes", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", true)))
 	agg.SubAggregation("no", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", false)))
 
-	results, _ := client.Search().Index(IndexProposalVote).Pretty(true).
+	results, _ := client.Search().Index(IndexProposalVote).
 		Query(query).
 		Size(0).
 		Aggregation("votes", agg).
@@ -305,40 +305,58 @@ func GetPaymentRequestTrend(hash string) (trends []Trend, err error) {
 
 	blockCycle := GetBlockCycle()
 
-	height := blockCycle.Height
 	segments := 10
 	segmentSize := blockCycle.BlocksInCycle / segments
 
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewMatchQuery("paymentRequest", hash))
+
+	agg := elastic.NewRangeAggregation().Field("height")
 	for segment := 0; segment < segments; segment++ {
-		var trend Trend
+		var end = blockCycle.Height - (segment * segmentSize)
+		agg = agg.AddRange(end - segmentSize, end)
+	}
+	agg.SubAggregation("yes", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", true)))
+	agg.SubAggregation("no", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", false)))
 
-		trend.End = height - (segment * segmentSize)
-		trend.Start = trend.End - segmentSize
+	results, _ := client.Search().Index(IndexPaymentRequestVote).
+		Query(query).
+		Size(0).
+		Aggregation("votes", agg).
+		Do(context.Background())
 
-		query := elastic.NewBoolQuery()
-		query = query.Must(elastic.NewMatchQuery("paymentRequest", hash))
-		query = query.Must(elastic.NewRangeQuery("height").From(trend.Start).To(trend.End).IncludeLower(false))
+	if agg, found := results.Aggregations.Terms("votes"); found {
+		for _, bucket := range agg.Buckets {
+			var trend Trend
 
-		results, err := client.Search().Index(IndexPaymentRequestVote).Pretty(true).
-			Query(query).
-			Size(0).
-			Aggregation("VotesFor", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", true))).
-			Aggregation("VotesAgainst", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", false))).
-			Do(context.Background())
+			fromData, _ := bucket.Aggregations["from_as_string"].MarshalJSON()
+			start, err := strconv.ParseFloat(strings.Trim(string(fromData[:]), "\""), 64)
+			if err == nil {
+				trend.Start = int(math.Round(start))
+			}
 
-		if err != nil {
-			log.Fatal(err)
+			toData, _ := bucket.Aggregations["to_as_string"].MarshalJSON()
+			end, err := strconv.ParseFloat(strings.Trim(string(toData[:]), "\""), 64)
+			if err == nil {
+				trend.End = int(math.Round(end))
+			}
+
+			yes, found := bucket.Filter("yes")
+			if found == true {
+				trend.VotesYes = int(yes.DocCount)
+			}
+
+			no, found := bucket.Filter("no")
+			if found == true {
+				trend.VotesNo = int(no.DocCount)
+			}
+
+			trend.TrendYes = (float64(trend.VotesYes) / float64(segmentSize)) * 100
+			trend.TrendNo = (float64(trend.VotesNo) / float64(segmentSize)) * 100
+			trend.TrendAbstain = (float64(segmentSize - trend.VotesYes - trend.VotesNo) / float64(segmentSize)) * 100
+
+			trends = append(trends, trend)
 		}
-
-		if agg, found := results.Aggregations.Filter("VotesFor"); found {
-			trend.VotesYes = int(agg.DocCount)
-		}
-
-		if agg, found := results.Aggregations.Filter("VotesAgainst"); found {
-			trend.VotesNo = int(agg.DocCount)
-		}
-
-		trends = append(trends, trend)
 	}
 
 	return trends, err
