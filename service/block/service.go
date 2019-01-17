@@ -17,7 +17,7 @@ var IndexBlockTransaction = config.Get().Network + ".blocktransaction"
 func GetBlocks(size int, ascending bool, offset int) (blocks []Block, total int64, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return blocks, 0, err
+		return
 	}
 
 	if size > 1000 {
@@ -39,11 +39,13 @@ func GetBlocks(size int, ascending bool, offset int) (blocks []Block, total int6
 
 	if err != nil {
 		log.Print(err)
+		return
 	}
 
 	bestBlock, err := GetBestBlock()
 	if err != nil {
-		panic(err)
+		log.Print(err)
+		return
 	}
 
 	for _, hit := range results.Hits.Hits {
@@ -65,9 +67,15 @@ func GetBlockByHashOrHeight(hash string) (block Block, err error) {
 		block, err = GetBlockByHeight(height)
 	}
 
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
 	bestBlock, err := GetBestBlock()
 	if err != nil {
-		panic(err)
+		log.Print(err)
+		return
 	}
 
 	block.Confirmations = bestBlock.Height - block.Height + 1
@@ -78,7 +86,7 @@ func GetBlockByHashOrHeight(hash string) (block Block, err error) {
 func GetBlockByHash(hash string) (block Block, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return block, err
+		return
 	}
 
 	results, _ := client.Search().Index(IndexBlock).
@@ -87,7 +95,8 @@ func GetBlockByHash(hash string) (block Block, err error) {
 		Do(context.Background())
 
 	if results.TotalHits() == 0 {
-		return block, errors.New("block not found")
+		err = ErrBlockNotFound
+		return
 	}
 
 	hit := results.Hits.Hits[0]
@@ -99,7 +108,7 @@ func GetBlockByHash(hash string) (block Block, err error) {
 func GetBlockByHeight(height int) (block Block, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return block, err
+		return
 	}
 
 	results, _ := client.Search().Index(IndexBlock).
@@ -108,7 +117,8 @@ func GetBlockByHeight(height int) (block Block, err error) {
 		Do(context.Background())
 
 	if results.TotalHits() == 0 {
-		return block, errors.New("block not found")
+		err = ErrBlockNotFound
+		return
 	}
 
 	hit := results.Hits.Hits[0]
@@ -120,7 +130,7 @@ func GetBlockByHeight(height int) (block Block, err error) {
 func GetBestBlock() (block Block, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return block, err
+		return
 	}
 
 	results, _ := client.Search().Index(IndexBlock).
@@ -129,7 +139,8 @@ func GetBestBlock() (block Block, err error) {
 		Do(context.Background())
 
 	if results.TotalHits() == 0 {
-		return block, errors.New("block not found")
+		err = ErrBlockNotFound
+		return
 	}
 
 	hit := results.Hits.Hits[0]
@@ -141,7 +152,7 @@ func GetBestBlock() (block Block, err error) {
 func GetTransactionsByHash(blockHash string) (transactions []Transaction, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return transactions, err
+		return
 	}
 
 	results, _ := client.Search().Index(IndexBlockTransaction).
@@ -154,9 +165,7 @@ func GetTransactionsByHash(blockHash string) (transactions []Transaction, err er
 
 	for _, hit := range results.Hits.Hits {
 		var transaction Transaction
-		err := json.Unmarshal(*hit.Source, &transaction)
-		if err != nil {
-		}
+		_ := json.Unmarshal(*hit.Source, &transaction)
 
 		transactions = append(transactions, transaction)
 	}
@@ -167,13 +176,17 @@ func GetTransactionsByHash(blockHash string) (transactions []Transaction, err er
 func GetTransactionByHash(hash string) (transaction Transaction, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return transaction, err
+		return
 	}
 
-	results, _ := client.Search().Index(IndexBlockTransaction).
+	results, err := client.Search().Index(IndexBlockTransaction).
 		Query(elastic.NewTermQuery("hash", hash)).
 		Size(1).
 		Do(context.Background())
+
+	if err != nil {
+		return
+	}
 
 	if results.TotalHits() == 1 {
 		hit := results.Hits.Hits[0]
@@ -182,3 +195,8 @@ func GetTransactionByHash(hash string) (transaction Transaction, err error) {
 
 	return transaction, err
 }
+
+
+var (
+	ErrBlockNotFound = errors.New("block not found")
+)

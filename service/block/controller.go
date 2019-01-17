@@ -16,6 +16,9 @@ func (controller *Controller) GetBlocks(c *gin.Context) {
 	if err != nil {
 		size = 10
 	}
+	if size > 1000 {
+		size = 1000
+	}
 
 	offset, err := strconv.Atoi(c.DefaultQuery("offset", ""))
 	if err != nil {
@@ -24,13 +27,7 @@ func (controller *Controller) GetBlocks(c *gin.Context) {
 
 	blocks, total, err := GetBlocks(size, dir == "ASC", offset)
 	if err != nil {
-		c.JSON(500, gin.H{
-			"error": "Unable to get blocks",
-			"status": 500,
-			"message": err.Error(),
-		})
-		c.Abort()
-
+		c.AbortWithError(500, err)
 		return
 	}
 
