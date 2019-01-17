@@ -14,18 +14,13 @@ func (controller *Controller) GetAddresses(c *gin.Context) {
 	size, err := strconv.Atoi(c.Request.URL.Query().Get("size"))
 	if err != nil {
 		size = 100
+	} else if size > 1000 {
+		size = 1000
 	}
 
 	addresses, err := GetAddresses(size)
-
 	if err != nil {
-		c.JSON(500, gin.H{
-			"error":   "Unable to retrieve addresses",
-			"status":  500,
-			"message": err.Error(),
-		})
-		c.Abort()
-
+		c.AbortWithError(500, err)
 		return
 	}
 
@@ -36,23 +31,13 @@ func (controller *Controller) GetAddress(c *gin.Context) {
 	hash := c.Param("hash")
 
 	address, err := GetAddress(hash)
-
 	if err != nil {
-		if err.Error() == "Unable to connect to elastic search" {
-			c.JSON(500, gin.H{
-				"error": "Unable to get address",
-				"status": 500,
-				"message": err.Error(),
-			})
+		if err == ErrAddressNotFound {
+			c.Set("error", fmt.Sprintf("The `%s` address could not be found", hash))
+			c.AbortWithError(404, err)
 		} else {
-			c.JSON(404, gin.H{
-				"error":   "Not Found",
-				"status":  404,
-				"message": fmt.Sprintf("Could not find address: %s", hash),
-			})
+			c.AbortWithError(500, err)
 		}
-
-		c.Abort()
 
 		return
 	}
@@ -63,9 +48,8 @@ func (controller *Controller) GetAddress(c *gin.Context) {
 func (controller *Controller) GetTransactions(c *gin.Context) {
 	hash := c.Param("hash")
 
-	filtersParam := c.DefaultQuery("filters", "")
 	filters := make([]string, 0)
-	if filtersParam != "" {
+	if filtersParam := c.DefaultQuery("filters", ""); filtersParam != "" {
 		filters = strings.Split(filtersParam, ",")
 	}
 
@@ -83,13 +67,7 @@ func (controller *Controller) GetTransactions(c *gin.Context) {
 
 	transactions, total, err := GetTransactions(hash, strings.Join(filters, " "), size, dir == "ASC", offset)
 	if err != nil {
-		c.JSON(500, gin.H{
-			"error": "Unable to get transactions",
-			"status": 500,
-			"message": err.Error(),
-		})
-		c.Abort()
-
+		c.AbortWithError(500, err)
 		return
 	}
 
