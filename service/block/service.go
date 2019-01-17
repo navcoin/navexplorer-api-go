@@ -199,4 +199,5 @@ func GetTransactionByHash(hash string) (transaction Transaction, err error) {
 
 var (
 	ErrBlockNotFound = errors.New("block not found")
+	ErrTransactionNotFound = errors.New("transaction not found")
 )

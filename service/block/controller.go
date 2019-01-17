@@ -48,21 +48,12 @@ func (controller *Controller) GetBlock(c *gin.Context) {
 	block, err := GetBlockByHashOrHeight(hash)
 
 	if err != nil {
-		if err.Error() == "Unable to connect to elastic search" {
-			c.JSON(500, gin.H{
-				"error": "Unable to get block",
-				"status": 500,
-				"message": err.Error(),
-			})
+		if err == ErrBlockNotFound {
+			c.Set("error", fmt.Sprintf("The `%s` block could not be found", hash))
+			c.AbortWithError(404, err)
 		} else {
-			c.JSON(404, gin.H{
-				"error":   "Not Found",
-				"status":  404,
-				"message": fmt.Sprintf("Could not find block: %s", hash),
-			})
+			c.AbortWithError(500, err)
 		}
-
-		c.Abort()
 
 		return
 	}
@@ -71,24 +62,17 @@ func (controller *Controller) GetBlock(c *gin.Context) {
 }
 
 func (controller *Controller) GetBlockTransactions(c *gin.Context) {
-	block, err := GetBlockByHashOrHeight(c.Param("hash"))
+	hash := c.Param("hash")
+	block, err := GetBlockByHashOrHeight(hash)
 	transactions, err := GetTransactionsByHash(block.Hash)
 
 	if err != nil {
-		if err.Error() == "Unable to connect to elastic search" {
-			c.JSON(500, gin.H{
-				"error": "Unable to get transactions",
-				"status": 500,
-				"message": err.Error(),
-			})
+		if err == ErrBlockNotFound {
+			c.Set("error", fmt.Sprintf("The `%s` block could not be found", hash))
+			c.AbortWithError(404, err)
 		} else {
-			c.JSON(404, gin.H{
-				"error": "Not Found",
-				"status": 404,
-				"message": fmt.Sprintf("Could not find transactions for block: %s", block.Hash),
-			})
+			c.AbortWithError(500, err)
 		}
-		c.Abort()
 
 		return
 	}
@@ -106,18 +90,11 @@ func (controller *Controller) GetTransaction(c *gin.Context) {
 	transaction, err := GetTransactionByHash(hash)
 
 	if err != nil {
-		if err.Error() == "Unable to connect to elastic search" {
-			c.JSON(500, gin.H{
-				"error":   "Unable to get transaction",
-				"status":  500,
-				"message": err.Error(),
-			})
+		if err == ErrTransactionNotFound {
+			c.Set("error", fmt.Sprintf("The `%s` transcaction could not be found", hash))
+			c.AbortWithError(404, err)
 		} else {
-			c.JSON(404, gin.H{
-				"error":   "Not Found",
-				"status":  404,
-				"message": fmt.Sprintf("Could not find transaction: %s", hash),
-			})
+			c.AbortWithError(500, err)
 		}
 
 		c.Abort()
