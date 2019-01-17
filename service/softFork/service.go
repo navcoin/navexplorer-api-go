@@ -18,12 +18,16 @@ func GetSoftForks() (softForks SoftForks, err error) {
 	}
 
 	results, err := client.Search().Index(IndexSoftFork).Do(context.Background())
-
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return
 	}
 
-	bestBlock, _ := block.GetBestBlock()
+	bestBlock, err := block.GetBestBlock()
+	if err != nil {
+		log.Print(err)
+		return
+	}
 
 	softForks.BlocksInCycle = config.Get().SoftFork.BlocksInCycle
 	softForks.CurrentBlock = bestBlock.Height

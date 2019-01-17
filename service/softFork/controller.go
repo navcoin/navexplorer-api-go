@@ -7,7 +7,11 @@ import (
 type Controller struct{}
 
 func (controller *Controller) GetSoftForks(c *gin.Context) {
-	softForks, _ := GetSoftForks()
+	softForks, err := GetSoftForks()
+	if err != nil {
+		c.AbortWithError(500, err)
+		return
+	}
 
 	c.JSON(200, softForks)
 }
