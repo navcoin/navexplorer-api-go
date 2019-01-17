@@ -198,7 +198,7 @@ func GetProposalTrend(hash string) (trends []Trend, err error) {
 			Do(context.Background())
 
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
 		}
 
 		if agg, found := results.Aggregations.Filter("VotesFor"); found {
@@ -333,7 +333,7 @@ func GetPaymentRequestTrend(hash string) (trends []Trend, err error) {
 		query = query.Must(elastic.NewMatchQuery("paymentRequest", hash))
 		query = query.Must(elastic.NewRangeQuery("height").From(trend.Start).To(trend.End).IncludeLower(false))
 
-		results, err := client.Search().Index(IndexPaymentRequestVote).Pretty(true).
+		results, err := client.Search().Index(IndexPaymentRequestVote).
 			Query(query).
 			Size(0).
 			Aggregation("VotesFor", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", true))).
@@ -342,7 +342,6 @@ func GetPaymentRequestTrend(hash string) (trends []Trend, err error) {
 
 		if err != nil {
 			log.Print(err)
-			return
 		}
 
 		if agg, found := results.Aggregations.Filter("VotesFor"); found {

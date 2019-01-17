@@ -4,16 +4,24 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/config"
 	"github.com/NavExplorer/navexplorer-api-go/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/service/block"
+	"github.com/NavExplorer/navexplorer-api-go/service/coin"
 	"github.com/NavExplorer/navexplorer-api-go/service/communityFund"
 	"github.com/NavExplorer/navexplorer-api-go/service/softFork"
-	"github.com/gin-contrib/gzip"
+	//"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
+
+func main() {
+	r := setupRouter()
+	r.Run(":" + config.Get().Server.Port)
+}
+
 func setupRouter() *gin.Engine {
 	r := gin.Default()
-	r.Use(gzip.Gzip(gzip.DefaultCompression))
+	//r.Use(gzip.Gzip(gzip.DefaultCompression))
+	r.Use(errorHandler)
 
 	r.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "Welcome to NavExplorer API!")
@@ -31,6 +39,9 @@ func setupRouter() *gin.Engine {
 	api.GET("/block/:hash", blockController.GetBlock)
 	api.GET("/block/:hash/tx", blockController.GetBlockTransactions)
 	api.GET("/tx/:hash", blockController.GetTransaction)
+
+	coinController := new (coin.Controller)
+	api.GET("/coin/wealth", coinController.GetWealthDistribution)
 
 	communityFundController := new (communityFund.Controller)
 	api.GET("/community-fund/block-cycle", communityFundController.GetBlockCycle)
@@ -57,7 +68,15 @@ func setupRouter() *gin.Engine {
 	return r
 }
 
-func main() {
-	r := setupRouter()
-	r.Run(":" + config.Get().Server.Port)
+func errorHandler(c *gin.Context) {
+	c.Next()
+
+	if len(c.Errors) != 0 {
+		message, _ := c.Get("error")
+		c.JSON(-1, gin.H{
+			"error": c.Errors.Errors()[0],
+			"message": message,
+		})
+		c.Abort()
+	}
 }

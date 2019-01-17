@@ -165,7 +165,7 @@ func GetTransactionsByHash(blockHash string) (transactions []Transaction, err er
 
 	for _, hit := range results.Hits.Hits {
 		var transaction Transaction
-		_ := json.Unmarshal(*hit.Source, &transaction)
+		json.Unmarshal(*hit.Source, &transaction)
 
 		transactions = append(transactions, transaction)
 	}
