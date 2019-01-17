@@ -9,9 +9,6 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/service/block"
 	"github.com/olivere/elastic"
 	"log"
-	"math"
-	"strconv"
-	"strings"
 )
 
 var IndexProposal = config.Get().Network + ".communityfundproposal"
@@ -45,7 +42,7 @@ func GetBlockCycle() (blockCycle BlockCycle) {
 func GetProposalsByState(state string, size int, ascending bool, offset int) (proposals []Proposal, total int64, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return proposals, 0, err
+		return
 	}
 
 	query := elastic.NewBoolQuery()
@@ -67,7 +64,8 @@ func GetProposalsByState(state string, size int, ascending bool, offset int) (pr
 		Do(context.Background())
 
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return
 	}
 
 	for _, hit := range results.Hits.Hits {
@@ -84,7 +82,7 @@ func GetProposalsByState(state string, size int, ascending bool, offset int) (pr
 func GetProposalByHash(hash string) (proposal Proposal, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return proposal, err
+		return
 	}
 
 	results, _ := client.Search(IndexProposal).
@@ -93,7 +91,8 @@ func GetProposalByHash(hash string) (proposal Proposal, err error) {
 		Do(context.Background())
 
 	if results.TotalHits() == 0 {
-		return proposal, errors.New("proposal not found")
+		err = ErrProposalNotFound
+		return
 	}
 
 	hit := results.Hits.Hits[0]
@@ -105,7 +104,7 @@ func GetProposalByHash(hash string) (proposal Proposal, err error) {
 func GetProposalPaymentRequests(hash string) (paymentRequests []PaymentRequest, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return paymentRequests, err
+		return
 	}
 
 	query := elastic.NewBoolQuery()
@@ -116,7 +115,8 @@ func GetProposalPaymentRequests(hash string) (paymentRequests []PaymentRequest, 
 		Do(context.Background())
 
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return
 	}
 
 	for _, hit := range results.Hits.Hits {
@@ -133,7 +133,7 @@ func GetProposalPaymentRequests(hash string) (paymentRequests []PaymentRequest, 
 func GetProposalVotes(hash string, vote bool) (votes []Votes, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return votes, err
+		return
 	}
 
 	blockCycle := GetBlockCycle()
@@ -142,9 +142,6 @@ func GetProposalVotes(hash string, vote bool) (votes []Votes, err error) {
 	query = query.Must(elastic.NewMatchQuery("proposal", hash))
 	query = query.Must(	elastic.NewMatchQuery("vote", vote))
 	query = query.Must(elastic.NewRangeQuery("height").Gte(blockCycle.FirstBlock))
-	src, _ := query.Source()
-	data, _ := json.Marshal(src)
-	log.Print(string(data))
 
 	aggregation := elastic.NewTermsAggregation().Field("address").OrderByCountDesc().Size(2147483647)
 
@@ -155,7 +152,8 @@ func GetProposalVotes(hash string, vote bool) (votes []Votes, err error) {
 		Do(context.Background())
 
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return
 	}
 
 	if agg, found := results.Aggregations.Terms("address"); found {
@@ -178,58 +176,44 @@ func GetProposalTrend(hash string) (trends []Trend, err error) {
 
 	blockCycle := GetBlockCycle()
 
+	height := blockCycle.Height
 	segments := 10
 	segmentSize := blockCycle.BlocksInCycle / segments
 
-	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("proposal", hash))
-
-	agg := elastic.NewRangeAggregation().Field("height")
 	for segment := 0; segment < segments; segment++ {
-		var end = blockCycle.Height - (segment * segmentSize)
-		agg = agg.AddRange(end - segmentSize, end)
-	}
-	agg.SubAggregation("yes", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", true)))
-	agg.SubAggregation("no", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", false)))
+		var trend Trend
 
-	results, _ := client.Search().Index(IndexProposalVote).
-		Query(query).
-		Size(0).
-		Aggregation("votes", agg).
-		Do(context.Background())
+		trend.End = height - (segment * segmentSize)
+		trend.Start = trend.End - segmentSize
 
-	if agg, found := results.Aggregations.Terms("votes"); found {
-		for _, bucket := range agg.Buckets {
-			var trend Trend
+		query := elastic.NewBoolQuery()
+		query = query.Must(elastic.NewMatchQuery("proposal", hash))
+		query = query.Must(elastic.NewRangeQuery("height").From(trend.Start).To(trend.End).IncludeLower(false))
 
-			fromData, _ := bucket.Aggregations["from_as_string"].MarshalJSON()
-			start, err := strconv.ParseFloat(strings.Trim(string(fromData[:]), "\""), 64)
-			if err == nil {
-				trend.Start = int(math.Round(start))
-			}
+		results, err := client.Search().Index(IndexProposalVote).
+			Query(query).
+			Size(0).
+			Aggregation("VotesFor", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", true))).
+			Aggregation("VotesAgainst", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", false))).
+			Do(context.Background())
 
-			toData, _ := bucket.Aggregations["to_as_string"].MarshalJSON()
-			end, err := strconv.ParseFloat(strings.Trim(string(toData[:]), "\""), 64)
-			if err == nil {
-				trend.End = int(math.Round(end))
-			}
-
-			yes, found := bucket.Filter("yes")
-			if found == true {
-				trend.VotesYes = int(yes.DocCount)
-			}
-
-			no, found := bucket.Filter("no")
-			if found == true {
-				trend.VotesNo = int(no.DocCount)
-			}
-
-			trend.TrendYes = (float64(trend.VotesYes) / float64(segmentSize)) * 100
-			trend.TrendNo = (float64(trend.VotesNo) / float64(segmentSize)) * 100
-			trend.TrendAbstain = (float64(segmentSize - trend.VotesYes - trend.VotesNo) / float64(segmentSize)) * 100
-
-			trends = append(trends, trend)
+		if err != nil {
+			log.Fatal(err)
 		}
+
+		if agg, found := results.Aggregations.Filter("VotesFor"); found {
+			trend.VotesYes = int(agg.DocCount)
+		}
+
+		if agg, found := results.Aggregations.Filter("VotesAgainst"); found {
+			trend.VotesNo = int(agg.DocCount)
+		}
+
+		trend.TrendYes = (float64(trend.VotesYes) / float64(segmentSize)) * 100
+		trend.TrendNo = (float64(trend.VotesNo) / float64(segmentSize)) * 100
+		trend.TrendAbstain = (float64(segmentSize - trend.VotesYes - trend.VotesNo) / float64(segmentSize)) * 100
+
+		trends = append(trends, trend)
 	}
 
 	return trends, err
@@ -238,7 +222,7 @@ func GetProposalTrend(hash string) (trends []Trend, err error) {
 func GetPaymentRequestsByState(state string) (paymentRequests []PaymentRequest, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return paymentRequests, err
+		return
 	}
 
 	query := elastic.NewBoolQuery()
@@ -252,7 +236,8 @@ func GetPaymentRequestsByState(state string) (paymentRequests []PaymentRequest, 
 		Do(context.Background())
 
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return
 	}
 
 	for _, hit := range results.Hits.Hits {
@@ -269,7 +254,7 @@ func GetPaymentRequestsByState(state string) (paymentRequests []PaymentRequest, 
 func GetPaymentRequestByHash(hash string) (paymentRequest PaymentRequest, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return paymentRequest, err
+		return
 	}
 
 	results, _ := client.Search(IndexPaymentRequest).
@@ -278,7 +263,8 @@ func GetPaymentRequestByHash(hash string) (paymentRequest PaymentRequest, err er
 		Do(context.Background())
 
 	if results.TotalHits() == 0 {
-		return paymentRequest, errors.New("payment request not found")
+		err = ErrPaymentRequestNotFound
+		return
 	}
 
 	hit := results.Hits.Hits[0]
@@ -290,7 +276,7 @@ func GetPaymentRequestByHash(hash string) (paymentRequest PaymentRequest, err er
 func GetPaymentRequestVotes(hash string, vote bool) (votes []Votes, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return votes, err
+		return
 	}
 
 	blockCycle := GetBlockCycle()
@@ -309,7 +295,8 @@ func GetPaymentRequestVotes(hash string, vote bool) (votes []Votes, err error) {
 		Do(context.Background())
 
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return
 	}
 
 	if agg, found := results.Aggregations.Terms("address"); found {
@@ -327,64 +314,56 @@ func GetPaymentRequestVotes(hash string, vote bool) (votes []Votes, err error) {
 func GetPaymentRequestTrend(hash string) (trends []Trend, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return trends, err
+		return
 	}
 
 	blockCycle := GetBlockCycle()
 
+	height := blockCycle.Height
 	segments := 10
 	segmentSize := blockCycle.BlocksInCycle / segments
 
-	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("paymentRequest", hash))
-
-	agg := elastic.NewRangeAggregation().Field("height")
 	for segment := 0; segment < segments; segment++ {
-		var end = blockCycle.Height - (segment * segmentSize)
-		agg = agg.AddRange(end - segmentSize, end)
-	}
-	agg.SubAggregation("yes", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", true)))
-	agg.SubAggregation("no", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", false)))
+		var trend Trend
 
-	results, _ := client.Search().Index(IndexPaymentRequestVote).
-		Query(query).
-		Size(0).
-		Aggregation("votes", agg).
-		Do(context.Background())
+		trend.End = height - (segment * segmentSize)
+		trend.Start = trend.End - segmentSize
 
-	if agg, found := results.Aggregations.Terms("votes"); found {
-		for _, bucket := range agg.Buckets {
-			var trend Trend
+		query := elastic.NewBoolQuery()
+		query = query.Must(elastic.NewMatchQuery("paymentRequest", hash))
+		query = query.Must(elastic.NewRangeQuery("height").From(trend.Start).To(trend.End).IncludeLower(false))
 
-			fromData, _ := bucket.Aggregations["from_as_string"].MarshalJSON()
-			start, err := strconv.ParseFloat(strings.Trim(string(fromData[:]), "\""), 64)
-			if err == nil {
-				trend.Start = int(math.Round(start))
-			}
+		results, err := client.Search().Index(IndexPaymentRequestVote).Pretty(true).
+			Query(query).
+			Size(0).
+			Aggregation("VotesFor", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", true))).
+			Aggregation("VotesAgainst", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", false))).
+			Do(context.Background())
 
-			toData, _ := bucket.Aggregations["to_as_string"].MarshalJSON()
-			end, err := strconv.ParseFloat(strings.Trim(string(toData[:]), "\""), 64)
-			if err == nil {
-				trend.End = int(math.Round(end))
-			}
-
-			yes, found := bucket.Filter("yes")
-			if found == true {
-				trend.VotesYes = int(yes.DocCount)
-			}
-
-			no, found := bucket.Filter("no")
-			if found == true {
-				trend.VotesNo = int(no.DocCount)
-			}
-
-			trend.TrendYes = (float64(trend.VotesYes) / float64(segmentSize)) * 100
-			trend.TrendNo = (float64(trend.VotesNo) / float64(segmentSize)) * 100
-			trend.TrendAbstain = (float64(segmentSize - trend.VotesYes - trend.VotesNo) / float64(segmentSize)) * 100
-
-			trends = append(trends, trend)
+		if err != nil {
+			log.Print(err)
+			return
 		}
+
+		if agg, found := results.Aggregations.Filter("VotesFor"); found {
+			trend.VotesYes = int(agg.DocCount)
+		}
+
+		if agg, found := results.Aggregations.Filter("VotesAgainst"); found {
+			trend.VotesNo = int(agg.DocCount)
+		}
+
+		trend.TrendYes = (float64(trend.VotesYes) / float64(segmentSize)) * 100
+		trend.TrendNo = (float64(trend.VotesNo) / float64(segmentSize)) * 100
+		trend.TrendAbstain = (float64(segmentSize - trend.VotesYes - trend.VotesNo) / float64(segmentSize)) * 100
+
+		trends = append(trends, trend)
 	}
 
 	return trends, err
 }
+
+var (
+	ErrProposalNotFound = errors.New("proposal not found")
+	ErrPaymentRequestNotFound = errors.New("payment request not found")
+)

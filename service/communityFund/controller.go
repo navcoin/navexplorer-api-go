@@ -1,7 +1,6 @@
 package communityFund
 
 import (
-	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/pagination"
 	"github.com/gin-gonic/gin"
 	"strconv"
@@ -26,7 +25,10 @@ func (controller *Controller) GetProposals(c *gin.Context) {
 		offset = 0
 	}
 
-	proposals, total, _ := GetProposalsByState(c.Query("state"), size, dir == "ASC", offset)
+	proposals, total, err := GetProposalsByState(c.Query("state"), size, dir == "ASC", offset)
+	if err != nil {
+		c.AbortWithError(500, err)
+	}
 	if proposals == nil {
 		proposals = make([]Proposal, 0)
 	}
@@ -41,52 +43,60 @@ func (controller *Controller) GetProposal(c *gin.Context) {
 	proposal, err := GetProposalByHash(c.Param("hash"))
 
 	if err != nil {
-		c.JSON(404, gin.H{
-			"error": "Not Found",
-			"status": 404,
-			"message": fmt.Sprintf("Could not find proposal: %s", c.Param("hash")),
-		})
-		c.Abort()
-	} else {
-		c.JSON(200, proposal)
+		if err == ErrProposalNotFound {
+			c.AbortWithError(404, err)
+		} else {
+			c.AbortWithError(500, err)
+		}
+		return
 	}
+
+	c.JSON(200, proposal)
 }
 
 func (controller *Controller) GetProposalVotes(c *gin.Context) {
 	vote, err := strconv.ParseBool(c.Param("vote"))
-
 	votes, err := GetProposalVotes(c.Param("hash"), vote)
 
 	if err != nil {
-		c.JSON(404, gin.H{
-			"error": "Not Found",
-			"status": 404,
-			"message": fmt.Sprintf("Could not find proposal: %s", c.Param("hash")),
-		})
-		c.Abort()
-	} else {
-		c.JSON(200, votes)
+		if err == ErrProposalNotFound {
+			c.AbortWithError(404, err)
+		} else {
+			c.AbortWithError(500, err)
+		}
+		return
 	}
+
+	c.JSON(200, votes)
 }
 
 func (controller *Controller) GetProposalVotingTrend(c *gin.Context) {
 	proposal, err := GetProposalByHash(c.Param("hash"))
 
 	if err != nil {
-		c.JSON(404, gin.H{
-			"error":   "Not Found",
-			"status":  404,
-			"message": fmt.Sprintf("Could not find proposal: %s", c.Param("hash")),
-		})
-		c.Abort()
-	} else {
-		trend, _ := GetProposalTrend(proposal.Hash)
-		c.JSON(200, trend)
+		if err == ErrProposalNotFound {
+			c.AbortWithError(404, err)
+		} else {
+			c.AbortWithError(500, err)
+		}
+		return
 	}
+
+	trend, err := GetProposalTrend(proposal.Hash)
+	if err != nil {
+		c.AbortWithError(500, err)
+		return
+	}
+
+	c.JSON(200, trend)
 }
 
 func (controller *Controller) GetProposalPaymentRequests(c *gin.Context) {
-	paymentRequests, _ := GetProposalPaymentRequests(c.Param("hash"))
+	paymentRequests, err := GetProposalPaymentRequests(c.Param("hash"))
+	if err != nil {
+		c.AbortWithError(500, err)
+		return
+	}
 
 	if paymentRequests == nil {
 		paymentRequests = make([]PaymentRequest, 0)
@@ -96,7 +106,12 @@ func (controller *Controller) GetProposalPaymentRequests(c *gin.Context) {
 }
 
 func (controller *Controller) GetPaymentRequestsByState(c *gin.Context) {
-	paymentRequests, _ := GetPaymentRequestsByState(c.Query("state"))
+	paymentRequests, err := GetPaymentRequestsByState(c.Query("state"))
+	if err != nil {
+		c.AbortWithError(500, err)
+		return
+	}
+
 	if paymentRequests == nil {
 		paymentRequests = make([]PaymentRequest, 0)
 	}
@@ -105,40 +120,50 @@ func (controller *Controller) GetPaymentRequestsByState(c *gin.Context) {
 }
 
 func (controller *Controller) GetPaymentRequestByHash(c *gin.Context) {
-	paymentRequests, _ := GetPaymentRequestByHash(c.Param("hash"))
+	paymentRequests, err := GetPaymentRequestByHash(c.Param("hash"))
+	if err != nil {
+		c.AbortWithError(500, err)
+		return
+	}
 
 	c.JSON(200, paymentRequests)
 }
 
 func (controller *Controller) GetPaymentRequestVotes(c *gin.Context) {
 	vote, err := strconv.ParseBool(c.Param("vote"))
-
 	votes, err := GetPaymentRequestVotes(c.Param("hash"), vote)
 
 	if err != nil {
-		c.JSON(404, gin.H{
-			"error": "Not Found",
-			"status": 404,
-			"message": fmt.Sprintf("Could not find proposal: %s", c.Param("hash")),
-		})
-		c.Abort()
-	} else {
-		c.JSON(200, votes)
+		if err == ErrPaymentRequestNotFound {
+			c.AbortWithError(404, err)
+		} else {
+			c.AbortWithError(500, err)
+		}
+
+		return
 	}
+
+	c.JSON(200, votes)
 }
 
 func (controller *Controller) GetPaymentRequestVotingTrend(c *gin.Context) {
 	paymentRequest, err := GetPaymentRequestByHash(c.Param("hash"))
 
 	if err != nil {
-		c.JSON(404, gin.H{
-			"error":   "Not Found",
-			"status":  404,
-			"message": fmt.Sprintf("Could not find proposal: %s", c.Param("hash")),
-		})
-		c.Abort()
-	} else {
-		trend, _ := GetPaymentRequestTrend(paymentRequest.Hash)
-		c.JSON(200, trend)
+		if err == ErrPaymentRequestNotFound {
+			c.AbortWithError(404, err)
+		} else {
+			c.AbortWithError(500, err)
+		}
+
+		return
 	}
+
+	trend, err := GetPaymentRequestTrend(paymentRequest.Hash)
+	if err != nil {
+		c.AbortWithError(500, err)
+		return
+	}
+
+	c.JSON(200, trend)
 }
