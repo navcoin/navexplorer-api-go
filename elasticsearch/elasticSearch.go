@@ -1,9 +1,9 @@
 package elasticsearch
 
 import (
+	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/config"
 	"github.com/olivere/elastic"
-	"github.com/pkg/errors"
 	"log"
 	"os"
 )
@@ -21,9 +21,13 @@ func NewClient() (client *elastic.Client, err error) {
 
 	client, err = elastic.NewClient(opts...)
 	if err != nil {
-		err = errors.New("Unable to connect to elastic search")
-		log.Print(err)
+		log.Print("Error: ", err)
+		err = ErrDatabaseConnection
 	}
 
 	return client, err
 }
+
+var (
+	ErrDatabaseConnection = errors.New("could not connect to the database")
+)
