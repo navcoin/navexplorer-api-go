@@ -1,5 +1,7 @@
-FROM iron/base
+FROM scratch
 
-EXPOSE 8888
-ADD navexplorer-api-linux-amd64 /
-ENTRYPOINT ["./navexplorer-api-linux-amd64"]
+EXPOSE 8080
+ADD config.prod.yaml /
+ADD navexplorerApi /
+
+ENTRYPOINT ["./navexplorerApi"]
