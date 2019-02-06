@@ -49,7 +49,7 @@ var once sync.Once
 func Get() *Config {
 	once.Do(func() {
 		log.Println("Creating Config")
-		var env = "dev"
+		var env = "prod"
 		if len(os.Args) > 1 {
 			env = os.Args[1]
 		}
