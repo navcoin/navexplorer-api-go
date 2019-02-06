@@ -9,7 +9,6 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/service/block"
 	"github.com/olivere/elastic"
 	"log"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -363,13 +362,13 @@ func GetPaymentRequestTrend(hash string) (trends []Trend, err error) {
 			fromData, _ := bucket.Aggregations["from_as_string"].MarshalJSON()
 			start, err := strconv.ParseFloat(strings.Trim(string(fromData[:]), "\""), 64)
 			if err == nil {
-				trend.Start = int(math.Round(start))
+				trend.Start = int(start)
 			}
 
 			toData, _ := bucket.Aggregations["to_as_string"].MarshalJSON()
 			end, err := strconv.ParseFloat(strings.Trim(string(toData[:]), "\""), 64)
 			if err == nil {
-				trend.End = int(math.Round(end))
+				trend.End = int(end)
 			}
 
 			yes, found := bucket.Filter("yes")
