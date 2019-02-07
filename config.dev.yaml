@@ -1,5 +1,7 @@
 debug: true
 
+ssl: false
+
 server:
   port: 8080
 

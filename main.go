@@ -6,15 +6,21 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/service/communityFund"
 	"github.com/NavExplorer/navexplorer-api-go/service/softFork"
-	//"github.com/gin-contrib/gzip"
+	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 )
 
 
 func main() {
 	r := setupRouter()
-	r.Run(":" + config.Get().Server.Port)
+
+	if config.Get().Ssl == false {
+		r.Run(":" + config.Get().Server.Port)
+	} else {
+		log.Fatal(autotls.Run(r, "api.navexplorer.com"))
+	}
 }
 
 func setupRouter() *gin.Engine {

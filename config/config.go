@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	Debug bool
+	Ssl bool
 
 	Server struct{
 		Port string
