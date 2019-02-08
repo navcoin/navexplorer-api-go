@@ -53,6 +53,8 @@ func GetBlocks(size int, ascending bool, offset int) (blocks []Block, total int6
 		err := json.Unmarshal(*hit.Source, &block)
 		if err == nil {
 			block.Confirmations = bestBlock.Height - block.Height + 1
+			block.Best = block.Height == bestBlock.Height
+
 			blocks = append(blocks, block)
 		}
 	}
