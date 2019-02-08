@@ -21,12 +21,8 @@ type Block struct {
 	Fees          int           `json:"fees"`
 	Spend         int           `json:"spend"`
 	Transactions  int           `json:"transactions"`
-	Signals       []Signal      `json:"signals"`
-}
-
-type Signal struct {
-	Name       string `json:"name"`
-	Signalling bool   `json:"signalling"`
+	Balance       int           `json:"balance"`
+	CfundPayout   int           `json:"cfundPayout"`
 }
 
 type Transaction struct {
