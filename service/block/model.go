@@ -5,24 +5,25 @@ import (
 )
 
 type Block struct {
-	Hash          string        `json:"hash"`
-	MerkleRoot    string        `json:"merkleRoot"`
-	Bits          string        `json:"bits"`
-	Size          int           `json:"size"`
-	Version       int           `json:"version"`
-	VersionHex    string        `json:"versionHex"`
-	Nonce         int           `json:"nonce"`
-	Height        int           `json:"height"`
-	Difficulty    float64       `json:"difficulty"`
-	Confirmations int           `json:"confirmations"`
-	Created       time.Time     `json:"created"`
-	Stake         int           `json:"stake"`
-	StakedBy      string        `json:"stakedBy"`
-	Fees          int           `json:"fees"`
-	Spend         int           `json:"spend"`
-	Transactions  int           `json:"transactions"`
-	Balance       int           `json:"balance"`
-	CfundPayout   int           `json:"cfundPayout"`
+	Hash          string    `json:"hash"`
+	MerkleRoot    string    `json:"merkleRoot"`
+	Bits          string    `json:"bits"`
+	Size          int       `json:"size"`
+	Version       int       `json:"version"`
+	VersionHex    string    `json:"versionHex"`
+	Nonce         int       `json:"nonce"`
+	Height        int       `json:"height"`
+	Difficulty    float64   `json:"difficulty"`
+	Confirmations int       `json:"confirmations"`
+	Created       time.Time `json:"created"`
+	Stake         int       `json:"stake"`
+	StakedBy      string    `json:"stakedBy"`
+	Fees          int       `json:"fees"`
+	Spend         int       `json:"spend"`
+	Transactions  int       `json:"transactions"`
+	Balance       int       `json:"balance"`
+	CfundPayout   int       `json:"cfundPayout"`
+	Best          bool      `json:"cfundPayout"`
 }
 
 type Transaction struct {

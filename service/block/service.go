@@ -78,6 +78,7 @@ func GetBlockByHashOrHeight(hash string) (block Block, err error) {
 		return
 	}
 
+	block.Best = block.Height == bestBlock.Height
 	block.Confirmations = bestBlock.Height - block.Height + 1
 
 	return block, err
