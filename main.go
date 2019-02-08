@@ -40,6 +40,7 @@ func setupRouter() *gin.Engine {
 	api.GET("/address/:hash/tx", addressController.GetTransactions)
 
 	blockController := new (block.Controller)
+	api.GET("/bestblock", blockController.GetBestBlock)
 	api.GET("/block", blockController.GetBlocks)
 	api.GET("/block/:hash", blockController.GetBlock)
 	api.GET("/block/:hash/tx", blockController.GetBlockTransactions)
