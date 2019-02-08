@@ -23,7 +23,7 @@ type Block struct {
 	Transactions  int       `json:"transactions"`
 	Balance       int       `json:"balance"`
 	CfundPayout   int       `json:"cfundPayout"`
-	Best          bool      `json:"cfundPayout"`
+	Best          bool      `json:"best"`
 }
 
 type Transaction struct {
