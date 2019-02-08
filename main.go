@@ -6,6 +6,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/service/communityFund"
 	"github.com/NavExplorer/navexplorer-api-go/service/softFork"
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -25,7 +26,7 @@ func main() {
 
 func setupRouter() *gin.Engine {
 	r := gin.Default()
-	//r.Use(gzip.Gzip(gzip.DefaultCompression))
+	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	r.Use(errorHandler)
 
 	r.GET("/", func(c *gin.Context) {
