@@ -9,17 +9,18 @@ import (
 
 type Config struct {
 	Debug bool
-	Ssl bool
+	Ssl   bool
 
-	Server struct{
-		Port string
+	Server struct {
+		Port   string
+		Domain string
 	}
 
 	Network string
 
 	ElasticSearch struct {
-		Urls string
-		Sniff bool
+		Urls        string
+		Sniff       bool
 		HealthCheck bool
 	}
 

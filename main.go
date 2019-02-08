@@ -19,7 +19,7 @@ func main() {
 	if config.Get().Ssl == false {
 		r.Run(":" + config.Get().Server.Port)
 	} else {
-		log.Fatal(autotls.Run(r, "api.navexplorer.com"))
+		log.Fatal(autotls.Run(r, config.Get().Server.Domain))
 	}
 }
 
