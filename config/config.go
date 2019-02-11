@@ -16,13 +16,19 @@ type Config struct {
 		Domain string
 	}
 
-	Network string
-
 	ElasticSearch struct {
 		Urls        string
 		Sniff       bool
 		HealthCheck bool
 	}
+
+	Networks []Network
+
+	SelectedNetwork string
+}
+
+type Network struct {
+	Name string
 
 	CommunityFund struct {
 		BlocksInCycle  int

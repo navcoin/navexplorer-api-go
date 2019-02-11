@@ -74,3 +74,7 @@ type BlockCycleVoting struct {
 	Accept float64 `json:"accept"`
 	Reject float64 `json:"reject"`
 }
+
+type Stats struct {
+
+}

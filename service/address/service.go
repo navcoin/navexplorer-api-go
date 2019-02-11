@@ -10,8 +10,8 @@ import (
 	"log"
 )
 
-var IndexAddress = config.Get().Network + ".address"
-var IndexAddressTransaction = config.Get().Network + ".addresstransaction"
+var IndexAddress = ".address"
+var IndexAddressTransaction = ".addresstransaction"
 
 func GetAddresses(size int) (addresses []Address, err error) {
 	client, err := elasticsearch.NewClient()
@@ -19,7 +19,7 @@ func GetAddresses(size int) (addresses []Address, err error) {
 		return
 	}
 
-	results, err := client.Search().Index(IndexAddress).
+	results, err := client.Search(config.Get().SelectedNetwork + IndexAddress).
 		Sort("balance", false).
 		Size(size).
 		Do(context.Background())
@@ -45,7 +45,7 @@ func GetAddress(hash string) (address Address, err error) {
 		return
 	}
 
-	results, err := client.Search().Index(IndexAddress).
+	results, err := client.Search(config.Get().SelectedNetwork + IndexAddress).
 		Query(elastic.NewMatchQuery("hash", hash)).
 		Size(1).
 		Do(context.Background())
@@ -72,7 +72,7 @@ func GetRichListPosition(balance float64) (position int64, err error) {
 		return
 	}
 
-	position, err = client.Count().Index(IndexAddress).
+	position, err = client.Count(config.Get().SelectedNetwork + IndexAddress).
 		Query(elastic.NewRangeQuery("balance").Gte(balance)).
 		Do(context.Background())
 
@@ -86,7 +86,7 @@ func GetRichListPosition(balance float64) (position int64, err error) {
 func GetTransactions(address string, types string, size int, ascending bool, offset int) (transactions []Transaction, total int64, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
-		return transactions, 0, err
+		return
 	}
 
 	query := elastic.NewBoolQuery()
@@ -103,7 +103,7 @@ func GetTransactions(address string, types string, size int, ascending bool, off
 		query = query.Must(elastic.NewRangeQuery("height").Gt(offset))
 	}
 
-	results, err := client.Search().Index(IndexAddressTransaction).
+	results, err := client.Search(config.Get().SelectedNetwork + IndexAddressTransaction).
 		Query(query).
 		Sort("height", ascending).
 		Size(size).

@@ -9,19 +9,14 @@ import (
 
 type Controller struct{}
 
-func (Controller *Controller) GetBestBlock(c *gin.Context) {
-	blocks, _, err := GetBlocks(1, false, 0)
+func (controller *Controller) GetBestBlock(c *gin.Context) {
+	block, err := GetBestBlock()
 	if err != nil {
 		c.AbortWithError(500, err)
 		return
 	}
 
-	if len(blocks) != 1 {
-		c.AbortWithError(500, ErrNoBlocksFound)
-		return
-	}
-
-	c.JSON(200, blocks[0].Height)
+	c.JSON(200, block.Height)
 }
 
 func (controller *Controller) GetBlocks(c *gin.Context) {

@@ -12,6 +12,10 @@ func (controller *Controller) GetBlockCycle(c *gin.Context) {
 	c.JSON(200, GetBlockCycle())
 }
 
+func (controller *Controller) GetStats(c *gin.Context) {
+	c.JSON(200, GetStats())
+}
+
 func (controller *Controller) GetProposals(c *gin.Context) {
 	dir := c.DefaultQuery("dir", "DESC")
 

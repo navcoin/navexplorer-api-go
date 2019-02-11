@@ -26,6 +26,7 @@ func main() {
 
 func setupRouter() *gin.Engine {
 	r := gin.Default()
+	r.Use(networkSelect)
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	r.Use(errorHandler)
 
@@ -52,6 +53,7 @@ func setupRouter() *gin.Engine {
 
 	communityFundController := new (communityFund.Controller)
 	api.GET("/community-fund/block-cycle", communityFundController.GetBlockCycle)
+	api.GET("/community-fund/stats", communityFundController.GetStats)
 	api.GET("/community-fund/proposal", communityFundController.GetProposals)
 	api.GET("/community-fund/proposal/:hash", communityFundController.GetProposal)
 	api.GET("/community-fund/proposal/:hash/trend", communityFundController.GetProposalVotingTrend)
@@ -73,6 +75,22 @@ func setupRouter() *gin.Engine {
 	})
 
 	return r
+}
+
+func networkSelect(c *gin.Context) {
+	switch network := c.GetHeader("Network"); network {
+	case "testnet":
+		config.Get().SelectedNetwork = network
+		break
+	case "mainnet":
+		config.Get().SelectedNetwork = network
+		break
+	default:
+		config.Get().SelectedNetwork = "mainnet"
+	}
+
+	c.Header("X-Network", config.Get().SelectedNetwork)
+	log.Printf("Using Network %s", config.Get().SelectedNetwork)
 }
 
 func errorHandler(c *gin.Context) {

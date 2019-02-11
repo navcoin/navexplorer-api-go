@@ -13,13 +13,19 @@ import (
 	"strings"
 )
 
-var IndexProposal = config.Get().Network + ".communityfundproposal"
-var IndexProposalVote = config.Get().Network + ".communityfundproposalvote"
-var IndexPaymentRequest = config.Get().Network + ".communityfundpaymentrequest"
-var IndexPaymentRequestVote = config.Get().Network + ".communityfundpaymentrequestvote"
+var IndexBlockTransaction = ".blocktransaction"
+var IndexProposal = ".communityfundproposal"
+var IndexProposalVote = ".communityfundproposalvote"
+var IndexPaymentRequest = ".communityfundpaymentrequest"
+var IndexPaymentRequestVote = ".communityfundpaymentrequestvote"
 
 func GetBlockCycle() (blockCycle BlockCycle) {
-	communityFund := config.Get().CommunityFund
+	var network = 0
+	if config.Get().SelectedNetwork == "testnet" {
+		network = 1
+	}
+
+	communityFund := config.Get().Networks[network].CommunityFund
 
 	blockCycle.BlocksInCycle = communityFund.BlocksInCycle
 	blockCycle.MinQuorum = communityFund.MinQuorum
@@ -41,6 +47,30 @@ func GetBlockCycle() (blockCycle BlockCycle) {
 	return blockCycle
 }
 
+func GetStats() (stats Stats) {
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return
+	}
+
+	outputQuery := elastic.NewBoolQuery()
+	outputQuery = outputQuery.Must(elastic.NewTermQuery("outputs.type", "CFUND_CONTRIBUTION"))
+
+	query := elastic.NewNestedQuery("outputs", outputQuery)
+	//query = query.Must(elastic.NewMatchQuery("proposal", hash))
+
+	results, err := client.Search().Index(config.Get().SelectedNetwork + IndexBlockTransaction).
+		Pretty(true).
+		Query(query).
+		Sort("height", false).
+		Size(1).
+		Do(context.Background())
+
+	log.Print(results)
+
+	return stats
+}
+
 func GetProposalsByState(state string, size int, ascending bool, offset int) (proposals []Proposal, total int64, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
@@ -58,7 +88,7 @@ func GetProposalsByState(state string, size int, ascending bool, offset int) (pr
 		query = query.Must(elastic.NewRangeQuery("height").Gt(offset))
 	}
 
-	results, err := client.Search().Index(IndexProposal).
+	results, err := client.Search(config.Get().SelectedNetwork + IndexProposal).
 		Pretty(true).
 		Query(query).
 		Sort("height", ascending).
@@ -87,7 +117,7 @@ func GetProposalByHash(hash string) (proposal Proposal, err error) {
 		return
 	}
 
-	results, _ := client.Search(IndexProposal).
+	results, _ := client.Search(config.Get().SelectedNetwork + IndexProposal).
 		Query(elastic.NewMatchQuery("hash", hash)).
 		Size(1).
 		Do(context.Background())
@@ -112,7 +142,7 @@ func GetProposalPaymentRequests(hash string) (paymentRequests []PaymentRequest, 
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewMatchQuery("proposalHash", hash))
 
-	results, err := client.Search().Index(IndexPaymentRequest).
+	results, err := client.Search(config.Get().SelectedNetwork + IndexPaymentRequest).
 		Query(query).
 		Do(context.Background())
 
@@ -147,7 +177,7 @@ func GetProposalVotes(hash string, vote bool) (votes []Votes, err error) {
 
 	aggregation := elastic.NewTermsAggregation().Field("address").OrderByCountDesc().Size(2147483647)
 
-	results, err := client.Search(IndexProposalVote).
+	results, err := client.Search(config.Get().SelectedNetwork + IndexProposalVote).
 		Query(query).
 		Aggregation("address", aggregation).
 		Size(0).
@@ -192,7 +222,7 @@ func GetProposalTrend(hash string) (trends []Trend, err error) {
 	agg.SubAggregation("yes", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", true)))
 	agg.SubAggregation("no", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", false)))
 
-	results, _ := client.Search().Index(IndexProposalVote).
+	results, _ := client.Search(config.Get().SelectedNetwork + IndexProposalVote).
 		Query(query).
 		Size(0).
 		Aggregation("votes", agg).
@@ -246,7 +276,7 @@ func GetPaymentRequestsByState(state string) (paymentRequests []PaymentRequest, 
 		query = query.Must(elastic.NewMatchQuery("state", state))
 	}
 
-	results, err := client.Search().Index(IndexPaymentRequest).
+	results, err := client.Search(config.Get().SelectedNetwork + IndexPaymentRequest).
 		Query(query).
 		Sort("createdAt", false).
 		Do(context.Background())
@@ -273,7 +303,7 @@ func GetPaymentRequestByHash(hash string) (paymentRequest PaymentRequest, err er
 		return
 	}
 
-	results, _ := client.Search(IndexPaymentRequest).
+	results, _ := client.Search(config.Get().SelectedNetwork + IndexPaymentRequest).
 		Query(elastic.NewMatchQuery("hash", hash)).
 		Size(1).
 		Do(context.Background())
@@ -304,7 +334,7 @@ func GetPaymentRequestVotes(hash string, vote bool) (votes []Votes, err error) {
 
 	aggregation := elastic.NewTermsAggregation().Field("address").OrderByCountDesc().Size(2147483647)
 
-	results, err := client.Search(IndexPaymentRequestVote).
+	results, err := client.Search(config.Get().SelectedNetwork + IndexPaymentRequestVote).
 		Query(query).
 		Aggregation("address", aggregation).
 		Size(0).
@@ -349,7 +379,7 @@ func GetPaymentRequestTrend(hash string) (trends []Trend, err error) {
 	agg.SubAggregation("yes", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", true)))
 	agg.SubAggregation("no", elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vote", false)))
 
-	results, _ := client.Search().Index(IndexPaymentRequestVote).
+	results, _ := client.Search(config.Get().SelectedNetwork + IndexPaymentRequestVote).
 		Query(query).
 		Size(0).
 		Aggregation("votes", agg).

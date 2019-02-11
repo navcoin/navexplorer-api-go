@@ -11,8 +11,8 @@ import (
 	"strconv"
 )
 
-var IndexBlock = config.Get().Network + ".block"
-var IndexBlockTransaction = config.Get().Network + ".blocktransaction"
+var IndexBlock = ".block"
+var IndexBlockTransaction = ".blocktransaction"
 
 func GetBlocks(size int, ascending bool, offset int) (blocks []Block, total int64, err error) {
 	client, err := elasticsearch.NewClient()
@@ -31,7 +31,7 @@ func GetBlocks(size int, ascending bool, offset int) (blocks []Block, total int6
 		offsetQuery = elastic.NewRangeQuery("height").Gt(offset)
 	}
 
-	results, err := client.Search().Index(IndexBlock).
+	results, err := client.Search(config.Get().SelectedNetwork + IndexBlock).
 		Query(offsetQuery).
 		Sort("height", ascending).
 		Size(size).
@@ -92,7 +92,7 @@ func GetBlockByHash(hash string) (block Block, err error) {
 		return
 	}
 
-	results, _ := client.Search().Index(IndexBlock).
+	results, _ := client.Search(config.Get().SelectedNetwork + IndexBlock).
 		Query(elastic.NewTermQuery("hash", hash)).
 		Size(1).
 		Do(context.Background())
@@ -114,7 +114,7 @@ func GetBlockByHeight(height int) (block Block, err error) {
 		return
 	}
 
-	results, _ := client.Search().Index(IndexBlock).
+	results, _ := client.Search(config.Get().SelectedNetwork + IndexBlock).
 		Query(elastic.NewTermQuery("height", height)).
 		Size(1).
 		Do(context.Background())
@@ -136,7 +136,7 @@ func GetBestBlock() (block Block, err error) {
 		return
 	}
 
-	results, _ := client.Search().Index(IndexBlock).
+	results, _ := client.Search().Index(config.Get().SelectedNetwork + IndexBlock).
 		Sort("height", false).
 		Size(1).
 		Do(context.Background())
@@ -158,7 +158,7 @@ func GetTransactionsByHash(blockHash string) (transactions []Transaction, err er
 		return
 	}
 
-	results, _ := client.Search().Index(IndexBlockTransaction).
+	results, _ := client.Search(config.Get().SelectedNetwork + IndexBlockTransaction).
 		Query(elastic.NewTermQuery("blockHash", blockHash)).
 		Do(context.Background())
 
@@ -182,7 +182,7 @@ func GetTransactionByHash(hash string) (transaction Transaction, err error) {
 		return
 	}
 
-	results, err := client.Search().Index(IndexBlockTransaction).
+	results, err := client.Search(config.Get().SelectedNetwork + IndexBlockTransaction).
 		Query(elastic.NewTermQuery("hash", hash)).
 		Size(1).
 		Do(context.Background())

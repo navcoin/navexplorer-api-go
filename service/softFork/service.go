@@ -9,7 +9,7 @@ import (
 	"log"
 )
 
-var IndexSoftFork = config.Get().Network + ".softfork"
+var IndexSoftFork = ".softfork"
 
 func GetSoftForks() (softForks SoftForks, err error) {
 	client, err := elasticsearch.NewClient()
@@ -17,7 +17,7 @@ func GetSoftForks() (softForks SoftForks, err error) {
 		return softForks, err
 	}
 
-	results, err := client.Search().Index(IndexSoftFork).Do(context.Background())
+	results, err := client.Search(config.Get().SelectedNetwork + IndexSoftFork).Do(context.Background())
 	if err != nil {
 		log.Print(err)
 		return
@@ -29,7 +29,7 @@ func GetSoftForks() (softForks SoftForks, err error) {
 		return
 	}
 
-	softForks.BlocksInCycle = config.Get().SoftFork.BlocksInCycle
+	softForks.BlocksInCycle = config.Get().Networks[0].SoftFork.BlocksInCycle
 	softForks.CurrentBlock = bestBlock.Height
 	softForks.BlockCycle = (softForks.CurrentBlock) / (softForks.BlocksInCycle) + 1
 	softForks.FirstBlock = (softForks.CurrentBlock / softForks.BlocksInCycle) * softForks.BlocksInCycle
