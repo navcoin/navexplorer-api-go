@@ -6,31 +6,25 @@ import (
 )
 
 type Paginator struct {
-	First    bool          `json:"first"`
-	Last     bool          `json:"last"`
-	Total    int64         `json:"total"`
-	Size     int           `json:"size"`
-	Pages    int           `json:"total_pages"`
-	Elements int           `json:"number_of_elements"`
+	CurrentPage int   `json:"currentPage"`
+	First       bool  `json:"first"`
+	Last        bool  `json:"last"`
+	Total       int64 `json:"total"`
+	Size        int   `json:"size"`
+	Pages       int   `json:"total_pages"`
+	Elements    int   `json:"number_of_elements"`
 }
 
-func NewPaginator(elements int, total int64, size int, ascending bool, offset int) Paginator {
+func NewPaginator(elements int, total int64, size int, page int) Paginator {
 	paginator := Paginator{}
 
+	paginator.CurrentPage = page
 	paginator.Total = total
 	paginator.Size = size
 	paginator.Pages = int(math.Ceil(float64(total) / float64(size)))
 	paginator.Elements = elements
-
-	if ascending == false {
-		paginator.First = offset == 0
-		paginator.Last = total <= int64(size)
-	}
-
-	if ascending == true {
-		paginator.Last = offset == 0
-		paginator.First = total <= int64(size)
-	}
+	paginator.First = page == 1
+	paginator.Last = paginator.CurrentPage == paginator.Pages
 
 	return paginator
 }
