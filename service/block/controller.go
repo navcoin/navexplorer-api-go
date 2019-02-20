@@ -19,6 +19,22 @@ func (controller *Controller) GetBestBlock(c *gin.Context) {
 	c.JSON(200, block.Height)
 }
 
+func (controller *Controller) GetBlockGroups(c *gin.Context) {
+	period := c.DefaultQuery("period", "daily")
+	count, err := strconv.Atoi(c.DefaultQuery("count", "10"))
+	if err != nil || count < 10 {
+		count = 10
+	}
+
+	groups, err := GetBlockGroups(period, count)
+	if err != nil {
+		c.AbortWithError(500, err)
+		return
+	}
+
+	c.JSON(200, groups)
+}
+
 func (controller *Controller) GetBlocks(c *gin.Context) {
 	dir := c.DefaultQuery("dir", "DESC")
 
@@ -30,12 +46,12 @@ func (controller *Controller) GetBlocks(c *gin.Context) {
 		size = 1000
 	}
 
-	offset, err := strconv.Atoi(c.DefaultQuery("offset", ""))
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil {
-		offset = 0
+		page = 1
 	}
 
-	blocks, total, err := GetBlocks(size, dir == "ASC", offset)
+	blocks, total, err := GetBlocks(size, dir == "ASC", page)
 	if err != nil {
 		c.AbortWithError(500, err)
 		return
@@ -45,11 +61,10 @@ func (controller *Controller) GetBlocks(c *gin.Context) {
 		blocks = make([]Block, 0)
 	}
 
-	paginator := pagination.NewPaginator(len(blocks), total, size, dir == "ASC", offset)
+	paginator := pagination.NewPaginator(len(blocks), total, size, page)
 	c.Writer.Header().Set("X-Pagination", string(paginator.GetHeader()))
 
 	c.JSON(200, blocks)
-
 }
 
 func (controller *Controller) GetBlock(c *gin.Context) {

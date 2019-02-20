@@ -4,6 +4,17 @@ import (
 	"time"
 )
 
+type Group struct {
+	Start        time.Time `json:"start"`
+	End          time.Time `json:"end"`
+	Blocks       int64     `json:"blocks"`
+	Stake        int64     `json:"stake"`
+	Fees         int64     `json:"fees"`
+	Spend        int64     `json:"spend"`
+	Transactions int64     `json:"transactions"`
+	Height       int64     `json:"height"`
+}
+
 type Block struct {
 	Hash          string    `json:"hash"`
 	MerkleRoot    string    `json:"merkleRoot"`
@@ -61,7 +72,7 @@ type Output struct {
 
 type RedeemedIn struct {
 	Hash   string `json:"hash,omitempty"`
-	Height string `json:"height,omitempty"`
+	Height int    `json:"height,omitempty"`
 }
 
 type ProposalVote struct {
