@@ -185,7 +185,9 @@ func GetTransactionByHash(hash string) (transaction Transaction, err error) {
 		return
 	}
 
-	if results.TotalHits() == 1 {
+	if results.TotalHits() != 1 {
+		err = ErrTransactionNotFound
+	} else {
 		hit := results.Hits.Hits[0]
 		err = json.Unmarshal(*hit.Source, &transaction)
 	}

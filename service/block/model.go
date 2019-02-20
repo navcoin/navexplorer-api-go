@@ -55,7 +55,7 @@ type Transaction struct {
 
 type Input struct {
 	Index               int      `json:"index"`
-	Addresses           []string `json:"addresses"`
+	Addresses           []string `json:"addresses,omitempty"`
 	Amount              float64  `json:"amount"`
 	PreviousOutput      string   `json:"previousOutput"`
 	PreviousOutputBlock int      `json:"previousOutputBlock"`

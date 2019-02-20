@@ -6,6 +6,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/service/coin"
 	"github.com/NavExplorer/navexplorer-api-go/service/communityFund"
+	"github.com/NavExplorer/navexplorer-api-go/service/search"
 	"github.com/NavExplorer/navexplorer-api-go/service/softFork"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/autotls"
@@ -66,8 +67,8 @@ func setupRouter() *gin.Engine {
 	api.GET("/community-fund/payment-request/:hash/trend", communityFundController.GetPaymentRequestVotingTrend)
 	api.GET("/community-fund/payment-request/:hash/vote/:vote", communityFundController.GetPaymentRequestVotes)
 
-	//groupController := new (group.Controller)
-	//api.GET("/group/block/{category}/{count}", groupController.GetBlockGroup)
+	searchController := new(search.Controller)
+	api.GET("/search", searchController.Search)
 
 	softForkController := new (softFork.Controller)
 	api.GET("/soft-fork", softForkController.GetSoftForks)
