@@ -24,12 +24,12 @@ func (controller *Controller) GetProposals(c *gin.Context) {
 		size = 10
 	}
 
-	offset, err := strconv.Atoi(c.DefaultQuery("offset", ""))
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil {
-		offset = 0
+		page = 1
 	}
 
-	proposals, total, err := GetProposalsByState(c.Query("state"), size, dir == "ASC", offset)
+	proposals, total, err := GetProposalsByState(c.Query("state"), size, dir == "ASC", page)
 	if err != nil {
 		c.AbortWithError(500, err)
 	}
@@ -37,7 +37,7 @@ func (controller *Controller) GetProposals(c *gin.Context) {
 		proposals = make([]Proposal, 0)
 	}
 
-	paginator := pagination.NewPaginator(len(proposals), total, size, dir == "ASC", offset)
+	paginator := pagination.NewPaginator(len(proposals), total, size, page)
 	c.Writer.Header().Set("X-Pagination", string(paginator.GetHeader()))
 
 	c.JSON(200, proposals)
@@ -69,6 +69,10 @@ func (controller *Controller) GetProposalVotes(c *gin.Context) {
 			c.AbortWithError(500, err)
 		}
 		return
+	}
+
+	if votes == nil {
+		votes = make([]Votes, 0)
 	}
 
 	c.JSON(200, votes)

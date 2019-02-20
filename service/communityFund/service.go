@@ -48,30 +48,109 @@ func GetBlockCycle() (blockCycle BlockCycle) {
 }
 
 func GetStats() (stats Stats) {
+	contributed, err := GetCommunityFundContributed()
+	if err == nil {
+		stats.Contributed = contributed
+	}
+
+	paid, locked, requested, err := GetCommunityFundPaidAndLocked()
+	if err == nil {
+		stats.Paid = paid
+		stats.Locked = locked
+		stats.Requested = requested
+	}
+
+	return stats
+}
+
+func GetCommunityFundContributed() (contributed float64, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
 		return
 	}
 
-	outputQuery := elastic.NewBoolQuery()
-	outputQuery = outputQuery.Must(elastic.NewTermQuery("outputs.type", "CFUND_CONTRIBUTION"))
+	contributionAgg := elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("outputs.type", "CFUND_CONTRIBUTION"))
+	contributionAgg.SubAggregation("amount", elastic.NewSumAggregation().Field("outputs.amount"))
 
-	query := elastic.NewNestedQuery("outputs", outputQuery)
-	//query = query.Must(elastic.NewMatchQuery("proposal", hash))
+	agg := elastic.NewNestedAggregation().Path("outputs")
+	agg.SubAggregation("outputs", contributionAgg)
 
-	results, err := client.Search().Index(config.Get().SelectedNetwork + IndexBlockTransaction).
-		Pretty(true).
-		Query(query).
-		Sort("height", false).
-		Size(1).
+	results, err := client.Search(config.Get().SelectedNetwork + IndexBlockTransaction).
+		Aggregation("contribution", agg).
+		Size(0).
 		Do(context.Background())
 
-	log.Print(results)
+	if agg, found := results.Aggregations.Nested("contribution"); found {
+		if agg, found = agg.Aggregations.Filter("outputs"); found {
+			if amount, found := agg.Aggregations.Sum("amount"); found {
+				contributed = *amount.Value / 100000000
+			}
+		}
+	}
 
-	return stats
+	return contributed, err
 }
 
-func GetProposalsByState(state string, size int, ascending bool, offset int) (proposals []Proposal, total int64, err error) {
+func GetCommunityFundPaidAndLocked() (paid float64, locked float64, requested float64, err error) {
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return
+	}
+
+	query := elastic.NewBoolQuery()
+	query = query.Should(
+		elastic.NewMatchQuery("state", "ACCEPTED"),
+		elastic.NewMatchQuery("state", "EXPIRED"))
+
+	paidAgg := elastic.NewFilterAggregation().Filter(query)
+	paidAgg.SubAggregation("requestedAmount", elastic.NewSumAggregation().Field("requestedAmount"))
+	paidAgg.SubAggregation("notPaidYet", elastic.NewSumAggregation().Field("notPaidYet"))
+
+	lockedAgg := elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("state", "ACCEPTED"))
+	lockedAgg.SubAggregation("notPaidYet", elastic.NewSumAggregation().Field("notPaidYet"))
+
+	requestedAgg := elastic.NewSumAggregation().Field("requestedAmount")
+
+	results, err := client.Search(config.Get().SelectedNetwork + IndexProposal).
+		Aggregation("paid", paidAgg).
+		Aggregation("locked", lockedAgg).
+		Aggregation("requested", requestedAgg).
+		Size(0).
+		Do(context.Background())
+
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	if stats, found := results.Aggregations.Filter("paid"); found {
+		var requestedAmount float64
+		if amount, found := stats.Aggregations.Sum("requestedAmount"); found {
+			requestedAmount = *amount.Value
+		}
+
+		var notPaidYet float64
+		if amount, found := stats.Aggregations.Sum("notPaidYet"); found {
+			notPaidYet = *amount.Value
+		}
+
+		paid = requestedAmount - notPaidYet
+	}
+
+	if stats, found := results.Aggregations.Filter("locked"); found {
+		if notPaidYet, found := stats.Aggregations.Sum("notPaidYet"); found {
+			locked = *notPaidYet.Value
+		}
+	}
+
+	if stats, found := results.Aggregations.Sum("requested"); found {
+		requested = *stats.Value
+	}
+
+	return paid, locked, requested, err
+}
+
+func GetProposalsByState(state string, size int, ascending bool, page int) (proposals []Proposal, total int64, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
 		return
@@ -82,16 +161,10 @@ func GetProposalsByState(state string, size int, ascending bool, offset int) (pr
 		query = query.Must(elastic.NewMatchQuery("state", state))
 	}
 
-	if ascending == false && offset > 0 {
-		query = query.Must(elastic.NewRangeQuery("height").Lt(offset))
-	} else {
-		query = query.Must(elastic.NewRangeQuery("height").Gt(offset))
-	}
-
 	results, err := client.Search(config.Get().SelectedNetwork + IndexProposal).
-		Pretty(true).
 		Query(query).
 		Sort("height", ascending).
+		From((page * size) - size).
 		Size(size).
 		Do(context.Background())
 
@@ -352,6 +425,10 @@ func GetPaymentRequestVotes(hash string, vote bool) (votes []Votes, err error) {
 				Votes: bucket.DocCount,
 			})
 		}
+	}
+
+	if votes == nil {
+		votes = make([]Votes, 0)
 	}
 
 	return votes, err

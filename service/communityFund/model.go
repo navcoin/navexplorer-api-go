@@ -21,7 +21,7 @@ type Proposal struct {
 	Status              string    `json:"status"`
 	State               string    `json:"state"`
 	StateChangedOnBlock string    `json:"stateChangedOnBlock,omitempty"`
-	ExpiresOn           time.Time `json:"expiresOn,omitempty"`
+	ExpiresOn           *time.Time `json:"expiresOn,omitempty"`
 	CreatedAt           time.Time `json:"createdAt"`
 }
 
@@ -76,5 +76,8 @@ type BlockCycleVoting struct {
 }
 
 type Stats struct {
-
+	Contributed float64 `json:"contributed"`
+	Requested   float64 `json:"requested"`
+	Paid        float64 `json:"paid"`
+	Locked      float64 `json:"locked"`
 }
