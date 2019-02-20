@@ -4,6 +4,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/config"
 	"github.com/NavExplorer/navexplorer-api-go/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/service/block"
+	"github.com/NavExplorer/navexplorer-api-go/service/coin"
 	"github.com/NavExplorer/navexplorer-api-go/service/communityFund"
 	"github.com/NavExplorer/navexplorer-api-go/service/softFork"
 	"github.com/gin-contrib/gzip"
@@ -43,13 +44,14 @@ func setupRouter() *gin.Engine {
 
 	blockController := new (block.Controller)
 	api.GET("/bestblock", blockController.GetBestBlock)
+	api.GET("/blockgroup", blockController.GetBlockGroups)
 	api.GET("/block", blockController.GetBlocks)
 	api.GET("/block/:hash", blockController.GetBlock)
 	api.GET("/block/:hash/tx", blockController.GetBlockTransactions)
 	api.GET("/tx/:hash", blockController.GetTransaction)
 
-	//coinController := new (coin.Controller)
-	//api.GET("/coin/wealth", coinController.GetWealthDistribution)
+	coinController := new (coin.Controller)
+	api.GET("/coin/wealth", coinController.GetWealthDistribution)
 
 	communityFundController := new (communityFund.Controller)
 	api.GET("/community-fund/block-cycle", communityFundController.GetBlockCycle)
