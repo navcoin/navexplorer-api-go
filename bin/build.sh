@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
 export GOOS=linux
-go build -o navexplorer-api-linux-amd64
-export GOOS=darwin
+export GOARG=amd64
+
+go build -o navexplorerApi
+
+docker build -t dantudor/navexplorer:navexplorerapi-0.0.1 .
+docker push dantudor/navexplorer:navexplorerapi-0.0.1
