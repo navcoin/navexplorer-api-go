@@ -53,19 +53,17 @@ func (controller *Controller) GetTransactions(c *gin.Context) {
 		filters = strings.Split(filtersParam, ",")
 	}
 
-	dir := c.DefaultQuery("dir", "DESC")
-
 	size, sizeErr := strconv.Atoi(c.Query("size"))
 	if sizeErr != nil {
 		size = 50
 	}
 
-	offset, err := strconv.Atoi(c.DefaultQuery("offset", ""))
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil {
-		offset = 0
+		page = 1
 	}
 
-	transactions, total, err := GetTransactions(hash, strings.Join(filters, " "), size, dir == "ASC", offset)
+	transactions, total, err := GetTransactions(hash, strings.Join(filters, " "), size, page)
 	if err != nil {
 		c.AbortWithError(500, err)
 		return
@@ -75,7 +73,7 @@ func (controller *Controller) GetTransactions(c *gin.Context) {
 		transactions = make([]Transaction, 0)
 	}
 
-	paginator := pagination.NewPaginator(len(transactions), total, size, dir == "ASC", offset)
+	paginator := pagination.NewPaginator(len(transactions), total, size, page)
 	c.Writer.Header().Set("X-Pagination", string(paginator.GetHeader()))
 
 	c.JSON(200, transactions)

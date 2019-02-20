@@ -25,12 +25,16 @@ type Address struct {
 }
 
 type Transaction struct {
-	Time        time.Time `json:"time"`
-	Address     string    `json:"address"`
-	Type        string    `json:"type"`
-	Transaction string    `json:"transaction"`
-	Height      int       `json:"height"`
-	Balance     float64   `json:"balance"`
-	Sent        float64   `json:"sent"`
-	Received    float64   `json:"received"`
+	Time                time.Time `json:"time"`
+	Address             string    `json:"address"`
+	Type                string    `json:"type"`
+	Transaction         string    `json:"transaction"`
+	Height              int       `json:"height"`
+	Balance             float64   `json:"balance"`
+	Sent                float64   `json:"sent"`
+	Received            float64   `json:"received"`
+	ColdStaking         bool      `json:"coldStaking"`
+	ColdStakingBalance  float64   `json:"coldStakingBalance"`
+	ColdStakingSent     float64   `json:"coldStakingSent"`
+	ColdStakingReceived float64   `json:"coldStakingReceived"`
 }

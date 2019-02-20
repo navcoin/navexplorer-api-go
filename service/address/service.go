@@ -83,7 +83,7 @@ func GetRichListPosition(balance float64) (position int64, err error) {
 	return position, err
 }
 
-func GetTransactions(address string, types string, size int, ascending bool, offset int) (transactions []Transaction, total int64, err error) {
+func GetTransactions(address string, types string, size int, page int) (transactions []Transaction, total int64, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
 		return
@@ -97,15 +97,10 @@ func GetTransactions(address string, types string, size int, ascending bool, off
 		query = query.Must(elastic.NewMatchQuery("type", types))
 	}
 
-	if ascending == false && offset > 0 {
-		query = query.Must(elastic.NewRangeQuery("height").Lt(offset))
-	} else {
-		query = query.Must(elastic.NewRangeQuery("height").Gt(offset))
-	}
-
 	results, err := client.Search(config.Get().SelectedNetwork + IndexAddressTransaction).
 		Query(query).
-		Sort("height", ascending).
+		Sort("height", false).
+		From((page * size) - size).
 		Size(size).
 		Do(context.Background())
 
