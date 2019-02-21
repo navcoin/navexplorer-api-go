@@ -32,3 +32,11 @@ GET    /api/search?query=[block#,blockHash,txHash,proposalHash,paymentRequestHas
 GET    /api/soft-fork
 
 ```
+
+## Network Header
+
+Use the Network header to switch between the available NavCoin networks.
+
+Set `header('Network: mainnet')` for mainnet data
+
+Set `header('Network: testnet')` for testnet data
