@@ -8,13 +8,22 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/service/communityFund"
 	"github.com/NavExplorer/navexplorer-api-go/service/search"
 	"github.com/NavExplorer/navexplorer-api-go/service/softFork"
+	"github.com/getsentry/raven-go"
 	"github.com/gin-contrib/gzip"
+	"github.com/gin-contrib/sentry"
 	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 )
 
+func init() {
+	if config.Get().Sentry.Active == true {
+		dsn := config.Get().Sentry.DSN
+		log.Println("Sentry logging to ", dsn)
+		raven.SetDSN(dsn)
+	}
+}
 
 func main() {
 	r := setupRouter()
@@ -23,6 +32,10 @@ func main() {
 		r.Run(":" + config.Get().Server.Port)
 	} else {
 		log.Fatal(autotls.Run(r, config.Get().Server.Domain))
+	}
+
+	if config.Get().Sentry.Active == true {
+		r.Use(sentry.Recovery(raven.DefaultClient, false))
 	}
 }
 
