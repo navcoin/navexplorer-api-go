@@ -112,12 +112,9 @@ func networkSelect(c *gin.Context) {
 func errorHandler(c *gin.Context) {
 	c.Next()
 
-	if len(c.Errors) != 0 {
-		message, _ := c.Get("error")
-		c.JSON(-1, gin.H{
-			"error": c.Errors.Errors()[0],
-			"message": message,
-		})
-		c.Abort()
+	if len(c.Errors) == 0 {
+		return
 	}
+
+	c.AbortWithStatusJSON(http.StatusBadRequest, c.Errors)
 }

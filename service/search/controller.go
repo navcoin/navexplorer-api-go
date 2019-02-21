@@ -2,10 +2,12 @@ package search
 
 import (
 	"errors"
+	error1 "github.com/NavExplorer/navexplorer-api-go/error"
 	"github.com/NavExplorer/navexplorer-api-go/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/service/communityFund"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 type Controller struct{}
@@ -56,5 +58,5 @@ func (controller *Controller) Search(c *gin.Context) {
 		return
 	}
 
-	c.JSON(404, errors.New("no search result"))
+	error1.HandleError(c, errors.New("no search result"), http.StatusNotFound)
 }
