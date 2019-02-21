@@ -1,8 +1,10 @@
 package communityFund
 
 import (
+	"github.com/NavExplorer/navexplorer-api-go/error"
 	"github.com/NavExplorer/navexplorer-api-go/pagination"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"strconv"
 )
 
@@ -31,7 +33,8 @@ func (controller *Controller) GetProposals(c *gin.Context) {
 
 	proposals, total, err := GetProposalsByState(c.Query("state"), size, dir == "ASC", page)
 	if err != nil {
-		c.AbortWithError(500, err)
+		error.HandleError(c, err, http.StatusInternalServerError)
+		return
 	}
 	if proposals == nil {
 		proposals = make([]Proposal, 0)
@@ -48,9 +51,9 @@ func (controller *Controller) GetProposal(c *gin.Context) {
 
 	if err != nil {
 		if err == ErrProposalNotFound {
-			c.AbortWithError(404, err)
+			error.HandleError(c, err, http.StatusNotFound)
 		} else {
-			c.AbortWithError(500, err)
+			error.HandleError(c, err, http.StatusInternalServerError)
 		}
 		return
 	}
@@ -64,9 +67,9 @@ func (controller *Controller) GetProposalVotes(c *gin.Context) {
 
 	if err != nil {
 		if err == ErrProposalNotFound {
-			c.AbortWithError(404, err)
+			error.HandleError(c, err, http.StatusNotFound)
 		} else {
-			c.AbortWithError(500, err)
+			error.HandleError(c, err, http.StatusInternalServerError)
 		}
 		return
 	}
@@ -83,16 +86,16 @@ func (controller *Controller) GetProposalVotingTrend(c *gin.Context) {
 
 	if err != nil {
 		if err == ErrProposalNotFound {
-			c.AbortWithError(404, err)
+			error.HandleError(c, err, http.StatusNotFound)
 		} else {
-			c.AbortWithError(500, err)
+			error.HandleError(c, err, http.StatusInternalServerError)
 		}
 		return
 	}
 
 	trend, err := GetProposalTrend(proposal.Hash)
 	if err != nil {
-		c.AbortWithError(500, err)
+		error.HandleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -102,7 +105,7 @@ func (controller *Controller) GetProposalVotingTrend(c *gin.Context) {
 func (controller *Controller) GetProposalPaymentRequests(c *gin.Context) {
 	paymentRequests, err := GetProposalPaymentRequests(c.Param("hash"))
 	if err != nil {
-		c.AbortWithError(500, err)
+		error.HandleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -116,7 +119,7 @@ func (controller *Controller) GetProposalPaymentRequests(c *gin.Context) {
 func (controller *Controller) GetPaymentRequestsByState(c *gin.Context) {
 	paymentRequests, err := GetPaymentRequestsByState(c.Query("state"))
 	if err != nil {
-		c.AbortWithError(500, err)
+		error.HandleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -130,7 +133,7 @@ func (controller *Controller) GetPaymentRequestsByState(c *gin.Context) {
 func (controller *Controller) GetPaymentRequestByHash(c *gin.Context) {
 	paymentRequests, err := GetPaymentRequestByHash(c.Param("hash"))
 	if err != nil {
-		c.AbortWithError(500, err)
+		error.HandleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -143,9 +146,9 @@ func (controller *Controller) GetPaymentRequestVotes(c *gin.Context) {
 
 	if err != nil {
 		if err == ErrPaymentRequestNotFound {
-			c.AbortWithError(404, err)
+			error.HandleError(c, err, http.StatusNotFound)
 		} else {
-			c.AbortWithError(500, err)
+			error.HandleError(c, err, http.StatusInternalServerError)
 		}
 
 		return
@@ -159,9 +162,9 @@ func (controller *Controller) GetPaymentRequestVotingTrend(c *gin.Context) {
 
 	if err != nil {
 		if err == ErrPaymentRequestNotFound {
-			c.AbortWithError(404, err)
+			error.HandleError(c, err, http.StatusNotFound)
 		} else {
-			c.AbortWithError(500, err)
+			error.HandleError(c, err, http.StatusInternalServerError)
 		}
 
 		return
@@ -169,7 +172,7 @@ func (controller *Controller) GetPaymentRequestVotingTrend(c *gin.Context) {
 
 	trend, err := GetPaymentRequestTrend(paymentRequest.Hash)
 	if err != nil {
-		c.AbortWithError(500, err)
+		error.HandleError(c, err, http.StatusInternalServerError)
 		return
 	}
 

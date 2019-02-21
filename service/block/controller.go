@@ -1,9 +1,10 @@
 package block
 
 import (
-	"fmt"
+	"github.com/NavExplorer/navexplorer-api-go/error"
 	"github.com/NavExplorer/navexplorer-api-go/pagination"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"strconv"
 )
 
@@ -11,8 +12,9 @@ type Controller struct{}
 
 func (controller *Controller) GetBestBlock(c *gin.Context) {
 	block, err := GetBestBlock()
+
 	if err != nil {
-		c.AbortWithError(500, err)
+		error.HandleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -28,7 +30,7 @@ func (controller *Controller) GetBlockGroups(c *gin.Context) {
 
 	groups, err := GetBlockGroups(period, count)
 	if err != nil {
-		c.AbortWithError(500, err)
+		error.HandleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -52,8 +54,9 @@ func (controller *Controller) GetBlocks(c *gin.Context) {
 	}
 
 	blocks, total, err := GetBlocks(size, dir == "ASC", page)
+
 	if err != nil {
-		c.AbortWithError(500, err)
+		error.HandleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -68,16 +71,13 @@ func (controller *Controller) GetBlocks(c *gin.Context) {
 }
 
 func (controller *Controller) GetBlock(c *gin.Context) {
-	hash := c.Param("hash")
-
-	block, err := GetBlockByHashOrHeight(hash)
+	block, err := GetBlockByHashOrHeight(c.Param("hash"))
 
 	if err != nil {
 		if err == ErrBlockNotFound {
-			c.Set("error", fmt.Sprintf("The `%s` block could not be found", hash))
-			c.AbortWithError(404, err)
+			error.HandleError(c, err, http.StatusNotFound)
 		} else {
-			c.AbortWithError(500, err)
+			error.HandleError(c, err, http.StatusInternalServerError)
 		}
 
 		return
@@ -93,10 +93,9 @@ func (controller *Controller) GetBlockTransactions(c *gin.Context) {
 
 	if err != nil {
 		if err == ErrBlockNotFound {
-			c.Set("error", fmt.Sprintf("The `%s` block could not be found", hash))
-			c.AbortWithError(404, err)
+			error.HandleError(c, err, http.StatusNotFound)
 		} else {
-			c.AbortWithError(500, err)
+			error.HandleError(c, err, http.StatusInternalServerError)
 		}
 
 		return
@@ -116,13 +115,10 @@ func (controller *Controller) GetTransaction(c *gin.Context) {
 
 	if err != nil {
 		if err == ErrTransactionNotFound {
-			c.Set("error", fmt.Sprintf("The `%s` transcaction could not be found", hash))
-			c.AbortWithError(404, err)
+			error.HandleError(c, err, http.StatusNotFound)
 		} else {
-			c.AbortWithError(500, err)
+			error.HandleError(c, err, http.StatusInternalServerError)
 		}
-
-		c.Abort()
 
 		return
 	}

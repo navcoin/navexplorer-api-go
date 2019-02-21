@@ -1,7 +1,9 @@
 package coin
 
 import (
+	"github.com/NavExplorer/navexplorer-api-go/error"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"strconv"
 	"strings"
 )
@@ -24,7 +26,7 @@ func (controller *Controller) GetWealthDistribution(c *gin.Context) {
 
 	distribution, err := GetWealthDistribution(b)
 	if err != nil {
-		c.AbortWithError(500, err)
+		error.HandleError(c, err, http.StatusInternalServerError)
 		return
 	}
 

@@ -1,9 +1,10 @@
 package address
 
 import (
-	"fmt"
+	"github.com/NavExplorer/navexplorer-api-go/error"
 	"github.com/NavExplorer/navexplorer-api-go/pagination"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"strconv"
 	"strings"
 )
@@ -20,7 +21,7 @@ func (controller *Controller) GetAddresses(c *gin.Context) {
 
 	addresses, err := GetAddresses(size)
 	if err != nil {
-		c.AbortWithError(500, err)
+		error.HandleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -33,10 +34,9 @@ func (controller *Controller) GetAddress(c *gin.Context) {
 	address, err := GetAddress(hash)
 	if err != nil {
 		if err == ErrAddressNotFound {
-			c.Set("error", fmt.Sprintf("The `%s` address could not be found", hash))
-			c.AbortWithError(404, err)
+			error.HandleError(c, err, http.StatusNotFound)
 		} else {
-			c.AbortWithError(500, err)
+			error.HandleError(c, err, http.StatusInternalServerError)
 		}
 
 		return
@@ -65,7 +65,7 @@ func (controller *Controller) GetTransactions(c *gin.Context) {
 
 	transactions, total, err := GetTransactions(hash, strings.Join(filters, " "), size, page)
 	if err != nil {
-		c.AbortWithError(500, err)
+		error.HandleError(c, err, http.StatusInternalServerError)
 		return
 	}
 

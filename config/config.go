@@ -11,6 +11,11 @@ type Config struct {
 	Debug bool
 	Ssl   bool
 
+	Sentry struct {
+		Active bool
+		DSN    string
+	}
+
 	Server struct {
 		Port   string
 		Domain string
