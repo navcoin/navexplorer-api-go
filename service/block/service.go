@@ -283,7 +283,9 @@ func GetGroupsForPeriod(period string, count int) (groups []Group, err error) {
 			}
 
 			if height, found := bucket.Aggregations.Max("height"); found {
-				groups[i].Height = int64(*height.Value)
+				if height.Value != nil {
+					groups[i].Height = int64(*height.Value)
+				}
 			}
 		}
 	}
