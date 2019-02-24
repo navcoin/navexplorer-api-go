@@ -38,3 +38,12 @@ type Transaction struct {
 	ColdStakingSent     float64   `json:"coldStakingSent"`
 	ColdStakingReceived float64   `json:"coldStakingReceived"`
 }
+
+type Chart struct {
+	Points []ChartPoint `json:"points"`
+}
+
+type ChartPoint struct {
+	Time  time.Time `json:"time"`
+	Value float64   `json:"value"`
+}

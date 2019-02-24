@@ -55,6 +55,8 @@ func setupRouter() *gin.Engine {
 	api.GET("/address", addressController.GetAddresses)
 	api.GET("/address/:hash", addressController.GetAddress)
 	api.GET("/address/:hash/tx", addressController.GetTransactions)
+	api.GET("/address/:hash/coldtx", addressController.GetColdTransactions)
+	api.GET("/address/:hash/chart/balance", addressController.GetBalanceChart)
 
 	blockController := new (block.Controller)
 	api.GET("/bestblock", blockController.GetBestBlock)

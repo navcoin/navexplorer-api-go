@@ -29,9 +29,7 @@ func (controller *Controller) GetAddresses(c *gin.Context) {
 }
 
 func (controller *Controller) GetAddress(c *gin.Context) {
-	hash := c.Param("hash")
-
-	address, err := GetAddress(hash)
+	address, err := GetAddress(c.Param("hash"))
 	if err != nil {
 		if err == ErrAddressNotFound {
 			error.HandleError(c, err, http.StatusNotFound)
@@ -77,4 +75,48 @@ func (controller *Controller) GetTransactions(c *gin.Context) {
 	c.Writer.Header().Set("X-Pagination", string(paginator.GetHeader()))
 
 	c.JSON(200, transactions)
+}
+
+func (controller *Controller) GetColdTransactions(c *gin.Context) {
+	hash := c.Param("hash")
+
+	filters := make([]string, 0)
+	if filtersParam := c.DefaultQuery("filters", ""); filtersParam != "" {
+		filters = strings.Split(filtersParam, ",")
+	}
+
+	size, sizeErr := strconv.Atoi(c.Query("size"))
+	if sizeErr != nil {
+		size = 50
+	}
+
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil {
+		page = 1
+	}
+
+	transactions, total, err := GetColdTransactions(hash, strings.Join(filters, " "), size, page)
+	if err != nil {
+		error.HandleError(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	if transactions == nil {
+		transactions = make([]Transaction, 0)
+	}
+
+	paginator := pagination.NewPaginator(len(transactions), total, size, page)
+	c.Writer.Header().Set("X-Pagination", string(paginator.GetHeader()))
+
+	c.JSON(200, transactions)
+}
+
+func (controller *Controller) GetBalanceChart(c *gin.Context) {
+	chart, err := GetBalanceChart(c.Param("hash"))
+	if err != nil {
+		error.HandleError(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(200, chart)
 }

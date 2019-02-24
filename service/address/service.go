@@ -8,6 +8,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/elasticsearch"
 	"github.com/olivere/elastic"
 	"log"
+	"time"
 )
 
 var IndexAddress = ".address"
@@ -117,6 +118,80 @@ func GetTransactions(address string, types string, size int, page int) (transact
 	}
 
 	return transactions, results.Hits.TotalHits, err
+}
+
+func GetColdTransactions(address string, types string, size int, page int) (transactions []Transaction, total int64, err error) {
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return
+	}
+
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewMatchQuery("address", address))
+	query = query.Must(elastic.NewTermQuery("coldStaking", true))
+
+	if len(types) != 0 {
+		query = query.Must(elastic.NewMatchQuery("type", types))
+	}
+
+	results, err := client.Search(config.Get().SelectedNetwork + IndexAddressTransaction).
+		Query(query).
+		Sort("height", false).
+		From((page * size) - size).
+		Size(size).
+		Do(context.Background())
+
+	if err != nil {
+		log.Print(err)
+	}
+
+	for _, hit := range results.Hits.Hits {
+		var transaction Transaction
+		err := json.Unmarshal(*hit.Source, &transaction)
+		if err == nil {
+			transactions = append(transactions, transaction)
+		}
+	}
+
+	return transactions, results.Hits.TotalHits, err
+}
+
+func GetBalanceChart(address string) (chart Chart, err error) {
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return
+	}
+
+	now := time.Now().UTC().Truncate(time.Second)
+	from := time.Date(now.Year(), now.Month(), now.Day()-30, 0, 0, 0, 0, now.Location())
+
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewMatchQuery("address", address))
+	query = query.Must(elastic.NewRangeQuery("time").Gte(from))
+
+	results, err := client.Search(config.Get().SelectedNetwork + IndexAddressTransaction).
+		Query(query).
+		Sort("height", false).
+		Size(10000).
+		Do(context.Background())
+
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	for _, hit := range results.Hits.Hits {
+		var transaction Transaction
+		err := json.Unmarshal(*hit.Source, &transaction)
+		if err == nil {
+			var chartPoint ChartPoint
+			chartPoint.Time = transaction.Time
+			chartPoint.Value = transaction.Balance
+			chart.Points = append(chart.Points, chartPoint)
+		}
+	}
+
+	return chart, err
 }
 
 var (
