@@ -8,6 +8,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/service/communityFund"
 	"github.com/NavExplorer/navexplorer-api-go/service/search"
 	"github.com/NavExplorer/navexplorer-api-go/service/softFork"
+	"github.com/NavExplorer/navexplorer-api-go/service/staking"
 	"github.com/getsentry/raven-go"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/sentry"
@@ -87,6 +88,9 @@ func setupRouter() *gin.Engine {
 
 	softForkController := new (softFork.Controller)
 	api.GET("/soft-fork", softForkController.GetSoftForks)
+
+	stakingController := new (staking.Controller)
+	api.GET("/staking/addresses", stakingController.GetStakingAddresses)
 
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Resource Not Found"})
