@@ -352,6 +352,7 @@ func GetPaymentRequestsByState(state string) (paymentRequests []PaymentRequest, 
 	results, err := client.Search(config.Get().SelectedNetwork + IndexPaymentRequest).
 		Query(query).
 		Sort("createdAt", false).
+		Size(1000).
 		Do(context.Background())
 
 	if err != nil {
