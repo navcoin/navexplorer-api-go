@@ -248,7 +248,7 @@ func GetProposalVotes(hash string, vote bool) (votes []Votes, err error) {
 	query = query.Must(	elastic.NewMatchQuery("vote", vote))
 	query = query.Must(elastic.NewRangeQuery("height").Gte(blockCycle.FirstBlock))
 
-	aggregation := elastic.NewTermsAggregation().Field("address").OrderByCountDesc().Size(2147483647)
+	aggregation := elastic.NewTermsAggregation().Field("address.keyword").OrderByCountDesc().Size(2147483647)
 
 	results, err := client.Search(config.Get().SelectedNetwork + IndexProposalVote).
 		Query(query).
@@ -406,7 +406,7 @@ func GetPaymentRequestVotes(hash string, vote bool) (votes []Votes, err error) {
 	query = query.Must(elastic.NewMatchQuery("vote", vote))
 	query = query.Must(elastic.NewRangeQuery("height").Gte(blockCycle.FirstBlock))
 
-	aggregation := elastic.NewTermsAggregation().Field("address").OrderByCountDesc().Size(2147483647)
+	aggregation := elastic.NewTermsAggregation().Field("address.keyword").OrderByCountDesc().Size(2147483647)
 
 	results, err := client.Search(config.Get().SelectedNetwork + IndexPaymentRequestVote).
 		Query(query).
