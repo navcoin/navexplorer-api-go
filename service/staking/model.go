@@ -1,11 +1,8 @@
 package staking
 
-type Addresses struct {
-	TotalSupply float64          `json:"stakingSupply"`
-	Addresses   []StakingAddress `json:"addresses"`
-}
-
-type StakingAddress struct {
-	Address string  `json:"address"`
-	Balance float64 `json:"balance"`
+type Report struct {
+	TotalSupply float64 `json:"totalSupply"`
+	Staking     float64 `json:"staking"`
+	From        int     `json:"blockFrom"`
+	To          int     `json:"blockTo"`
 }

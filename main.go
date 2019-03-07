@@ -90,7 +90,7 @@ func setupRouter() *gin.Engine {
 	api.GET("/soft-fork", softForkController.GetSoftForks)
 
 	stakingController := new (staking.Controller)
-	api.GET("/staking/addresses", stakingController.GetStakingAddresses)
+	api.GET("/staking/report", stakingController.GetStakingReport)
 
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Resource Not Found"})

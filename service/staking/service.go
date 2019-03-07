@@ -15,7 +15,7 @@ import (
 var IndexAddress = ".address"
 var IndexAddressTransaction = ".addresstransaction"
 
-func GetStakingAddresses() (addresses Addresses, err error) {
+func GetStakingReport() (report Report, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
 		return
@@ -30,7 +30,7 @@ func GetStakingAddresses() (addresses Addresses, err error) {
 	}
 
 	if total, found := supplyResult.Aggregations.Sum("totalWealth"); found {
-		addresses.TotalSupply = *total.Value / 100000000
+		report.TotalSupply = *total.Value / 100000000
 	} else {
 		err = ErrAddressesNotAvailable
 		return
@@ -38,10 +38,14 @@ func GetStakingAddresses() (addresses Addresses, err error) {
 
 	from := time.Now().UTC().Truncate(time.Second).AddDate(0,0, -1)
 
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewTermQuery("type", "STAKING"))
+
 	heightResult, err := client.Search(config.Get().SelectedNetwork + IndexAddressTransaction).
 		Query(elastic.NewRangeQuery("time").Gte(from)).
 		Size(1).
-		Sort("height", true).
+		Sort("height", false).
+		Collapse(elastic.NewCollapseBuilder("address")).
 		Do(context.Background())
 
 	var transaction address.Transaction
@@ -53,28 +57,8 @@ func GetStakingAddresses() (addresses Addresses, err error) {
 
 	log.Printf("Height greater than %d\n", transaction.Height)
 
-	results, err := client.Search(config.Get().SelectedNetwork + IndexAddress).
-		Query(elastic.NewRangeQuery("blockIndex").Gte(transaction.Height)).
-		Size(10000).
-		Sort("blockIndex", false).
-		Do(context.Background())
-	if err != nil {
-		err = ErrAddressesNotAvailable
-		return
-	}
 
-	for _, hit := range results.Hits.Hits {
-		var addressAddress address.Address
-		err := json.Unmarshal(*hit.Source, &addressAddress)
-		if err == nil {
-			var stakingAddress StakingAddress
-			stakingAddress.Address = addressAddress.Hash
-			stakingAddress.Balance = (addressAddress.Balance + addressAddress.ColdStakedBalance) / 100000000
-			addresses.Addresses = append(addresses.Addresses, stakingAddress)
-		}
-	}
-
-	return addresses, err
+	return report, err
 }
 
 var (

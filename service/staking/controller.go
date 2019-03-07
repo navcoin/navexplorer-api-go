@@ -8,8 +8,8 @@ import (
 
 type Controller struct{}
 
-func (controller *Controller) GetStakingAddresses(c *gin.Context) {
-	stakingEstimate, err := GetStakingAddresses()
+func (controller *Controller) GetStakingReport(c *gin.Context) {
+	stakingEstimate, err := GetStakingReport()
 	if err != nil {
 		error.HandleError(c, err, http.StatusInternalServerError)
 		return
