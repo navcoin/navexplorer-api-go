@@ -248,7 +248,7 @@ func GetProposalVotes(hash string, vote bool) (votes []Votes, err error) {
 	query = query.Must(	elastic.NewMatchQuery("vote", vote))
 	query = query.Must(elastic.NewRangeQuery("height").Gte(blockCycle.FirstBlock))
 
-	aggregation := elastic.NewTermsAggregation().Field("address").OrderByCountDesc().Size(2147483647)
+	aggregation := elastic.NewTermsAggregation().Field("address.keyword").OrderByCountDesc().Size(2147483647)
 
 	results, err := client.Search(config.Get().SelectedNetwork + IndexProposalVote).
 		Query(query).
@@ -305,13 +305,13 @@ func GetProposalTrend(hash string) (trends []Trend, err error) {
 		for _, bucket := range agg.Buckets {
 			var trend Trend
 
-			fromData, _ := bucket.Aggregations["from_as_string"].MarshalJSON()
+			fromData, _ := bucket.Aggregations["from"].MarshalJSON()
 			start, err := strconv.ParseFloat(strings.Trim(string(fromData[:]), "\""), 64)
 			if err == nil {
 				trend.Start = int(start)
 			}
 
-			toData, _ := bucket.Aggregations["to_as_string"].MarshalJSON()
+			toData, _ := bucket.Aggregations["to"].MarshalJSON()
 			end, err := strconv.ParseFloat(strings.Trim(string(toData[:]), "\""), 64)
 			if err == nil {
 				trend.End = int(end)
@@ -352,6 +352,7 @@ func GetPaymentRequestsByState(state string) (paymentRequests []PaymentRequest, 
 	results, err := client.Search(config.Get().SelectedNetwork + IndexPaymentRequest).
 		Query(query).
 		Sort("createdAt", false).
+		Size(1000).
 		Do(context.Background())
 
 	if err != nil {
@@ -405,7 +406,7 @@ func GetPaymentRequestVotes(hash string, vote bool) (votes []Votes, err error) {
 	query = query.Must(elastic.NewMatchQuery("vote", vote))
 	query = query.Must(elastic.NewRangeQuery("height").Gte(blockCycle.FirstBlock))
 
-	aggregation := elastic.NewTermsAggregation().Field("address").OrderByCountDesc().Size(2147483647)
+	aggregation := elastic.NewTermsAggregation().Field("address.keyword").OrderByCountDesc().Size(2147483647)
 
 	results, err := client.Search(config.Get().SelectedNetwork + IndexPaymentRequestVote).
 		Query(query).
@@ -466,13 +467,13 @@ func GetPaymentRequestTrend(hash string) (trends []Trend, err error) {
 		for _, bucket := range agg.Buckets {
 			var trend Trend
 
-			fromData, _ := bucket.Aggregations["from_as_string"].MarshalJSON()
+			fromData, _ := bucket.Aggregations["from"].MarshalJSON()
 			start, err := strconv.ParseFloat(strings.Trim(string(fromData[:]), "\""), 64)
 			if err == nil {
 				trend.Start = int(start)
 			}
 
-			toData, _ := bucket.Aggregations["to_as_string"].MarshalJSON()
+			toData, _ := bucket.Aggregations["to"].MarshalJSON()
 			end, err := strconv.ParseFloat(strings.Trim(string(toData[:]), "\""), 64)
 			if err == nil {
 				trend.End = int(end)
