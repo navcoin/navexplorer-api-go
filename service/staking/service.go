@@ -8,7 +8,6 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/elasticsearch"
 	"github.com/NavExplorer/navexplorer-api-go/service/address"
 	"github.com/olivere/elastic"
-	"log"
 	"time"
 )
 
@@ -36,27 +35,36 @@ func GetStakingReport() (report Report, err error) {
 		return
 	}
 
-	from := time.Now().UTC().Truncate(time.Second).AddDate(0,0, -1)
+	to := time.Now().UTC().Truncate(time.Second)
+	from := to.AddDate(0,0, -1)
 
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewTermQuery("type", "STAKING"))
+	query = query.Must(elastic.NewRangeQuery("time").Gte(from))
+	query = query.Must(elastic.NewTermsQuery("type.keyword", "COLD_STAKING", "STAKING"))
+	query = query.Must(elastic.NewTermQuery("standard", true))
 
-	heightResult, err := client.Search(config.Get().SelectedNetwork + IndexAddressTransaction).
-		Query(elastic.NewRangeQuery("time").Gte(from)).
-		Size(1).
+	results, err := client.Search(config.Get().SelectedNetwork + IndexAddressTransaction).
+		Query(query).
+		Size(10000).
 		Sort("height", false).
-		Collapse(elastic.NewCollapseBuilder("address")).
+		Collapse(elastic.NewCollapseBuilder("address.keyword")).
 		Do(context.Background())
 
-	var transaction address.Transaction
-	err = json.Unmarshal(*heightResult.Hits.Hits[0].Source, &transaction)
-	if err != nil {
-		err = ErrAddressesNotAvailable
-		return
+	for _, hit := range results.Hits.Hits {
+		var transaction address.Transaction
+		err := json.Unmarshal(*hit.Source, &transaction)
+		if err == nil {
+			var reporter Reporter
+			reporter.Address = transaction.Address
+			reporter.Balance = transaction.Balance / 100000000
+			report.Addresses = append(report.Addresses, reporter)
+
+			report.Staking += reporter.Balance
+		}
 	}
 
-	log.Printf("Height greater than %d\n", transaction.Height)
-
+	report.To = to
+	report.From = from
 
 	return report, err
 }
