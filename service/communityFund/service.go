@@ -305,13 +305,13 @@ func GetProposalTrend(hash string) (trends []Trend, err error) {
 		for _, bucket := range agg.Buckets {
 			var trend Trend
 
-			fromData, _ := bucket.Aggregations["from_as_string"].MarshalJSON()
+			fromData, _ := bucket.Aggregations["from"].MarshalJSON()
 			start, err := strconv.ParseFloat(strings.Trim(string(fromData[:]), "\""), 64)
 			if err == nil {
 				trend.Start = int(start)
 			}
 
-			toData, _ := bucket.Aggregations["to_as_string"].MarshalJSON()
+			toData, _ := bucket.Aggregations["to"].MarshalJSON()
 			end, err := strconv.ParseFloat(strings.Trim(string(toData[:]), "\""), 64)
 			if err == nil {
 				trend.End = int(end)
@@ -467,13 +467,13 @@ func GetPaymentRequestTrend(hash string) (trends []Trend, err error) {
 		for _, bucket := range agg.Buckets {
 			var trend Trend
 
-			fromData, _ := bucket.Aggregations["from_as_string"].MarshalJSON()
+			fromData, _ := bucket.Aggregations["from"].MarshalJSON()
 			start, err := strconv.ParseFloat(strings.Trim(string(fromData[:]), "\""), 64)
 			if err == nil {
 				trend.Start = int(start)
 			}
 
-			toData, _ := bucket.Aggregations["to_as_string"].MarshalJSON()
+			toData, _ := bucket.Aggregations["to"].MarshalJSON()
 			end, err := strconv.ParseFloat(strings.Trim(string(toData[:]), "\""), 64)
 			if err == nil {
 				trend.End = int(end)
