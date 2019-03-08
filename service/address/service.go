@@ -14,7 +14,7 @@ import (
 var IndexAddress = ".address"
 var IndexAddressTransaction = ".addresstransaction"
 
-func GetAddresses(size int) (addresses []Address, err error) {
+func GetAddresses(size int, page int) (addresses []Address, total int64, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
 		return
@@ -22,6 +22,7 @@ func GetAddresses(size int) (addresses []Address, err error) {
 
 	results, err := client.Search(config.Get().SelectedNetwork + IndexAddress).
 		Sort("balance", false).
+		From((page * size) - size).
 		Size(size).
 		Do(context.Background())
 	if err != nil {
@@ -37,7 +38,7 @@ func GetAddresses(size int) (addresses []Address, err error) {
 		}
 	}
 
-	return addresses, err
+	return addresses, results.Hits.TotalHits, err
 }
 
 func GetAddress(hash string) (address Address, err error) {

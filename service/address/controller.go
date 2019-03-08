@@ -19,11 +19,19 @@ func (controller *Controller) GetAddresses(c *gin.Context) {
 		size = 1000
 	}
 
-	addresses, err := GetAddresses(size)
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil {
+		page = 1
+	}
+
+	addresses, total, err := GetAddresses(size, page)
 	if err != nil {
 		error.HandleError(c, err, http.StatusInternalServerError)
 		return
 	}
+
+	paginator := pagination.NewPaginator(len(addresses), total, size, page)
+	c.Writer.Header().Set("X-Pagination", string(paginator.GetHeader()))
 
 	c.JSON(200, addresses)
 }
