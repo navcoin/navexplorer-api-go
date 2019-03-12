@@ -8,6 +8,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/elasticsearch"
 	"github.com/olivere/elastic"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -96,6 +97,9 @@ func GetTransactions(address string, types string, size int, page int) (transact
 	query = query.MustNot(elastic.NewTermQuery("standard", false))
 
 	if len(types) != 0 {
+		if strings.Contains("staking", types) {
+			types += " cold_staking"
+		}
 		query = query.Must(elastic.NewMatchQuery("type", types))
 	}
 
