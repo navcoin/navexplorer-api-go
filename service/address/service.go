@@ -97,7 +97,7 @@ func GetTransactions(address string, types string, size int, page int) (transact
 	query = query.MustNot(elastic.NewTermQuery("standard", false))
 
 	if len(types) != 0 {
-		if strings.Contains("staking", types) {
+		if strings.Contains(types,"staking") {
 			types += " cold_staking"
 		}
 		query = query.Must(elastic.NewMatchQuery("type", types))
