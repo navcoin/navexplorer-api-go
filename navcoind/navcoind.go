@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/NavPool/navpool-api/config"
+	"log"
 )
 
 const (
@@ -16,10 +17,12 @@ type Navcoind struct {
 }
 
 func New() (*Navcoind, error) {
-	network := config.Get().Networks[0]
-	if config.Get().SelectedNetwork == "testnet" {
-		network = config.Get().Networks[1]
+	network := config.Get().Networks[1]
+	if config.Get().SelectedNetwork == "mainnet" {
+		network = config.Get().Networks[0]
 	}
+
+	log.Printf("Using Navcoind %s %s:%d %s:%s", config.Get().SelectedNetwork, network.Host, network.Port, network.Username, network.Password)
 
 	rpcClient, err := newClient(network.Host, network.Port, network.Username, network.Password)
 	if err != nil {
