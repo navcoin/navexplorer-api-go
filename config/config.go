@@ -35,6 +35,12 @@ type Config struct {
 type Network struct {
 	Name string
 
+	Host     string
+	Port     int
+	Username string
+	Password string
+
+
 	CommunityFund struct {
 		BlocksInCycle  int
 		MinQuorum      float64

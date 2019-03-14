@@ -65,7 +65,9 @@ func setupRouter() *gin.Engine {
 	api.GET("/block", blockController.GetBlocks)
 	api.GET("/block/:hash", blockController.GetBlock)
 	api.GET("/block/:hash/tx", blockController.GetBlockTransactions)
+	api.GET("/block/:hash/raw", blockController.GetRawBlock)
 	api.GET("/tx/:hash", blockController.GetTransaction)
+	api.GET("/tx/:hash/raw", blockController.GetRawTransaction)
 
 	coinController := new (coin.Controller)
 	api.GET("/coin/wealth", coinController.GetWealthDistribution)

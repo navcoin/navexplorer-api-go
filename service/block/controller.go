@@ -2,6 +2,7 @@ package block
 
 import (
 	"github.com/NavExplorer/navexplorer-api-go/error"
+	"github.com/NavExplorer/navexplorer-api-go/navcoind"
 	"github.com/NavExplorer/navexplorer-api-go/pagination"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -86,6 +87,24 @@ func (controller *Controller) GetBlock(c *gin.Context) {
 	c.JSON(200, block)
 }
 
+
+func (controller *Controller) GetRawBlock(c *gin.Context) {
+	nav, err := navcoind.New()
+	if err != nil {
+		error.HandleError(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	data, err := nav.GetBlock(c.Param("hash"))
+	if err != nil {
+		error.HandleError(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	c.String(200, data)
+}
+
+
 func (controller *Controller) GetBlockTransactions(c *gin.Context) {
 	hash := c.Param("hash")
 	block, err := GetBlockByHashOrHeight(hash)
@@ -124,4 +143,20 @@ func (controller *Controller) GetTransaction(c *gin.Context) {
 	}
 
 	c.JSON(200, transaction)
+}
+
+func (controller *Controller) GetRawTransaction(c *gin.Context) {
+	nav, err := navcoind.New()
+	if err != nil {
+		error.HandleError(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	data, err := nav.GetRawTransaction(c.Param("hash"))
+	if err != nil {
+		error.HandleError(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	c.String(200, data)
 }

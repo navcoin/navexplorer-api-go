@@ -1,4 +1,4 @@
-debug: true
+debug: false
 
 ssl: false
 
@@ -9,12 +9,18 @@ server:
   port: 8080
 
 elasticSearch:
-  urls: http://localhost:9200
+  urls: http://134.209.29.25:9200
   sniff: false
   healthCheck: true
 
 Networks:
   - name: mainnet
+
+    host: navcoind.navexplorer.com
+    port: 8332
+    username: user
+    password: password
+
     communityFund:
       blocksInCycle: 20160
       minQuorum: 0.5
@@ -32,6 +38,12 @@ Networks:
       accept: 0.75
 
   - name: testnet
+
+    host: testnet.navexplorer.com
+    port: 8332
+    username: user
+    password: password
+
     communityFund:
       blocksInCycle: 180
       minQuorum: 0.5
