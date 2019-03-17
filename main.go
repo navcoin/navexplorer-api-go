@@ -41,7 +41,8 @@ func main() {
 }
 
 func setupRouter() *gin.Engine {
-	r := gin.Default()
+	r := gin.New()
+
 	r.Use(networkSelect)
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	r.Use(errorHandler)

@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/NavPool/navpool-api/config"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
 )
@@ -66,7 +64,6 @@ func (c *rpcClient) doTimeoutRequest(timer *time.Timer, req *http.Request) (*htt
 }
 
 func (c *rpcClient) call(method string, params interface{}) (rr rpcResponse, err error) {
-	log.Printf("Navcoind: Method(%s) Params(%s)", method, params)
 	connectTimer := time.NewTimer(RPCCLIENT_TIMEOUT * time.Second)
 	rpcR := rpcRequest{method, params, time.Now().UnixNano(), "1.0"}
 	payloadBuffer := &bytes.Buffer{}
@@ -77,8 +74,6 @@ func (c *rpcClient) call(method string, params interface{}) (rr rpcResponse, err
 	}
 
 	req, err := http.NewRequest("POST", c.serverAddr, payloadBuffer)
-	log.Printf("Navcoind: Request(%s)", payloadBuffer)
-
 	if err != nil {
 		return
 	}
@@ -87,9 +82,6 @@ func (c *rpcClient) call(method string, params interface{}) (rr rpcResponse, err
 	req.Header.Add("Accept", "application/json")
 
 	if len(c.user) > 0 || len(c.password) > 0 {
-		if config.Get().Debug == true {
-			log.Printf("Navcoind: Username(%s), Password(%s)", c.user, c.password)
-		}
 		req.SetBasicAuth(c.user, c.password)
 	}
 
@@ -100,7 +92,6 @@ func (c *rpcClient) call(method string, params interface{}) (rr rpcResponse, err
 	defer resp.Body.Close()
 
 	data, err := ioutil.ReadAll(resp.Body)
-	log.Printf("Navcoind: Response(%s)", data)
 	if err != nil {
 		return
 	}

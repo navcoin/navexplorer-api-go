@@ -41,6 +41,8 @@ func (controller *Controller) GetAddress(c *gin.Context) {
 	if err != nil {
 		if err == ErrAddressNotFound {
 			error.HandleError(c, err, http.StatusNotFound)
+		} else if err == ErrAddressNotValid {
+			error.HandleError(c, err, http.StatusBadRequest)
 		} else {
 			error.HandleError(c, err, http.StatusInternalServerError)
 		}

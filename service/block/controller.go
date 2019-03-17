@@ -1,6 +1,7 @@
 package block
 
 import (
+	"github.com/NavExplorer/navexplorer-api-go/config"
 	"github.com/NavExplorer/navexplorer-api-go/error"
 	"github.com/NavExplorer/navexplorer-api-go/navcoind"
 	"github.com/NavExplorer/navexplorer-api-go/pagination"
@@ -89,7 +90,7 @@ func (controller *Controller) GetBlock(c *gin.Context) {
 
 
 func (controller *Controller) GetRawBlock(c *gin.Context) {
-	nav, err := navcoind.New()
+	nav, err := navcoind.New(config.Get().SelectedNetwork)
 	if err != nil {
 		error.HandleError(c, err, http.StatusInternalServerError)
 		return
@@ -146,7 +147,7 @@ func (controller *Controller) GetTransaction(c *gin.Context) {
 }
 
 func (controller *Controller) GetRawTransaction(c *gin.Context) {
-	nav, err := navcoind.New()
+	nav, err := navcoind.New(config.Get().SelectedNetwork)
 	if err != nil {
 		error.HandleError(c, err, http.StatusInternalServerError)
 		return

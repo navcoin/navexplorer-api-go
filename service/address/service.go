@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/config"
 	"github.com/NavExplorer/navexplorer-api-go/elasticsearch"
+	"github.com/NavExplorer/navexplorer-api-go/navcoind"
 	"github.com/olivere/elastic"
 	"log"
 	"strings"
@@ -54,8 +55,18 @@ func GetAddress(hash string) (address Address, err error) {
 		Do(context.Background())
 
 	if results.TotalHits() == 0 {
-		err = ErrAddressNotFound
-		return
+		nav, err := navcoind.New(config.Get().SelectedNetwork)
+		if err != nil {
+			return address, err
+		}
+
+		if !nav.ValidateAddress(hash) {
+			err = ErrAddressNotValid
+		} else {
+			err = ErrAddressNotFound
+		}
+
+		return address, err
 	}
 
 	hit := results.Hits.Hits[0]
@@ -201,4 +212,5 @@ func GetBalanceChart(address string) (chart Chart, err error) {
 
 var (
 	ErrAddressNotFound = errors.New("address not found")
+	ErrAddressNotValid = errors.New("address not valid")
 )
