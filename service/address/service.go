@@ -218,7 +218,7 @@ func GetStakingChart(period string, address string) (groups []StakingGroup, err 
 
 	service := client.Search(config.Get().SelectedNetwork + IndexAddressTransaction).Size(0)
 
-	count := 10
+	count := 12
 	now := time.Now().UTC().Truncate(time.Second)
 
 	for i := 0; i < count; i++ {
