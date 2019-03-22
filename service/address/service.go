@@ -265,14 +265,14 @@ func GetStakingChart(period string, address string) (groups []StakingGroup, err 
 		agg.SubAggregation("coldStakingSent", elastic.NewSumAggregation().Field("coldStakingSent"))
 		agg.SubAggregation("coldStakingReceived", elastic.NewSumAggregation().Field("coldStakingReceived"))
 
-		excludeDelegateStakesQuery := elastic.NewBoolQuery()
-		excludeDelegateStakesQuery = excludeDelegateStakesQuery.MustNot(elastic.NewMatchQuery("send", 0))
-		excludeDelegateStakesQuery = excludeDelegateStakesQuery.MustNot(elastic.NewMatchQuery("coldStaking", false))
+		//excludeDelegateStakesQuery := elastic.NewBoolQuery()
+		//excludeDelegateStakesQuery = excludeDelegateStakesQuery.MustNot(elastic.NewMatchQuery("send", 0))
+		//excludeDelegateStakesQuery = excludeDelegateStakesQuery.MustNot(elastic.NewMatchQuery("coldStaking", false))
 
 		query := elastic.NewBoolQuery()
 		query = query.Must(elastic.NewMatchQuery("address", address))
 		query = query.Must(elastic.NewMatchQuery("type", "STAKING COLD_STAKING"))
-		query = query.Must(excludeDelegateStakesQuery)
+		//query = query.Must(excludeDelegateStakesQuery)
 		service.Query(query)
 		service.Aggregation(string(i), agg)
 
