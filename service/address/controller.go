@@ -130,3 +130,16 @@ func (controller *Controller) GetBalanceChart(c *gin.Context) {
 
 	c.JSON(200, chart)
 }
+
+func (controller *Controller) GetStakingChart(c *gin.Context) {
+	period := c.DefaultQuery("period", "daily")
+
+	chart, err := GetStakingChart(period, c.Param("hash"))
+	if err != nil {
+		error.HandleError(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(200, chart)
+}
+

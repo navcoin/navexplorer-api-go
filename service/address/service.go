@@ -210,6 +210,98 @@ func GetBalanceChart(address string) (chart Chart, err error) {
 	return chart, err
 }
 
+func GetStakingChart(period string, address string) (groups []StakingGroup, err error) {
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return
+	}
+
+	service := client.Search(config.Get().SelectedNetwork + IndexAddressTransaction).Size(0)
+
+	count := 10
+	now := time.Now().UTC().Truncate(time.Second)
+
+	for i := 0; i < count; i++ {
+		var group StakingGroup
+		group.End = now
+
+		switch period {
+		case "hourly":
+			{
+				if i == 0 {
+					group.Start = now.Truncate(time.Hour)
+				} else {
+					group.End = groups[i-1].Start
+					group.Start = group.End.Add(- time.Hour)
+				}
+				break
+			}
+		case "daily":
+			{
+				if i == 0 {
+					group.Start = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+				} else {
+					group.End = groups[i-1].Start
+					group.Start = group.End.AddDate(0,0, -1)
+				}
+				break
+			}
+		case "monthly":
+			{
+				if i == 0 {
+					group.Start = time.Date(now.Year(), now.Month(), 0, 0, 0, 0, 0, now.Location())
+					group.Start = group.Start.AddDate(0, 0, 1)
+				} else {
+					group.End = groups[i-1].Start
+					group.Start = group.End.AddDate(0,-1, 0)
+				}
+				break
+			}
+		}
+
+		agg := elastic.NewRangeAggregation().Field("time").AddRange(group.Start, group.End)
+		agg.SubAggregation("sent", elastic.NewSumAggregation().Field("sent"))
+		agg.SubAggregation("received", elastic.NewSumAggregation().Field("received"))
+		agg.SubAggregation("coldStakingSent", elastic.NewSumAggregation().Field("coldStakingSent"))
+		agg.SubAggregation("coldStakingReceived", elastic.NewSumAggregation().Field("coldStakingReceived"))
+
+		query := elastic.NewBoolQuery()
+		query = query.Must(elastic.NewMatchQuery("address", address))
+		query = query.Must(elastic.NewMatchQuery("type", "STAKING COLD_STAKING"))
+		service.Query(query)
+		service.Aggregation(string(i), agg)
+
+		groups = append(groups, group)
+	}
+
+	results, err := service.Do(context.Background())
+
+	for i := 0; i < count; i++ {
+		if agg, found := results.Aggregations.Range(string(i)); found {
+			bucket := agg.Buckets[0]
+			groups[i].Stakes = bucket.DocCount
+			sent := int64(0)
+			received := int64(0)
+			if sentValue, found := bucket.Aggregations.Sum("sent"); found {
+				sent = sent + int64(*sentValue.Value)
+			}
+			if coldStakingSentValue, found := bucket.Aggregations.Sum("coldStakingSent"); found {
+				sent = sent + int64(*coldStakingSentValue.Value)
+			}
+			if receivedValue, found := bucket.Aggregations.Sum("received"); found {
+				received = received + int64(*receivedValue.Value)
+			}
+			if coldStakingReceivedValue, found := bucket.Aggregations.Sum("coldStakingReceived"); found {
+				received = received + int64(*coldStakingReceivedValue.Value)
+			}
+
+			groups[i].Amount = int64(received - sent)
+		}
+	}
+
+	return groups, err
+}
+
 var (
 	ErrAddressNotFound = errors.New("address not found")
 	ErrAddressNotValid = errors.New("address not valid")

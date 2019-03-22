@@ -47,3 +47,10 @@ type ChartPoint struct {
 	Time  time.Time `json:"time"`
 	Value float64   `json:"value"`
 }
+
+type StakingGroup struct {
+	Start        time.Time `json:"start"`
+	End          time.Time `json:"end"`
+	Stakes       int64     `json:"stakes"`
+	Amount       int64     `json:"amount"`
+}
