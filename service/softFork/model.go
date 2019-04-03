@@ -1,7 +1,5 @@
 package softFork
 
-import "github.com/globalsign/mgo/bson"
-
 type SoftForks struct {
 	BlockCycle      int      `json:"blockCycle"`
 	BlocksInCycle   int      `json:"blocksInCycle"`
@@ -12,12 +10,11 @@ type SoftForks struct {
 }
 
 type SoftFork struct {
-	ID               bson.ObjectId `bson:"_id" json:"-"`
-	Name             string        `bson:"name" json:"name"`
-	SignalBit        int           `bson:"signalBit" json:"signalBit"`
-	State            string        `bson:"state" json:"state"`
-	BlocksSignalling int           `bson:"blocksSignalling" json:"blocksSignalling"`
-	SignalledToBlock int           `bson:"signalledToBlock" json:"signalledToBlock"`
-	LockedInHeight   int           `bson:"lockedInHeight" json:"lockedInHeight,omitempty"`
-	ActivationHeight int           `bson:"activationHeight" json:"activationHeight,omitempty"`
+	Name             string `json:"name"`
+	SignalBit        int    `json:"signalBit"`
+	State            string `json:"state"`
+	BlocksSignalling int    `json:"blocksSignalling"`
+	SignalledToBlock int    `json:"signalledToBlock"`
+	LockedInHeight   int    `json:"lockedInHeight,omitempty"`
+	ActivationHeight int    `json:"activationHeight,omitempty"`
 }
