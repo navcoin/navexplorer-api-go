@@ -6,6 +6,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/service/coin"
 	"github.com/NavExplorer/navexplorer-api-go/service/communityFund"
+	"github.com/NavExplorer/navexplorer-api-go/service/network"
 	"github.com/NavExplorer/navexplorer-api-go/service/search"
 	"github.com/NavExplorer/navexplorer-api-go/service/softFork"
 	"github.com/NavExplorer/navexplorer-api-go/service/staking"
@@ -95,6 +96,9 @@ func setupRouter() *gin.Engine {
 
 	stakingController := new (staking.Controller)
 	api.GET("/staking/report", stakingController.GetStakingReport)
+
+	networkController := new (network.Controller)
+	api.GET("/network/nodes", networkController.GetNodes)
 
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Resource Not Found"})

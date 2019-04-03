@@ -30,6 +30,7 @@ GET    /api/community-fund/payment-request/:hash
 GET    /api/community-fund/payment-request/:hash/vote/:vote
 GET    /api/search?query=[block#,blockHash,txHash,proposalHash,paymentRequestHash]
 GET    /api/soft-fork
+GET    /api/network/nodes
 
 ```
 
