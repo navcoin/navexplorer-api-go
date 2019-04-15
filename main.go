@@ -11,6 +11,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/service/softFork"
 	"github.com/NavExplorer/navexplorer-api-go/service/staking"
 	"github.com/getsentry/raven-go"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/sentry"
 	"github.com/gin-gonic/autotls"
@@ -44,6 +45,7 @@ func main() {
 func setupRouter() *gin.Engine {
 	r := gin.New()
 
+	r.Use(cors.Default())
 	r.Use(networkSelect)
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	r.Use(errorHandler)
@@ -54,7 +56,7 @@ func setupRouter() *gin.Engine {
 
 	api := r.Group("/api")
 
-	addressController := new (address.Controller)
+	addressController := new(address.Controller)
 	api.GET("/address", addressController.GetAddresses)
 	api.GET("/address/:hash", addressController.GetAddress)
 	api.GET("/address/:hash/tx", addressController.GetTransactions)
@@ -62,7 +64,7 @@ func setupRouter() *gin.Engine {
 	api.GET("/address/:hash/chart/balance", addressController.GetBalanceChart)
 	api.GET("/address/:hash/chart/staking", addressController.GetStakingChart)
 
-	blockController := new (block.Controller)
+	blockController := new(block.Controller)
 	api.GET("/bestblock", blockController.GetBestBlock)
 	api.GET("/blockgroup", blockController.GetBlockGroups)
 	api.GET("/block", blockController.GetBlocks)
@@ -72,10 +74,10 @@ func setupRouter() *gin.Engine {
 	api.GET("/tx/:hash", blockController.GetTransaction)
 	api.GET("/tx/:hash/raw", blockController.GetRawTransaction)
 
-	coinController := new (coin.Controller)
+	coinController := new(coin.Controller)
 	api.GET("/coin/wealth", coinController.GetWealthDistribution)
 
-	communityFundController := new (communityFund.Controller)
+	communityFundController := new(communityFund.Controller)
 	api.GET("/community-fund/block-cycle", communityFundController.GetBlockCycle)
 	api.GET("/community-fund/stats", communityFundController.GetStats)
 	api.GET("/community-fund/proposal", communityFundController.GetProposals)
@@ -91,13 +93,13 @@ func setupRouter() *gin.Engine {
 	searchController := new(search.Controller)
 	api.GET("/search", searchController.Search)
 
-	softForkController := new (softFork.Controller)
+	softForkController := new(softFork.Controller)
 	api.GET("/soft-fork", softForkController.GetSoftForks)
 
-	stakingController := new (staking.Controller)
+	stakingController := new(staking.Controller)
 	api.GET("/staking/report", stakingController.GetStakingReport)
 
-	networkController := new (network.Controller)
+	networkController := new(network.Controller)
 	api.GET("/network/nodes", networkController.GetNodes)
 
 	r.NoRoute(func(c *gin.Context) {
