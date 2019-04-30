@@ -3,7 +3,6 @@ package coin
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/config"
 	"github.com/NavExplorer/navexplorer-api-go/elasticsearch"
 	"github.com/NavExplorer/navexplorer-api-go/service/address"
