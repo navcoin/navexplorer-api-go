@@ -3,16 +3,18 @@ package staking
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/config"
 	"github.com/NavExplorer/navexplorer-api-go/elasticsearch"
 	"github.com/NavExplorer/navexplorer-api-go/service/address"
+	"github.com/NavExplorer/navexplorer-api-go/service/block"
+	"github.com/NavExplorer/navexplorer-api-go/service/coin"
 	"github.com/olivere/elastic"
 	"time"
 )
 
-var IndexAddress = ".address"
 var IndexAddressTransaction = ".addresstransaction"
+var IndexBlock = ".block"
+
 
 func GetStakingReport() (report Report, err error) {
 	client, err := elasticsearch.NewClient()
@@ -20,19 +22,9 @@ func GetStakingReport() (report Report, err error) {
 		return
 	}
 
-	supplyResult, err := client.Search(config.Get().SelectedNetwork + IndexAddress).
-		Aggregation("totalWealth", elastic.NewSumAggregation().Field("balance")).
-		Size(0).
-		Do(context.Background())
+	totalSupply, err := coin.GetTotalSupply()
 	if err != nil {
-		return
-	}
-
-	if total, found := supplyResult.Aggregations.Sum("totalWealth"); found {
-		report.TotalSupply = *total.Value / 100000000
-	} else {
-		err = ErrAddressesNotAvailable
-		return
+		report.TotalSupply = totalSupply
 	}
 
 	to := time.Now().UTC().Truncate(time.Second)
@@ -69,6 +61,67 @@ func GetStakingReport() (report Report, err error) {
 	return report, err
 }
 
-var (
-	ErrAddressesNotAvailable = errors.New("addresses not available")
-)
+func GetStakingByBlockCount(blockCount int) (stakingBlocks StakingBlocks, err error) {
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return
+	}
+
+	bestBlock, err := block.GetBestBlock()
+	if err != nil {
+		return
+	}
+
+	if blockCount > bestBlock.Height {
+		blockCount = bestBlock.Height
+	}
+
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewRangeQuery("height").Gt(bestBlock.Height - blockCount))
+	query = query.Must(elastic.NewTermQuery("type.keyword", "STAKING"))
+	query = query.Must(elastic.NewTermQuery("standard", true))
+
+	results, err := client.Search(config.Get().SelectedNetwork + IndexAddressTransaction).
+		Query(query).
+		Size(blockCount).
+		Sort("height", false).
+		Collapse(elastic.NewCollapseBuilder("address.keyword")).
+		Do(context.Background())
+
+	for _, hit := range results.Hits.Hits {
+		var transaction address.Transaction
+		err := json.Unmarshal(*hit.Source, &transaction)
+		if err == nil {
+			stakingBlocks.Staking += transaction.Balance / 100000000
+		}
+	}
+
+	query = elastic.NewBoolQuery()
+	query = query.Must(elastic.NewRangeQuery("height").Gt(bestBlock.Height - blockCount))
+	query = query.Must(elastic.NewTermQuery("type.keyword", "COLD_STAKING"))
+	query = query.Must(elastic.NewTermQuery("standard", true))
+
+	results, err = client.Search(config.Get().SelectedNetwork + IndexAddressTransaction).
+		Query(query).
+		Size(blockCount).
+		Sort("height", false).
+		Collapse(elastic.NewCollapseBuilder("address.keyword")).
+		Do(context.Background())
+
+	for _, hit := range results.Hits.Hits {
+		var transaction address.Transaction
+		err := json.Unmarshal(*hit.Source, &transaction)
+		if err == nil {
+			stakingBlocks.ColdStaking += transaction.Balance / 100000000
+		}
+	}
+
+	fees, err := block.GetFeesForLastBlocks(blockCount)
+	if err == nil {
+		stakingBlocks.Fees = fees
+	}
+
+	stakingBlocks.BlockCount = blockCount
+
+	return
+}

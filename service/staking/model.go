@@ -16,3 +16,10 @@ type Reporter struct {
 	Address            string  `json:"address"`
 	Balance            float64 `json:"balance"`
 }
+
+type StakingBlocks struct {
+	BlockCount  int     `json:"blockCount"`
+	Staking     float64 `json:"staking"`
+	ColdStaking float64 `json:"coldStaking"`
+	Fees        float64 `json:"fees"`
+}

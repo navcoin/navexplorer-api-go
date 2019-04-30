@@ -146,6 +146,30 @@ func GetBestBlock() (block Block, err error) {
 	return block, err
 }
 
+func GetFeesForLastBlocks(blocks int) (fees float64, err error) {
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return
+	}
+
+	bestBlock, err := GetBestBlock()
+	if err != nil {
+		return
+	}
+
+	results, _ := client.Search().Index(config.Get().SelectedNetwork + IndexBlock).
+		Query(elastic.NewRangeQuery("height").Gt(bestBlock.Height - blocks)).
+		Aggregation("fees", elastic.NewSumAggregation().Field("fees")).
+		Size(0).
+		Do(context.Background())
+
+	if feesValue, found := results.Aggregations.Sum("fees"); found {
+		fees = *feesValue.Value / 100000000
+	}
+
+	return
+}
+
 func GetTransactionsByHash(blockHash string) (transactions []Transaction, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {

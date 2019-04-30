@@ -3,6 +3,7 @@ package coin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/config"
 	"github.com/NavExplorer/navexplorer-api-go/elasticsearch"
 	"github.com/NavExplorer/navexplorer-api-go/service/address"
@@ -54,4 +55,25 @@ func GetWealthDistribution(groups []int) (distribution []Wealth, err error) {
 
 
 	return distribution, err
+}
+
+func GetTotalSupply() (totalSupply float64, err error) {
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return
+	}
+
+	supplyResult, err := client.Search(config.Get().SelectedNetwork + IndexAddress).
+		Aggregation("totalWealth", elastic.NewSumAggregation().Field("balance")).
+		Size(0).
+		Do(context.Background())
+	if err != nil {
+		return
+	}
+
+	if total, found := supplyResult.Aggregations.Sum("totalWealth"); found {
+		totalSupply = *total.Value / 100000000
+	}
+
+	return
 }
