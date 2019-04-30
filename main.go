@@ -45,9 +45,12 @@ func main() {
 func setupRouter() *gin.Engine {
 	r := gin.New()
 
+	r.Use(gzip.Gzip(gzip.DefaultCompression))
+	r.Use(gin.Logger())
+	r.Use(gin.Recovery())
 	r.Use(cors.Default())
 	r.Use(networkSelect)
-	r.Use(gzip.Gzip(gzip.DefaultCompression))
+	r.Use(Options)
 	r.Use(errorHandler)
 
 	r.GET("/", func(c *gin.Context) {
@@ -134,4 +137,14 @@ func errorHandler(c *gin.Context) {
 	}
 
 	c.AbortWithStatusJSON(http.StatusBadRequest, c.Errors)
+}
+
+func Options(c *gin.Context) {
+	if c.Request.Method != "OPTIONS" {
+		c.Next()
+	} else {
+		c.Header("Allow", "HEAD,GET,POST,PUT,PATCH,DELETE,OPTIONS")
+		c.Header("Content-Type", "application/json")
+		c.AbortWithStatus(http.StatusOK)
+	}
 }
