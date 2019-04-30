@@ -8,6 +8,7 @@ import (
 type ValidateAddress struct {
 	Valid bool `json:"isvalid"`
 }
+
 func (nav *Navcoind) GetRawTransaction(hash string) (data string, err error) {
 	response, err := nav.client.call("getrawtransaction", []interface{}{hash, 1})
 	if err = HandleError(err, &response); err != nil {

@@ -80,6 +80,16 @@ func GetAddress(hash string) (address Address, err error) {
 	return address, err
 }
 
+func ValidateAddress(hash string) (validAddress ValidAddress, err error) {
+	nav, err := navcoind.New(config.Get().SelectedNetwork)
+	if err == nil {
+		validAddress.Hash = hash
+		validAddress.Valid = nav.ValidateAddress(hash)
+	}
+
+	return
+}
+
 func GetRichListPosition(balance float64) (position int64, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {

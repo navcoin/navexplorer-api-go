@@ -53,6 +53,15 @@ func (controller *Controller) GetAddress(c *gin.Context) {
 	c.JSON(200, address)
 }
 
+func (controller *Controller) ValidateAddress(c *gin.Context) {
+	validAddress, err := ValidateAddress(c.Param("hash"))
+	if err != nil {
+		error.HandleError(c, err, http.StatusInternalServerError)
+	}
+
+	c.JSON(200, validAddress)
+}
+
 func (controller *Controller) GetTransactions(c *gin.Context) {
 	hash := c.Param("hash")
 
