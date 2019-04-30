@@ -23,7 +23,7 @@ func GetStakingReport() (report Report, err error) {
 	}
 
 	totalSupply, err := coin.GetTotalSupply()
-	if err != nil {
+	if err == nil {
 		report.TotalSupply = totalSupply
 	}
 
