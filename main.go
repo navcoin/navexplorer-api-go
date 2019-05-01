@@ -29,6 +29,10 @@ func init() {
 }
 
 func main() {
+	if config.Get().Debug == false {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	r := setupRouter()
 
 	if config.Get().Ssl == false {
