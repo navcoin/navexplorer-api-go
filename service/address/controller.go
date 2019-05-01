@@ -54,12 +54,12 @@ func (controller *Controller) GetAddress(c *gin.Context) {
 }
 
 func (controller *Controller) ValidateAddress(c *gin.Context) {
-	validAddress, err := ValidateAddress(c.Param("hash"))
+	validateAddress, err := ValidateAddress(c.Param("hash"))
 	if err != nil {
 		error.HandleError(c, err, http.StatusInternalServerError)
 	}
 
-	c.JSON(200, validAddress)
+	c.JSON(200, validateAddress)
 }
 
 func (controller *Controller) GetTransactions(c *gin.Context) {
