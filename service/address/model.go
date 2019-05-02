@@ -54,3 +54,9 @@ type StakingGroup struct {
 	Stakes       int64     `json:"stakes"`
 	Amount       int64     `json:"amount"`
 }
+
+type Balance struct {
+	Address           string  `json:"address"`
+	Balance           float64 `json:"balance"`
+	ColdStakedBalance float64 `json:"coldStakedBalance"`
+}

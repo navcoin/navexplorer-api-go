@@ -143,3 +143,19 @@ func (controller *Controller) GetStakingChart(c *gin.Context) {
 	c.JSON(200, chart)
 }
 
+func (controller *Controller) GetBalancesForAddresses(c *gin.Context) {
+	c.Request.ParseForm()
+
+	addresses := make([]string, 0)
+	if addressesParam := c.Request.Form.Get("addresses"); addressesParam != "" {
+		addresses = strings.Split(addressesParam, ",")
+	}
+
+	balances, err := GetBalancesForAddresses(addresses)
+	if err != nil {
+		error.HandleError(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(200, balances)
+}

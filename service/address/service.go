@@ -306,6 +306,35 @@ func GetStakingChart(period string, address string) (groups []StakingGroup, err 
 	return groups, err
 }
 
+func GetBalancesForAddresses(addresses []string) (balances []Balance, err error) {
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return
+	}
+
+	results, err := client.Search(config.Get().SelectedNetwork + IndexAddress).
+		Query(elastic.NewMatchQuery("hash", strings.Join(addresses, " "))).
+		Size(5000).
+		Do(context.Background())
+	if err != nil {
+		return
+	}
+
+	for _, hit := range results.Hits.Hits {
+		var address Address
+		err := json.Unmarshal(*hit.Source, &address)
+		if err == nil {
+			var balance Balance
+			balance.Address = address.Hash
+			balance.Balance = address.Balance
+			balance.ColdStakedBalance = address.ColdStakedBalance
+			balances = append(balances, balance)
+		}
+	}
+
+	return balances, err
+}
+
 var (
 	ErrAddressNotFound = errors.New("address not found")
 	ErrAddressNotValid = errors.New("address not valid")
