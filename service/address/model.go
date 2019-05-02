@@ -4,6 +4,11 @@ import (
 	"time"
 )
 
+type ValidAddress struct {
+	Hash  string `json:"hash"`
+	Valid bool   `json:"isValid"`
+}
+
 type Address struct {
 	Hash               string  `json:"hash"`
 	Received           float64 `json:"received"`

@@ -53,14 +53,17 @@ func GetAddress(hash string) (address Address, err error) {
 		Query(elastic.NewMatchQuery("hash", hash)).
 		Size(1).
 		Do(context.Background())
+	if err != nil {
+		return
+	}
 
 	if results.TotalHits() == 0 {
-		nav, err := navcoind.New(config.Get().SelectedNetwork)
+		validateAddress, err := ValidateAddress(hash)
 		if err != nil {
 			return address, err
 		}
 
-		if !nav.ValidateAddress(hash) {
+		if !validateAddress.Valid {
 			err = ErrAddressNotValid
 		} else {
 			err = ErrAddressNotFound
@@ -78,6 +81,15 @@ func GetAddress(hash string) (address Address, err error) {
 	}
 
 	return address, err
+}
+
+func ValidateAddress(hash string) (validateAddress navcoind.ValidateAddress, err error) {
+	nav, err := navcoind.New(config.Get().SelectedNetwork)
+	if err != nil {
+		return
+	}
+
+	return nav.ValidateAddress(hash)
 }
 
 func GetRichListPosition(balance float64) (position int64, err error) {
