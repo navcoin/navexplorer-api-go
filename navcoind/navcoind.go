@@ -3,7 +3,7 @@ package navcoind
 import (
 	"errors"
 	"fmt"
-	"github.com/NavPool/navpool-api/config"
+	"github.com/NavExplorer/navexplorer-api-go/config"
 )
 
 const (
