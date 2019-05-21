@@ -14,7 +14,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/sentry"
-	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -35,11 +34,7 @@ func main() {
 
 	r := setupRouter()
 
-	if config.Get().Ssl == false {
-		r.Run(":" + config.Get().Server.Port)
-	} else {
-		log.Fatal(autotls.Run(r, config.Get().Server.Domain))
-	}
+	r.Run(":" + config.Get().Server.Port)
 
 	if config.Get().Sentry.Active == true {
 		r.Use(sentry.Recovery(raven.DefaultClient, false))
