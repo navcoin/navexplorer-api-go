@@ -10,23 +10,12 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/service/search"
 	"github.com/NavExplorer/navexplorer-api-go/service/softFork"
 	"github.com/NavExplorer/navexplorer-api-go/service/staking"
-	"github.com/getsentry/raven-go"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
-	"github.com/gin-contrib/sentry"
-	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 )
-
-func init() {
-	if config.Get().Sentry.Active == true {
-		dsn := config.Get().Sentry.DSN
-		log.Println("Sentry logging to ", dsn)
-		raven.SetDSN(dsn)
-	}
-}
 
 func main() {
 	if config.Get().Debug == false {
@@ -35,15 +24,7 @@ func main() {
 
 	r := setupRouter()
 
-	if config.Get().Ssl == false {
-		r.Run(":" + config.Get().Server.Port)
-	} else {
-		log.Fatal(autotls.Run(r, config.Get().Server.Domain))
-	}
-
-	if config.Get().Sentry.Active == true {
-		r.Use(sentry.Recovery(raven.DefaultClient, false))
-	}
+	r.Run(":" + config.Get().Server.Port)
 }
 
 func setupRouter() *gin.Engine {
@@ -122,13 +103,13 @@ func setupRouter() *gin.Engine {
 func networkSelect(c *gin.Context) {
 	switch network := c.GetHeader("Network"); network {
 	case "testnet":
-		config.Get().SelectedNetwork = network
+		config.SelectNetwork(network)
 		break
 	case "mainnet":
-		config.Get().SelectedNetwork = network
+		config.SelectNetwork(network)
 		break
 	default:
-		config.Get().SelectedNetwork = "mainnet"
+		config.SelectNetwork("mainnet")
 	}
 
 	c.Header("X-Network", config.Get().SelectedNetwork)
