@@ -1,14 +1,16 @@
 package config
 
 import (
-	"github.com/spf13/viper"
+	"fmt"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"log"
 	"os"
 	"sync"
 )
 
 type Config struct {
-	Debug bool
+	Debug bool `yaml:"debug"`
 	Ssl   bool
 
 	Sentry struct {
@@ -21,15 +23,16 @@ type Config struct {
 		Domain string
 	}
 
-	ElasticSearch struct {
-		Urls        string
-		Sniff       bool
-		HealthCheck bool
-	}
-
-	Networks []Network
+	ElasticSearch   ElasticSearch `yaml:"elasticSearch"`
+	Networks        []Network     `yaml:"networks"`
 
 	SelectedNetwork string
+}
+
+type ElasticSearch struct {
+	Urls        string `yaml:"urls"`
+	Sniff       bool   `yaml:"sniff"`
+	HealthCheck bool   `yaml:"healthCheck"`
 }
 
 type Network struct {
@@ -68,24 +71,31 @@ var once sync.Once
 func Get() *Config {
 	once.Do(func() {
 		log.Println("Creating Config")
-		var env = "prod"
-		if len(os.Args) > 1 {
-			env = os.Args[1]
-		}
 
-		viper.SetConfigName("config."+env)
-		viper.AddConfigPath(".")
-
-		instance = &Config{}
-
-		if err := viper.ReadInConfig(); err != nil {
+		configFile, err := ioutil.ReadFile(fmt.Sprintf("./config.%s.yaml", env()))
+		if err != nil {
 			log.Fatal(err)
 		}
 
-		if err := viper.Unmarshal(instance); err != nil {
+		instance = &Config{}
+		err = yaml.Unmarshal(configFile, instance)
+		if err != nil {
 			log.Fatal(err)
 		}
 	})
-
 	return instance
+}
+
+func SelectNetwork(network string) {
+	instance.SelectedNetwork = network
+}
+
+func env() string {
+	var env = "prod"
+	if len(os.Args) > 1 {
+		env = os.Args[1]
+	}
+	log.Print("Environment: " + env)
+
+	return env
 }
