@@ -14,3 +14,5 @@ require (
 	github.com/ugorji/go/codec v0.0.0-20181022190402-e5e69e061d4f
 	gopkg.in/yaml.v2 v2.2.2
 )
+
+replace github.com/ugorji/go v1.1.4 => github.com/ugorji/go/codec v0.0.0-20190204201341-e444a5086c43
