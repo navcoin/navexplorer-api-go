@@ -2,7 +2,6 @@ package address
 
 import (
 	"github.com/NavExplorer/navexplorer-api-go/error"
-	"github.com/NavExplorer/navexplorer-api-go/helper"
 	"github.com/NavExplorer/navexplorer-api-go/pagination"
 	"github.com/gin-gonic/gin"
 	"net/http"
