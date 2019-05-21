@@ -347,6 +347,37 @@ func GetBalancesForAddresses(addresses []string) (balances []Balance, err error)
 	return balances, err
 }
 
+func GetTransactionsForAddresses(addresses []string, txType string, start *time.Time, end *time.Time) (transactions []Transaction, err error) {
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return
+	}
+
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewMatchQuery("address", strings.Join(addresses, " ")))
+	query = query.Must(elastic.NewMatchQuery("type", txType))
+	query = query.Must(elastic.NewRangeQuery("time").Gt(&start).Lte(&end))
+
+	results, err := client.Search(config.Get().SelectedNetwork + IndexAddressTransaction).
+		Query(query).
+		Size(5000).
+		Sort("time", false).
+		Do(context.Background())
+	if err != nil {
+		return
+	}
+
+	for _, hit := range results.Hits.Hits {
+		var transaction Transaction
+		err := json.Unmarshal(*hit.Source, &transaction)
+		if err == nil {
+			transactions = append(transactions, transaction)
+		}
+	}
+
+	return
+}
+
 var (
 	ErrAddressNotFound = errors.New("address not found")
 	ErrAddressNotValid = errors.New("address not valid")
