@@ -2,6 +2,7 @@ package address
 
 import (
 	"github.com/NavExplorer/navexplorer-api-go/error"
+	"github.com/NavExplorer/navexplorer-api-go/helper"
 	"github.com/NavExplorer/navexplorer-api-go/pagination"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -114,7 +115,9 @@ func (controller *Controller) GetColdTransactions(c *gin.Context) {
 		page = 1
 	}
 
-	transactions, total, err := GetColdTransactions(hash, strings.Join(filters, " "), size, page)
+	period, _ := helper.PeriodToStartDate(c.Query("period"))
+
+	transactions, total, err := GetColdTransactions(hash, strings.Join(filters, " "), size, page, &period)
 	if err != nil {
 		error.HandleError(c, err, http.StatusInternalServerError)
 		return
