@@ -157,9 +157,6 @@ func GetColdTransactions(address string, types string, size int, page int) (tran
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewMatchQuery("address", address))
 	query = query.Must(elastic.NewTermQuery("coldStaking", true))
-	if period != nil {
-		query = query.Must(elastic.NewRangeQuery("time").Gt(&period))
-	}
 
 	if len(types) != 0 {
 		query = query.Must(elastic.NewMatchQuery("type", types))
