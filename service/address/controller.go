@@ -1,12 +1,14 @@
 package address
 
 import (
+	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/error"
 	"github.com/NavExplorer/navexplorer-api-go/pagination"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Controller struct{}
@@ -167,4 +169,32 @@ func (controller *Controller) GetBalancesForAddresses(c *gin.Context) {
 	}
 
 	c.JSON(200, balances)
+}
+
+func (controller *Controller) GetTransactionsForAddresses(c *gin.Context) {
+	addresses := strings.Split(c.Query("addresses"), ",")
+	if len(addresses) == 0 {
+		error.HandleError(c, errors.New("No addresses provided"), http.StatusBadRequest)
+		return
+	}
+
+	endTimestamp, err := strconv.ParseInt(c.Query("end"), 10, 64)
+	endTime := time.Now()
+	if err != nil && endTimestamp != 0 {
+		endTime = time.Unix(endTimestamp, 0)
+	}
+
+	startTimestamp, err := strconv.ParseInt(c.Query("start"), 10, 64)
+	startTime := time.Now().Add(- (time.Hour * 24))
+	if err != nil && startTimestamp != 0 {
+		startTime = time.Unix(startTimestamp, 0)
+	}
+
+	transactions, err := GetTransactionsForAddresses(addresses, c.Param("type"), &startTime, &endTime)
+	if err != nil {
+		error.HandleError(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(200, transactions)
 }
