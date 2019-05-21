@@ -24,6 +24,7 @@ func GetBlockCycle() (blockCycle BlockCycle) {
 	if config.Get().SelectedNetwork == "testnet" {
 		network = 1
 	}
+	log.Print(config.Get().SelectedNetwork);
 
 	communityFund := config.Get().Networks[network].CommunityFund
 
