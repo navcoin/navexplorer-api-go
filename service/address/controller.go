@@ -115,9 +115,7 @@ func (controller *Controller) GetColdTransactions(c *gin.Context) {
 		page = 1
 	}
 
-	period, _ := helper.PeriodToStartDate(c.Query("period"))
-
-	transactions, total, err := GetColdTransactions(hash, strings.Join(filters, " "), size, page, &period)
+	transactions, total, err := GetColdTransactions(hash, strings.Join(filters, " "), size, page)
 	if err != nil {
 		error.HandleError(c, err, http.StatusInternalServerError)
 		return

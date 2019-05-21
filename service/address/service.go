@@ -148,7 +148,7 @@ func GetTransactions(address string, types string, size int, page int) (transact
 	return transactions, results.Hits.TotalHits, err
 }
 
-func GetColdTransactions(address string, types string, size int, page int, period *time.Time) (transactions []Transaction, total int64, err error) {
+func GetColdTransactions(address string, types string, size int, page int) (transactions []Transaction, total int64, err error) {
 	client, err := elasticsearch.NewClient()
 	if err != nil {
 		return
