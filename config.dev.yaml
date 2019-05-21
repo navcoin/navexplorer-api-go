@@ -1,4 +1,4 @@
-debug: false
+debug: true
 
 ssl: false
 
@@ -9,11 +9,11 @@ server:
   port: 8080
 
 elasticSearch:
-  urls: http://134.209.29.25:9200
+  urls: http://localhost:9200
   sniff: false
   healthCheck: true
 
-Networks:
+networks:
   - name: mainnet
 
     host: navcoind.navexplorer.com
