@@ -33,14 +33,14 @@ func GetAddresses(size int, page int) (addresses []Address, total int64, err err
 
 	for index, hit := range results.Hits.Hits {
 		var address Address
-		err := json.Unmarshal(*hit.Source, &address)
+		err := json.Unmarshal(*&hit.Source, &address)
 		if err == nil {
 			address.RichListPosition = int64(index+1)
 			addresses = append(addresses, address)
 		}
 	}
 
-	return addresses, results.Hits.TotalHits, err
+	return addresses, results.Hits.TotalHits.Value, err
 }
 
 func GetAddress(hash string) (address Address, err error) {
@@ -73,7 +73,7 @@ func GetAddress(hash string) (address Address, err error) {
 	}
 
 	hit := results.Hits.Hits[0]
-	err = json.Unmarshal(*hit.Source, &address)
+	err = json.Unmarshal(*&hit.Source, &address)
 
 	richListPosition, err := GetRichListPosition(address.Balance)
 	if err == nil {
@@ -139,13 +139,13 @@ func GetTransactions(address string, types string, size int, page int) (transact
 
 	for _, hit := range results.Hits.Hits {
 		var transaction Transaction
-		err := json.Unmarshal(*hit.Source, &transaction)
+		err := json.Unmarshal(*&hit.Source, &transaction)
 		if err == nil {
 			transactions = append(transactions, transaction)
 		}
 	}
 
-	return transactions, results.Hits.TotalHits, err
+	return transactions, results.Hits.TotalHits.Value, err
 }
 
 func GetColdTransactions(address string, types string, size int, page int) (transactions []Transaction, total int64, err error) {
@@ -175,13 +175,13 @@ func GetColdTransactions(address string, types string, size int, page int) (tran
 
 	for _, hit := range results.Hits.Hits {
 		var transaction Transaction
-		err := json.Unmarshal(*hit.Source, &transaction)
+		err := json.Unmarshal(*&hit.Source, &transaction)
 		if err == nil {
 			transactions = append(transactions, transaction)
 		}
 	}
 
-	return transactions, results.Hits.TotalHits, err
+	return transactions, results.Hits.TotalHits.Value, err
 }
 
 func GetBalanceChart(address string) (chart Chart, err error) {
@@ -210,7 +210,7 @@ func GetBalanceChart(address string) (chart Chart, err error) {
 
 	for _, hit := range results.Hits.Hits {
 		var transaction Transaction
-		err := json.Unmarshal(*hit.Source, &transaction)
+		err := json.Unmarshal(*&hit.Source, &transaction)
 		if err == nil {
 			var chartPoint ChartPoint
 			chartPoint.Time = transaction.Time
@@ -334,7 +334,7 @@ func GetBalancesForAddresses(addresses []string) (balances []Balance, err error)
 
 	for _, hit := range results.Hits.Hits {
 		var address Address
-		err := json.Unmarshal(*hit.Source, &address)
+		err := json.Unmarshal(*&hit.Source, &address)
 		if err == nil {
 			var balance Balance
 			balance.Address = address.Hash

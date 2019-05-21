@@ -42,7 +42,7 @@ func GetSoftForks() (softForks SoftForks, err error) {
 
 	for _, hit := range results.Hits.Hits {
 		var softFork SoftFork
-		err := json.Unmarshal(*hit.Source, &softFork)
+		err := json.Unmarshal(*&hit.Source, &softFork)
 		if err == nil {
 			softForks.SoftForks = append(softForks.SoftForks, softFork)
 		}

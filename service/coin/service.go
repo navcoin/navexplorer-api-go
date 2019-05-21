@@ -40,7 +40,7 @@ func GetWealthDistribution(groups []int) (distribution []Wealth, err error) {
 
 		for _, element := range results.Hits.Hits {
 			var add address.Address
-			err = json.Unmarshal(*element.Source, &add)
+			err = json.Unmarshal(*&element.Source, &add)
 
 			wealth.Balance += add.Balance
 			wealth.Percentage = int64((wealth.Balance / totalWealth.Balance) * 100)

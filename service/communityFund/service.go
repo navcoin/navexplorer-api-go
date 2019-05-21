@@ -175,13 +175,13 @@ func GetProposalsByState(state string, size int, ascending bool, page int) (prop
 
 	for _, hit := range results.Hits.Hits {
 		var proposal Proposal
-		err := json.Unmarshal(*hit.Source, &proposal)
+		err := json.Unmarshal(*&hit.Source, &proposal)
 		if err == nil {
 			proposals = append(proposals, proposal)
 		}
 	}
 
-	return proposals, results.Hits.TotalHits, err
+	return proposals, results.Hits.TotalHits.Value, err
 }
 
 func GetProposalByHash(hash string) (proposal Proposal, err error) {
@@ -201,7 +201,7 @@ func GetProposalByHash(hash string) (proposal Proposal, err error) {
 	}
 
 	hit := results.Hits.Hits[0]
-	err = json.Unmarshal(*hit.Source, &proposal)
+	err = json.Unmarshal(*&hit.Source, &proposal)
 
 	return proposal, err
 }
@@ -226,7 +226,7 @@ func GetProposalPaymentRequests(hash string) (paymentRequests []PaymentRequest, 
 
 	for _, hit := range results.Hits.Hits {
 		var paymentRequest PaymentRequest
-		err := json.Unmarshal(*hit.Source, &paymentRequest)
+		err := json.Unmarshal(*&hit.Source, &paymentRequest)
 		if err == nil {
 			paymentRequests = append(paymentRequests, paymentRequest)
 		}
@@ -362,7 +362,7 @@ func GetPaymentRequestsByState(state string) (paymentRequests []PaymentRequest, 
 
 	for _, hit := range results.Hits.Hits {
 		var paymentRequest PaymentRequest
-		err := json.Unmarshal(*hit.Source, &paymentRequest)
+		err := json.Unmarshal(*&hit.Source, &paymentRequest)
 		if err == nil {
 			paymentRequests = append(paymentRequests, paymentRequest)
 		}
@@ -388,7 +388,7 @@ func GetPaymentRequestByHash(hash string) (paymentRequest PaymentRequest, err er
 	}
 
 	hit := results.Hits.Hits[0]
-	err = json.Unmarshal(*hit.Source, &paymentRequest)
+	err = json.Unmarshal(*&hit.Source, &paymentRequest)
 
 	return paymentRequest, err
 }
