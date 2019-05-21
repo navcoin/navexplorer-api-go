@@ -12,7 +12,7 @@ import (
 
 type Config struct {
 	Debug bool `yaml:"debug"`
-	Ssl   bool
+	Ssl   bool `yaml:"ssl"`
 
 	Sentry struct {
 		Active bool
@@ -24,8 +24,8 @@ type Config struct {
 		Domain string
 	}
 
-	ElasticSearch   ElasticSearch `yaml:"elasticSearch"`
-	Networks        []Network     `yaml:"networks"`
+	ElasticSearch ElasticSearch `yaml:"elasticSearch"`
+	Networks      []Network     `yaml:"networks"`
 
 	SelectedNetwork string
 }
@@ -37,33 +37,31 @@ type ElasticSearch struct {
 }
 
 type Network struct {
-	Name string
+	Name          string        `yaml:"name"`
+	Host          string        `yaml:"host"`
+	Port          int           `yaml:"port"`
+	Username      string        `yaml:"username"`
+	Password      string        `yaml:"password"`
+	CommunityFund CommunityFund `yaml:"communityFund"`
+	SoftFork      SoftFork      `yaml:"softFork"`
+}
 
-	Host     string
-	Port     int
-	Username string
-	Password string
+type CommunityFund struct {
+	BlocksInCycle  int     `yaml:"blocksInCycle"`
+	MinQuorum      float64 `yaml:"minQuorum"`
+	ProposalVoting Voting  `yaml:"proposalVoting"`
+	PaymentVoting  Voting  `yaml:"paymentVoting"`
+}
 
+type Voting struct {
+	Cycles int     `yaml:"cycles"`
+	Accept float64 `yaml:"accept"`
+	Reject float64 `yaml:"reject"`
+}
 
-	CommunityFund struct {
-		BlocksInCycle  int
-		MinQuorum      float64
-		ProposalVoting struct {
-			Cycles int
-			Accept float64
-			Reject float64
-		}
-		PaymentVoting struct {
-			Cycles int
-			Accept float64
-			Reject float64
-		}
-	}
-
-	SoftFork struct {
-		BlocksInCycle int
-		Accept        float64
-	}
+type SoftFork struct {
+	BlocksInCycle int     `yaml:"blocksInCycle"`
+	Accept        float64 `yaml:"accept"`
 }
 
 var instance *Config
