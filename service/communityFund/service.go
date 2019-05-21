@@ -21,6 +21,9 @@ var IndexPaymentRequestVote = ".communityfundpaymentrequestvote"
 
 func GetBlockCycle() (blockCycle BlockCycle) {
 	network, _ := config.Get().Network()
+	log.Print(network)
+	log.Print(network.Name)
+	log.Print(network.CommunityFund)
 
 	communityFund := network.CommunityFund
 
