@@ -13,3 +13,4 @@
 
 config.prod.yaml
 navexplorerApi
+/vendor
