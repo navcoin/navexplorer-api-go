@@ -44,7 +44,7 @@ func GetStakingReport() (report Report, err error) {
 
 	for _, hit := range results.Hits.Hits {
 		var transaction address.Transaction
-		err := json.Unmarshal(*&hit.Source, &transaction)
+		err := json.Unmarshal(*hit.Source, &transaction)
 		if err == nil {
 			var reporter Reporter
 			reporter.Address = transaction.Address
@@ -90,7 +90,7 @@ func GetStakingByBlockCount(blockCount int) (stakingBlocks StakingBlocks, err er
 
 	for _, hit := range results.Hits.Hits {
 		var transaction address.Transaction
-		err := json.Unmarshal(*&hit.Source, &transaction)
+		err := json.Unmarshal(*hit.Source, &transaction)
 		if err == nil {
 			stakingBlocks.Staking += transaction.Balance / 100000000
 		}
@@ -110,7 +110,7 @@ func GetStakingByBlockCount(blockCount int) (stakingBlocks StakingBlocks, err er
 
 	for _, hit := range results.Hits.Hits {
 		var transaction address.Transaction
-		err := json.Unmarshal(*&hit.Source, &transaction)
+		err := json.Unmarshal(*hit.Source, &transaction)
 		if err == nil {
 			stakingBlocks.ColdStaking += transaction.Balance / 100000000
 		}

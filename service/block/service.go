@@ -44,7 +44,7 @@ func GetBlocks(size int, ascending bool, page int) (blocks []Block, total int64,
 
 	for _, hit := range results.Hits.Hits {
 		var block Block
-		err := json.Unmarshal(*&hit.Source, &block)
+		err := json.Unmarshal(*hit.Source, &block)
 		if err == nil {
 			block.Confirmations = bestBlock.Height - block.Height + 1
 			block.Best = block.Height == bestBlock.Height
@@ -53,7 +53,7 @@ func GetBlocks(size int, ascending bool, page int) (blocks []Block, total int64,
 		}
 	}
 
-	return blocks, results.Hits.TotalHits.Value, err
+	return blocks, results.Hits.TotalHits, err
 }
 
 func GetBlockByHashOrHeight(hash string) (block Block, err error) {
@@ -97,7 +97,7 @@ func GetBlockByHash(hash string) (block Block, err error) {
 	}
 
 	hit := results.Hits.Hits[0]
-	err = json.Unmarshal(*&hit.Source, &block)
+	err = json.Unmarshal(*hit.Source, &block)
 
 	return block, err
 }
@@ -119,7 +119,7 @@ func GetBlockByHeight(height int) (block Block, err error) {
 	}
 
 	hit := results.Hits.Hits[0]
-	err = json.Unmarshal(*&hit.Source, &block)
+	err = json.Unmarshal(*hit.Source, &block)
 
 	return block, err
 }
@@ -141,7 +141,7 @@ func GetBestBlock() (block Block, err error) {
 	}
 
 	hit := results.Hits.Hits[0]
-	err = json.Unmarshal(*&hit.Source, &block)
+	err = json.Unmarshal(*hit.Source, &block)
 
 	return block, err
 }
@@ -180,13 +180,13 @@ func GetTransactionsByHash(blockHash string) (transactions []Transaction, err er
 		Query(elastic.NewTermQuery("blockHash", blockHash)).
 		Do(context.Background())
 
-	if results.Hits.TotalHits.Value == 0 {
+	if results.Hits.TotalHits == 0 {
 		return make([]Transaction, 0), err
 	}
 
 	for _, hit := range results.Hits.Hits {
 		var transaction Transaction
-		json.Unmarshal(*&hit.Source, &transaction)
+		json.Unmarshal(*hit.Source, &transaction)
 
 		transactions = append(transactions, transaction)
 	}
@@ -213,7 +213,7 @@ func GetTransactionByHash(hash string) (transaction Transaction, err error) {
 		err = ErrTransactionNotFound
 	} else {
 		hit := results.Hits.Hits[0]
-		err = json.Unmarshal(*&hit.Source, &transaction)
+		err = json.Unmarshal(*hit.Source, &transaction)
 	}
 
 	return transaction, err
