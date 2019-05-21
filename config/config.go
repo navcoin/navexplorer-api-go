@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
@@ -88,6 +89,18 @@ func Get() *Config {
 
 func SelectNetwork(network string) {
 	instance.SelectedNetwork = network
+}
+
+func (config *Config) Network() (network Network, err error){
+	for _, v := range config.Networks {
+		if v.Name == config.SelectedNetwork {
+			return v, nil
+		}
+	}
+
+	err = errors.New(fmt.Sprintf("Network %s not found", config.SelectedNetwork))
+
+	return
 }
 
 func env() string {
