@@ -190,11 +190,18 @@ func (controller *Controller) GetTransactionsForAddresses(c *gin.Context) {
 		startTime = time.Unix(startTimestamp, 0)
 	}
 
-	transactions, err := GetTransactionsForAddresses(addresses, c.Param("type"), &startTime, &endTime)
+	transactions, err := GetTransactionsForAddresses(addresses, urlDecodeType(c.Param("type")), &startTime, &endTime)
 	if err != nil {
 		error.HandleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
 	c.JSON(200, transactions)
+}
+
+func urlDecodeType(txType string) string {
+	txType = strings.ReplaceAll(txType, "-", "_")
+	txType = strings.ToUpper(txType)
+
+	return txType
 }

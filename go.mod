@@ -10,7 +10,7 @@ require (
 	github.com/google/go-cmp v0.3.0 // indirect
 	github.com/mailru/easyjson v0.0.0-20190403194419-1ea4449da983 // indirect
 	github.com/olivere/elastic v6.2.17+incompatible
-	github.com/pkg/errors v0.8.0 // indirect
+	github.com/pkg/errors v0.8.0
 	gopkg.in/yaml.v2 v2.2.2
 )
 
