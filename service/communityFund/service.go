@@ -20,12 +20,8 @@ var IndexPaymentRequest = ".communityfundpaymentrequest"
 var IndexPaymentRequestVote = ".communityfundpaymentrequestvote"
 
 func GetBlockCycle() (blockCycle BlockCycle) {
-	var network = 0
-	if config.Get().SelectedNetwork == "testnet" {
-		network = 1
-	}
-
-	communityFund := config.Get().Networks[network].CommunityFund
+	network, _ := config.Get().Network()
+	communityFund := network.CommunityFund
 
 	blockCycle.BlocksInCycle = communityFund.BlocksInCycle
 	blockCycle.MinQuorum = communityFund.MinQuorum
