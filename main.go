@@ -90,6 +90,7 @@ func setupRouter() *gin.Engine {
 	stakingController := new(staking.Controller)
 	api.GET("/staking/report", stakingController.GetStakingReport)
 	api.GET("/staking/blocks", stakingController.GetStakingByBlockCount)
+	api.GET("/staking/rewards", stakingController.GetStakingRewardsForAddresses)
 
 	networkController := new(network.Controller)
 	api.GET("/network/nodes", networkController.GetNodes)
