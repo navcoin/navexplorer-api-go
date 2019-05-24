@@ -25,7 +25,7 @@ type StakingBlocks struct {
 }
 
 type Reward struct {
-	Address string
+	Address string         `json:"address"`
 	Periods []RewardPeriod `json:"periods"`
 }
 
