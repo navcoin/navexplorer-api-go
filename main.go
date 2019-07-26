@@ -52,6 +52,8 @@ func setupRouter() *gin.Engine {
 	api.GET("/address/:hash/coldtx", addressController.GetColdTransactions)
 	api.GET("/address/:hash/chart/balance", addressController.GetBalanceChart)
 	api.GET("/address/:hash/chart/staking", addressController.GetStakingChart)
+	api.GET("/address/:hash/assoc/staking", addressController.GetAssociatedStakingAddresses)
+
 	api.GET("/transactions/:type", addressController.GetTransactionsForAddresses)
 	api.GET("/balance", addressController.GetBalancesForAddresses)
 
