@@ -199,6 +199,16 @@ func (controller *Controller) GetTransactionsForAddresses(c *gin.Context) {
 	c.JSON(200, transactions)
 }
 
+func (controller *Controller) GetAssociatedStakingAddresses(c *gin.Context) {
+	addresses, err := GetAssociatedStakingAddresses(c.Param("hash"))
+	if err != nil {
+		error.HandleError(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(200, addresses)
+}
+
 func urlDecodeType(txType string) string {
 	txType = strings.ReplaceAll(txType, "-", "_")
 	txType = strings.ToUpper(txType)

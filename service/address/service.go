@@ -7,6 +7,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/config"
 	"github.com/NavExplorer/navexplorer-api-go/elasticsearch"
 	"github.com/NavExplorer/navexplorer-api-go/navcoind"
+	"github.com/NavExplorer/navexplorer-api-go/service/block"
 	"github.com/olivere/elastic"
 	"log"
 	"strings"
@@ -376,6 +377,57 @@ func GetTransactionsForAddresses(addresses []string, txType string, start *time.
 	}
 
 	return
+}
+
+func GetAssociatedStakingAddresses(address string) (stakingAddresses []string, err error) {
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		return
+	}
+
+	agg := elastic.NewNestedAggregation().Path("outputs")
+	agg.SubAggregation("addresses", elastic.NewTermsAggregation().Field("outputs.addresses.keyword"))
+
+	outputsQuery := elastic.NewBoolQuery()
+	outputsQuery = outputsQuery.Must(elastic.NewMatchQuery("outputs.type", "COLD_STAKING"))
+	outputsQuery = outputsQuery.Must(elastic.NewScriptQuery(elastic.NewScript("doc['outputs.addresses.keyword'][0] == params.address").Param("address", address)))
+
+	query := elastic.NewNestedQuery("outputs", outputsQuery)
+
+	results, err := client.Search(config.Get().SelectedNetwork + block.IndexBlockTransaction).
+		Query(query).
+		Size(50000000).
+		Sort("time", false).
+		Do(context.Background())
+	if err != nil {
+		return
+	}
+
+	stakingAddresses = make([]string, 0)
+	for _, hit := range results.Hits.Hits {
+		var transaction block.Transaction
+		err := json.Unmarshal(*hit.Source, &transaction)
+		if err == nil {
+			for _, output := range transaction.Outputs {
+				if len(output.Addresses) == 2 && output.Addresses[1] == address {
+					if !contains(stakingAddresses, output.Addresses[0]) {
+						stakingAddresses = append(stakingAddresses, output.Addresses[0])
+					}
+				}
+			}
+		}
+	}
+
+	return
+}
+
+func contains(a []string, x string) bool {
+	for _, n := range a {
+		if x == n {
+			return true
+		}
+	}
+	return false
 }
 
 var (
