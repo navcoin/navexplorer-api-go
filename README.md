@@ -14,6 +14,7 @@ go run main.go
 GET    /api/address?size=100
 GET    /api/address/:hash
 GET    /api/address/:hash/tx?filters=staking,send,receive&size=10&page=1
+GET    /api/address/:hash/assoc/staking
 GET    /api/bestblock
 GET    /api/blockgroup?period=[hourly|daily|monthly]&count=10
 GET    /api/block?dir=[ASC,DESC]&page=1&size=10
