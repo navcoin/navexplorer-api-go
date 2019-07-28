@@ -3,14 +3,12 @@ module github.com/NavExplorer/navexplorer-api-go
 go 1.12
 
 require (
-	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/gin-contrib/cors v1.3.0
 	github.com/gin-contrib/gzip v0.0.1
 	github.com/gin-gonic/gin v1.4.0
-	github.com/google/go-cmp v0.3.0 // indirect
-	github.com/mailru/easyjson v0.0.0-20190403194419-1ea4449da983 // indirect
-	github.com/olivere/elastic v6.2.17+incompatible
-	github.com/pkg/errors v0.8.0
+	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
+	github.com/olivere/elastic v6.2.21+incompatible
+	github.com/pkg/errors v0.8.1
 	gopkg.in/yaml.v2 v2.2.2
 )
 
