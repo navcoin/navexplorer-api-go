@@ -385,12 +385,9 @@ func GetAssociatedStakingAddresses(address string) (stakingAddresses []string, e
 		return
 	}
 
-	agg := elastic.NewNestedAggregation().Path("outputs")
-	agg.SubAggregation("addresses", elastic.NewTermsAggregation().Field("outputs.addresses.keyword"))
-
 	outputsQuery := elastic.NewBoolQuery()
 	outputsQuery = outputsQuery.Must(elastic.NewMatchQuery("outputs.type", "COLD_STAKING"))
-	outputsQuery = outputsQuery.Must(elastic.NewScriptQuery(elastic.NewScript("doc['outputs.addresses.keyword'][0] == params.address").Param("address", address)))
+	outputsQuery = outputsQuery.Must(elastic.NewMatchQuery("outputs.addresses.keyword", address))
 
 	query := elastic.NewNestedQuery("outputs", outputsQuery)
 
