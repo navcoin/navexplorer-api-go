@@ -1,141 +1,63 @@
 package main
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/config"
-	"github.com/NavExplorer/navexplorer-api-go/service/address"
-	"github.com/NavExplorer/navexplorer-api-go/service/block"
-	"github.com/NavExplorer/navexplorer-api-go/service/coin"
-	"github.com/NavExplorer/navexplorer-api-go/service/communityFund"
-	"github.com/NavExplorer/navexplorer-api-go/service/network"
-	"github.com/NavExplorer/navexplorer-api-go/service/search"
-	"github.com/NavExplorer/navexplorer-api-go/service/softFork"
-	"github.com/NavExplorer/navexplorer-api-go/service/staking"
+	"fmt"
+	"github.com/NavExplorer/navexplorer-api-go/generated/dic"
+	"github.com/NavExplorer/navexplorer-api-go/internal/config"
+	"github.com/NavExplorer/navexplorer-api-go/internal/framework"
+	"github.com/NavExplorer/navexplorer-api-go/internal/resource"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
-	"log"
+	"github.com/sarulabs/dingo/v3"
 	"net/http"
 )
 
+var container *dic.Container
+
 func main() {
-	if config.Get().Debug == false {
-		gin.SetMode(gin.ReleaseMode)
-	}
+	config.Init()
+	container, _ = dic.NewContainer(dingo.App)
 
-	r := setupRouter()
+	framework.SetReleaseMode(config.Get().Debug)
 
-	r.Run(":" + config.Get().Server.Port)
-}
-
-func setupRouter() *gin.Engine {
 	r := gin.New()
-
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 	r.Use(cors.Default())
-	r.Use(networkSelect)
-	r.Use(Options)
-	r.Use(errorHandler)
+	r.Use(framework.NetworkSelect)
+	r.Use(framework.Options)
+	r.Use(framework.ErrorHandler)
 
 	r.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "Welcome to NavExplorer API!")
 	})
 
-	api := r.Group("/api")
+	addressResource := resource.NewAddressResource(container.GetAddressRepo())
+	r.GET("/address", addressResource.GetAddresses)
+	r.GET("/address/:hash", addressResource.GetAddress)
+	r.GET("/address/:hash/validate", addressResource.ValidateAddress)
 
-	addressController := new(address.Controller)
-	api.GET("/address", addressController.GetAddresses)
-	api.GET("/address/:hash", addressController.GetAddress)
-	api.GET("/address/:hash/validate", addressController.ValidateAddress)
-	api.GET("/address/:hash/tx", addressController.GetTransactions)
-	api.GET("/address/:hash/coldtx", addressController.GetColdTransactions)
-	api.GET("/address/:hash/chart/balance", addressController.GetBalanceChart)
-	api.GET("/address/:hash/chart/staking", addressController.GetStakingChart)
-	api.GET("/address/:hash/assoc/staking", addressController.GetAssociatedStakingAddresses)
+	blockResource := resource.NewBlockResource(container.GetBlockRepo(), container.GetBlockTransactionRepo())
+	r.GET("/bestblock", blockResource.GetBestBlock)
+	r.GET("/block", blockResource.GetBlocks)
+	r.GET("/block/:hash", blockResource.GetBlock)
+	r.GET("/block/:hash/raw", blockResource.GetRawBlock)
+	r.GET("/block/:hash/tx", blockResource.GetTransactionsByBlock)
+	r.GET("/tx/:hash", blockResource.GetTransactionByHash)
+	r.GET("/tx/:hash/raw", blockResource.GetRawTransactionByHash)
 
-	api.GET("/transactions/:type", addressController.GetTransactionsForAddresses)
-	api.GET("/balance", addressController.GetBalancesForAddresses)
+	softForkResource := resource.NewSoftForkResource(container.GetSoftforkRepo())
+	r.GET("/softfork", softForkResource.GetSoftForks)
 
-	blockController := new(block.Controller)
-	api.GET("/bestblock", blockController.GetBestBlock)
-	api.GET("/blockgroup", blockController.GetBlockGroups)
-	api.GET("/block", blockController.GetBlocks)
-	api.GET("/block/:hash", blockController.GetBlock)
-	api.GET("/block/:hash/tx", blockController.GetBlockTransactions)
-	api.GET("/block/:hash/raw", blockController.GetRawBlock)
-	api.GET("/tx/:hash", blockController.GetTransaction)
-	api.GET("/tx/:hash/raw", blockController.GetRawTransaction)
-
-	coinController := new(coin.Controller)
-	api.GET("/coin/wealth", coinController.GetWealthDistribution)
-
-	communityFundController := new(communityFund.Controller)
-	api.GET("/community-fund/block-cycle", communityFundController.GetBlockCycle)
-	api.GET("/community-fund/stats", communityFundController.GetStats)
-	api.GET("/community-fund/proposal", communityFundController.GetProposals)
-	api.GET("/community-fund/proposal/:hash", communityFundController.GetProposal)
-	api.GET("/community-fund/proposal/:hash/trend", communityFundController.GetProposalVotingTrend)
-	api.GET("/community-fund/proposal/:hash/vote/:vote", communityFundController.GetProposalVotes)
-	api.GET("/community-fund/proposal/:hash/payment-request", communityFundController.GetProposalPaymentRequests)
-	api.GET("/community-fund/payment-request", communityFundController.GetPaymentRequestsByState)
-	api.GET("/community-fund/payment-request/:hash", communityFundController.GetPaymentRequestByHash)
-	api.GET("/community-fund/payment-request/:hash/trend", communityFundController.GetPaymentRequestVotingTrend)
-	api.GET("/community-fund/payment-request/:hash/vote/:vote", communityFundController.GetPaymentRequestVotes)
-
-	searchController := new(search.Controller)
-	api.GET("/search", searchController.Search)
-
-	softForkController := new(softFork.Controller)
-	api.GET("/soft-fork", softForkController.GetSoftForks)
-
-	stakingController := new(staking.Controller)
-	api.GET("/staking/report", stakingController.GetStakingReport)
-	api.GET("/staking/blocks", stakingController.GetStakingByBlockCount)
-	api.GET("/staking/rewards", stakingController.GetStakingRewardsForAddresses)
-
-	networkController := new(network.Controller)
-	api.GET("/network/nodes", networkController.GetNodes)
+	proposalResource := resource.NewDaoProposalResource(container.GetDaoProposalRepo())
+	r.GET("/proposal", proposalResource.GetProposals)
+	r.GET("/proposal/:hash", proposalResource.GetProposal)
 
 	r.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Resource Not Found"})
+		c.JSON(404, gin.H{"code": 404, "message": "Resource not found"})
 	})
 
-	return r
-}
-
-func networkSelect(c *gin.Context) {
-	switch network := c.GetHeader("Network"); network {
-	case "testnet":
-		config.SelectNetwork(network)
-		break
-	case "mainnet":
-		config.SelectNetwork(network)
-		break
-	default:
-		config.SelectNetwork("mainnet")
-	}
-
-	c.Header("X-Network", config.Get().SelectedNetwork)
-	log.Printf("Using Network %s", config.Get().SelectedNetwork)
-}
-
-func errorHandler(c *gin.Context) {
-	c.Next()
-
-	if len(c.Errors) == 0 {
-		return
-	}
-
-	c.AbortWithStatusJSON(http.StatusBadRequest, c.Errors)
-}
-
-func Options(c *gin.Context) {
-	if c.Request.Method != "OPTIONS" {
-		c.Next()
-	} else {
-		c.Header("Allow", "HEAD,GET,POST,PUT,PATCH,DELETE,OPTIONS")
-		c.Header("Content-Type", "application/json")
-		c.AbortWithStatus(http.StatusOK)
-	}
+	_ = r.Run(fmt.Sprintf(":%d", config.Get().Server.Port))
 }
