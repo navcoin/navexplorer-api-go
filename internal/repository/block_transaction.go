@@ -24,6 +24,7 @@ func NewBlockTransactionRepository(elastic *elastic_cache.Index, network string)
 func (r *BlockTransactionRepository) TransactionsByBlock(block *explorer.Block) ([]*explorer.BlockTransaction, error) {
 	results, err := r.elastic.Client.Search(r.index).
 		Query(elastic.NewMatchPhraseQuery("blockhash", block.Hash)).
+		Size(10000).
 		Do(context.Background())
 
 	return r.findMany(results, err)
