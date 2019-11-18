@@ -25,7 +25,7 @@ func GetBlocks(size int, ascending bool, page int) (blocks []Block, total int64,
 		size = 1000
 	}
 
-	results, err := client.Search(config.Get().SelectedNetwork + IndexBlock).
+	results, err := client.Search(config.Get().SelectedNetwork+IndexBlock).
 		Sort("height", ascending).
 		From((page * size) - size).
 		Size(size).
@@ -130,7 +130,7 @@ func GetBestBlock() (block Block, err error) {
 		return
 	}
 
-	results, _ := client.Search().Index(config.Get().SelectedNetwork + IndexBlock).
+	results, _ := client.Search().Index(config.Get().SelectedNetwork+IndexBlock).
 		Sort("height", false).
 		Size(1).
 		Do(context.Background())
@@ -157,8 +157,8 @@ func GetFeesForLastBlocks(blocks int) (fees float64, err error) {
 		return
 	}
 
-	results, _ := client.Search().Index(config.Get().SelectedNetwork + IndexBlock).
-		Query(elastic.NewRangeQuery("height").Gt(bestBlock.Height - blocks)).
+	results, _ := client.Search().Index(config.Get().SelectedNetwork+IndexBlock).
+		Query(elastic.NewRangeQuery("height").Gt(bestBlock.Height-blocks)).
 		Aggregation("fees", elastic.NewSumAggregation().Field("fees")).
 		Size(0).
 		Do(context.Background())
@@ -178,6 +178,7 @@ func GetTransactionsByHash(blockHash string) (transactions []Transaction, err er
 
 	results, _ := client.Search(config.Get().SelectedNetwork + IndexBlockTransaction).
 		Query(elastic.NewTermQuery("blockHash", blockHash)).
+		Size(10000).
 		Do(context.Background())
 
 	if results.Hits.TotalHits == 0 {
@@ -246,7 +247,7 @@ func GetGroupsForPeriod(period string, count int) (groups []Group, err error) {
 					group.Start = now.Truncate(time.Hour)
 				} else {
 					group.End = groups[i-1].Start
-					group.Start = group.End.Add(- time.Hour)
+					group.Start = group.End.Add(-time.Hour)
 				}
 				break
 			}
@@ -256,7 +257,7 @@ func GetGroupsForPeriod(period string, count int) (groups []Group, err error) {
 					group.Start = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 				} else {
 					group.End = groups[i-1].Start
-					group.Start = group.End.AddDate(0,0, -1)
+					group.Start = group.End.AddDate(0, 0, -1)
 				}
 				break
 			}
@@ -267,7 +268,7 @@ func GetGroupsForPeriod(period string, count int) (groups []Group, err error) {
 					group.Start = group.Start.AddDate(0, 0, 1)
 				} else {
 					group.End = groups[i-1].Start
-					group.Start = group.End.AddDate(0,-1, 0)
+					group.Start = group.End.AddDate(0, -1, 0)
 				}
 				break
 			}
@@ -318,7 +319,7 @@ func GetGroupsForPeriod(period string, count int) (groups []Group, err error) {
 }
 
 var (
-	ErrNoBlocksFound = errors.New("no blocks not found")
-	ErrBlockNotFound = errors.New("block not found")
+	ErrNoBlocksFound       = errors.New("no blocks not found")
+	ErrBlockNotFound       = errors.New("block not found")
 	ErrTransactionNotFound = errors.New("transaction not found")
 )
