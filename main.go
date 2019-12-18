@@ -34,6 +34,10 @@ func main() {
 		c.String(http.StatusOK, "Welcome to NavExplorer API!")
 	})
 
+	r.GET("/loaderio-4e202b2dc00926a931d50a76aa7fa34c.txt", func(c *gin.Context) {
+		c.String(http.StatusOK, "loaderio-4e202b2dc00926a931d50a76aa7fa34c")
+	})
+
 	addressResource := resource.NewAddressResource(container.GetAddressRepo())
 	r.GET("/address", addressResource.GetAddresses)
 	r.GET("/address/:hash", addressResource.GetAddress)
