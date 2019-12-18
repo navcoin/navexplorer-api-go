@@ -39,7 +39,11 @@ func NewPaginator(elements int, total int, size int, page int) Paginator {
 	paginator.CurrentPage = page
 	paginator.Total = total
 	paginator.Size = size
-	paginator.Pages = int(math.Ceil(float64(total) / float64(size)))
+	pages := int(math.Ceil(float64(total) / float64(size)))
+	if pages == 0 {
+		pages = 1
+	}
+	paginator.Pages = pages
 	paginator.Elements = elements
 	paginator.First = page == 1
 	paginator.Last = paginator.CurrentPage == paginator.Pages
