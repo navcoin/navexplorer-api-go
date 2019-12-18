@@ -42,7 +42,7 @@ func (r *AddressRepository) AddressByHash(hash string) (*explorer.Address, error
 	}
 
 	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
-		Query(elastic.NewTermQuery("hash", hash)).
+		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
 		Do(context.Background())
 
@@ -55,14 +55,14 @@ func (r *AddressRepository) Validate(hash string) (bool, error) {
 
 func (r *AddressRepository) getRichListPosition(balance uint64) (uint, error) {
 	position, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get()).
-		Query(elastic.NewRangeQuery("balance").Gte(balance)).
+		Query(elastic.NewRangeQuery("balance").Gt(balance)).
 		Do(context.Background())
 
 	if err != nil {
 		log.WithError(err).Infof("Failed to get rich list position")
 	}
 
-	return uint(position), err
+	return uint(position + 1), err
 }
 
 func (r *AddressRepository) findOne(results *elastic.SearchResult, err error) (*explorer.Address, error) {
@@ -94,8 +94,7 @@ func (r *AddressRepository) findMany(results *elastic.SearchResult, err error) (
 	var addresses []*explorer.Address
 	for index, hit := range results.Hits.Hits {
 		var address *explorer.Address
-		err := json.Unmarshal(hit.Source, &address)
-		if err == nil {
+		if err := json.Unmarshal(hit.Source, &address); err == nil {
 			address.Position = uint(index + 1)
 			addresses = append(addresses, address)
 		}
