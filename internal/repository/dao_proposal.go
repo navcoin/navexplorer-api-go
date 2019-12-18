@@ -12,7 +12,6 @@ import (
 
 type DaoProposalRepository struct {
 	elastic *elastic_cache.Index
-	index   string
 }
 
 type DaoProposalState string
@@ -27,8 +26,8 @@ var (
 	ErrProposalNotFound = errors.New("Proposal not found")
 )
 
-func NewDaoProposalRepository(elastic *elastic_cache.Index, network string) *DaoProposalRepository {
-	return &DaoProposalRepository{elastic, fmt.Sprintf("%s.%s", network, "proposal")}
+func NewDaoProposalRepository(elastic *elastic_cache.Index) *DaoProposalRepository {
+	return &DaoProposalRepository{elastic}
 }
 
 func (r *DaoProposalRepository) StateFromString(state string) (*DaoProposalState, error) {
@@ -45,7 +44,7 @@ func (r *DaoProposalRepository) StateFromString(state string) (*DaoProposalState
 }
 
 func (r *DaoProposalRepository) Proposals(state DaoProposalState, dir bool, size int, page int) ([]*explorer.Proposal, int, error) {
-	results, err := r.elastic.Client.Search(r.index).
+	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
 		Query(elastic.NewMatchQuery("state", state)).
 		Sort("height", dir).
 		From((page * size) - size).
@@ -68,7 +67,7 @@ func (r *DaoProposalRepository) Proposals(state DaoProposalState, dir bool, size
 }
 
 func (r *DaoProposalRepository) Proposal(hash string) (*explorer.Proposal, error) {
-	results, err := r.elastic.Client.Search(r.index).
+	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
 		Query(elastic.NewMatchQuery("hash", hash)).
 		Size(1).
 		Do(context.Background())

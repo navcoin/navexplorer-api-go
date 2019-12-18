@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/resource/group"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
@@ -18,18 +17,14 @@ var (
 
 type BlockRepository struct {
 	elastic *elastic_cache.Index
-	index   string
 }
 
-func NewBlockRepository(elastic *elastic_cache.Index, network string) *BlockRepository {
-	return &BlockRepository{
-		elastic,
-		fmt.Sprintf("%s.%s", network, "block"),
-	}
+func NewBlockRepository(elastic *elastic_cache.Index) *BlockRepository {
+	return &BlockRepository{elastic}
 }
 
 func (r *BlockRepository) BestBlock() (*explorer.Block, error) {
-	results, err := r.elastic.Client.Search().Index(r.index).
+	results, err := r.elastic.Client.Search().Index(elastic_cache.BlockIndex.Get()).
 		Sort("height", false).
 		Size(1).
 		Do(context.Background())
@@ -38,7 +33,7 @@ func (r *BlockRepository) BestBlock() (*explorer.Block, error) {
 }
 
 func (r *BlockRepository) Blocks(size int, asc bool, page int) ([]*explorer.Block, int, error) {
-	results, err := r.elastic.Client.Search(r.index).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).
 		Sort("height", asc).
 		From((page * size) - size).
 		Size(size).
@@ -69,7 +64,7 @@ func (r *BlockRepository) Blocks(size int, asc bool, page int) ([]*explorer.Bloc
 func (r *BlockRepository) BlockGroups(period string, count int) ([]*group.Group, error) {
 	groups := group.CreateGroups(period, count)
 
-	service := r.elastic.Client.Search(r.index).Size(0)
+	service := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).Size(0)
 
 	for idx, group := range groups {
 		agg := elastic.NewRangeAggregation().Field("created").AddRange(group.Start, group.End)
@@ -140,7 +135,7 @@ func (r *BlockRepository) BlockByHashOrHeight(hash string) (*explorer.Block, err
 }
 
 func (r *BlockRepository) BlockByHash(hash string) (*explorer.Block, error) {
-	results, err := r.elastic.Client.Search(r.index).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).
 		Query(elastic.NewTermQuery("hash", hash)).
 		Size(1).
 		Do(context.Background())
@@ -149,7 +144,7 @@ func (r *BlockRepository) BlockByHash(hash string) (*explorer.Block, error) {
 }
 
 func (r *BlockRepository) BlockByHeight(height uint64) (*explorer.Block, error) {
-	results, err := r.elastic.Client.Search(r.index).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).
 		Query(elastic.NewTermQuery("height", height)).
 		Size(1).
 		Do(context.Background())

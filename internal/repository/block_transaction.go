@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
@@ -11,18 +10,14 @@ import (
 
 type BlockTransactionRepository struct {
 	elastic *elastic_cache.Index
-	index   string
 }
 
-func NewBlockTransactionRepository(elastic *elastic_cache.Index, network string) *BlockTransactionRepository {
-	return &BlockTransactionRepository{
-		elastic,
-		fmt.Sprintf("%s.%s", network, "blocktransaction"),
-	}
+func NewBlockTransactionRepository(elastic *elastic_cache.Index) *BlockTransactionRepository {
+	return &BlockTransactionRepository{elastic}
 }
 
 func (r *BlockTransactionRepository) TransactionsByBlock(block *explorer.Block) ([]*explorer.BlockTransaction, error) {
-	results, err := r.elastic.Client.Search(r.index).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get()).
 		Query(elastic.NewMatchPhraseQuery("blockhash", block.Hash)).
 		Size(10000).
 		Do(context.Background())
@@ -31,7 +26,7 @@ func (r *BlockTransactionRepository) TransactionsByBlock(block *explorer.Block) 
 }
 
 func (r *BlockTransactionRepository) TransactionByHash(hash string) (*explorer.BlockTransaction, error) {
-	results, err := r.elastic.Client.Search(r.index).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get()).
 		Query(elastic.NewTermQuery("hash", hash)).
 		Do(context.Background())
 
