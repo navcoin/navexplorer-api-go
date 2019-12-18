@@ -2,9 +2,14 @@ cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/NavExplorer/navcoind-go v0.0.0-20191112150958-77a6fe5f15ca/go.mod h1:cOrtPpHydEG4fcPI1fOzingmZVVvLM4jsgEUcjkNuyw=
+github.com/NavExplorer/navcoind-go v0.0.0-20191206112205-c863219fd310/go.mod h1:cOrtPpHydEG4fcPI1fOzingmZVVvLM4jsgEUcjkNuyw=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191112164555-eeb1d3fb54a9/go.mod h1:TH6zSrwvcFqclkwKBFfP7XbAccd4y4B+ugISA+xYufI=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191115170602-f7182aafa831 h1:nFX+tl/pOGwR4a8eov5qZBUjdYvttACNdU7J5hEdvbs=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191115170602-f7182aafa831/go.mod h1:TH6zSrwvcFqclkwKBFfP7XbAccd4y4B+ugISA+xYufI=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191218142702-a7128d79d02c h1:G6+tE//tUJ0GSauenaLj5VDlMj0l1DiQ0lS86ef5Uh8=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191218142702-a7128d79d02c/go.mod h1:ooC67nA4tSdO501jmXsS+5QYeVwG+kB5pyKQ0WU9wWs=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191218144006-a668ec33fc4b h1:Z6Y4/zUWtkUuKRXZieWPti2RpOHYmiF+zl4PTMe9LEM=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191218144006-a668ec33fc4b/go.mod h1:ooC67nA4tSdO501jmXsS+5QYeVwG+kB5pyKQ0WU9wWs=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
@@ -107,6 +112,7 @@ github.com/onsi/gomega v1.4.3/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1Cpa
 github.com/onsi/gomega v1.7.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/openzipkin/zipkin-go v0.1.6/go.mod h1:QgAqvLzwWbR/WpD4A3cGpPtJrZXNIiJc5AZX7/PBEpw=
+github.com/pebbe/zmq4 v1.0.0/go.mod h1:7N4y5R18zBiu3l0vajMUWQgZyjv464prE8RCyBcmnZM=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pierrec/lz4 v2.0.5+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

@@ -4,23 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
-	"github.com/olivere/elastic"
+	"github.com/olivere/elastic/v7"
 )
 
 type DaoProposalRepository struct {
 	elastic *elastic_cache.Index
 }
-
-type DaoProposalState string
-
-var (
-	ProposalPending  DaoProposalState = "pending"
-	ProposalAccepted DaoProposalState = "accepted"
-	ProposalExpired  DaoProposalState = "Expired"
-)
 
 var (
 	ErrProposalNotFound = errors.New("Proposal not found")
@@ -30,22 +21,9 @@ func NewDaoProposalRepository(elastic *elastic_cache.Index) *DaoProposalReposito
 	return &DaoProposalRepository{elastic}
 }
 
-func (r *DaoProposalRepository) StateFromString(state string) (*DaoProposalState, error) {
-	switch true {
-	case state == string(ProposalPending):
-		return &ProposalPending, nil
-	case state == string(ProposalAccepted):
-		return &ProposalAccepted, nil
-	case state == string(ProposalExpired):
-		return &ProposalExpired, nil
-	}
-
-	return nil, errors.New(fmt.Sprintf("Proposal state %s not found", state))
-}
-
-func (r *DaoProposalRepository) Proposals(state DaoProposalState, dir bool, size int, page int) ([]*explorer.Proposal, int, error) {
+func (r *DaoProposalRepository) Proposals(status explorer.ProposalStatus, dir bool, size int, page int) ([]*explorer.Proposal, int, error) {
 	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
-		Query(elastic.NewMatchQuery("state", state)).
+		Query(elastic.NewTermQuery("status.keyword", status)).
 		Sort("height", dir).
 		From((page * size) - size).
 		Size(size).
@@ -54,31 +32,46 @@ func (r *DaoProposalRepository) Proposals(state DaoProposalState, dir bool, size
 		return nil, 0, err
 	}
 
-	var proposals = make([]*explorer.Proposal, 0)
+	return r.findMany(results, err)
+}
 
+func (r *DaoProposalRepository) Proposal(hash string) (*explorer.Proposal, error) {
+	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
+		Query(elastic.NewTermQuery("hash.keyword", hash)).
+		Size(1).
+		Do(context.Background())
+
+	return r.findOne(results, err)
+}
+
+func (r *DaoProposalRepository) findOne(results *elastic.SearchResult, err error) (*explorer.Proposal, error) {
+	if err != nil || results.TotalHits() == 0 {
+		err = ErrProposalNotFound
+		return nil, err
+	}
+
+	var proposal *explorer.Proposal
+	hit := results.Hits.Hits[0]
+	err = json.Unmarshal(hit.Source, &proposal)
+	if err != nil {
+		return nil, err
+	}
+
+	return proposal, err
+}
+
+func (r *DaoProposalRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.Proposal, int, error) {
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var proposals []*explorer.Proposal
 	for _, hit := range results.Hits.Hits {
 		var proposal *explorer.Proposal
-		if err := json.Unmarshal(hit.Source, proposal); err == nil {
+		if err := json.Unmarshal(hit.Source, &proposal); err == nil {
 			proposals = append(proposals, proposal)
 		}
 	}
 
 	return proposals, int(results.Hits.TotalHits.Value), err
-}
-
-func (r *DaoProposalRepository) Proposal(hash string) (*explorer.Proposal, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
-		Query(elastic.NewMatchQuery("hash", hash)).
-		Size(1).
-		Do(context.Background())
-
-	if err != nil || results.TotalHits() == 0 {
-		return nil, ErrProposalNotFound
-	}
-
-	var proposal *explorer.Proposal
-	hit := results.Hits.Hits[0]
-	err = json.Unmarshal(hit.Source, proposal)
-
-	return proposal, err
 }

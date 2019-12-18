@@ -1,8 +1,10 @@
 package resource
 
 import (
+	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
+	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -18,13 +20,15 @@ func NewDaoProposalResource(daoProposalRepository *repository.DaoProposalReposit
 func (r *DaoProposalResource) GetProposals(c *gin.Context) {
 	dir, size, page := pagination.GetPaginationParams(c)
 
-	state, err := r.daoProposalRepository.StateFromString(c.Query("state"))
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err, "status": http.StatusBadRequest})
+	if valid := explorer.ProposalStatusIsValid(c.Query("status")); valid == false {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": fmt.Sprintf("Invalid Status(%s)", c.Query("status")),
+			"status":  http.StatusBadRequest,
+		})
 		return
 	}
 
-	proposals, total, err := r.daoProposalRepository.Proposals(*state, dir, size, page)
+	proposals, total, err := r.daoProposalRepository.Proposals(explorer.ProposalStatus(c.Query("status")), dir, size, page)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
