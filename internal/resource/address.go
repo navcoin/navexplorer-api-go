@@ -8,11 +8,12 @@ import (
 )
 
 type AddressResource struct {
-	addressRepo *repository.AddressRepository
+	addressRepo            *repository.AddressRepository
+	addressTransactionRepo *repository.AddressTransactionRepository
 }
 
-func NewAddressResource(addressRepo *repository.AddressRepository) *AddressResource {
-	return &AddressResource{addressRepo}
+func NewAddressResource(addressRepo *repository.AddressRepository, addressTransactionRepo *repository.AddressTransactionRepository) *AddressResource {
+	return &AddressResource{addressRepo, addressTransactionRepo}
 }
 
 func (r *AddressResource) GetAddresses(c *gin.Context) {
@@ -42,6 +43,36 @@ func (r *AddressResource) GetAddress(c *gin.Context) {
 	}
 
 	c.JSON(200, address)
+}
+
+func (r *AddressResource) GetTransactions(c *gin.Context) {
+	dir, size, page := pagination.GetPaginationParams(c)
+
+	txs, total, err := r.addressTransactionRepo.TransactionsByHash(c.Param("hash"), false, dir, size, page)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	paginator := pagination.NewPaginator(len(txs), total, size, page)
+	paginator.WriteHeader(c)
+
+	c.JSON(200, txs)
+}
+
+func (r *AddressResource) GetColdTransactions(c *gin.Context) {
+	dir, size, page := pagination.GetPaginationParams(c)
+
+	txs, total, err := r.addressTransactionRepo.TransactionsByHash(c.Param("hash"), true, dir, size, page)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	paginator := pagination.NewPaginator(len(txs), total, size, page)
+	paginator.WriteHeader(c)
+
+	c.JSON(200, txs)
 }
 
 func (r *AddressResource) ValidateAddress(c *gin.Context) {

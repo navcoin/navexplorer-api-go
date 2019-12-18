@@ -38,9 +38,11 @@ func main() {
 		c.String(http.StatusOK, "loaderio-4e202b2dc00926a931d50a76aa7fa34c")
 	})
 
-	addressResource := resource.NewAddressResource(container.GetAddressRepo())
+	addressResource := resource.NewAddressResource(container.GetAddressRepo(), container.GetAddressTransactionRepo())
 	r.GET("/address", addressResource.GetAddresses)
 	r.GET("/address/:hash", addressResource.GetAddress)
+	r.GET("/address/:hash/tx", addressResource.GetTransactions)
+	r.GET("/address/:hash/tx/cold", addressResource.GetColdTransactions)
 	r.GET("/address/:hash/validate", addressResource.ValidateAddress)
 
 	blockResource := resource.NewBlockResource(container.GetBlockRepo(), container.GetBlockTransactionRepo())

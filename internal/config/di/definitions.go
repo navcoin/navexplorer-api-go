@@ -26,6 +26,12 @@ var Definitions = []dingo.Def{
 		},
 	},
 	{
+		Name: "address.transaction.repo",
+		Build: func(elastic *elastic_cache.Index) (*repository.AddressTransactionRepository, error) {
+			return repository.NewAddressTransactionRepository(elastic), nil
+		},
+	},
+	{
 		Name: "block.repo",
 		Build: func(elastic *elastic_cache.Index) (*repository.BlockRepository, error) {
 			return repository.NewBlockRepository(elastic), nil
