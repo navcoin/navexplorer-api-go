@@ -91,7 +91,7 @@ func (r *AddressRepository) findMany(results *elastic.SearchResult, err error) (
 		return nil, 0, err
 	}
 
-	var addresses []*explorer.Address
+	addresses := make([]*explorer.Address, 0)
 	for index, hit := range results.Hits.Hits {
 		var address *explorer.Address
 		if err := json.Unmarshal(hit.Source, &address); err == nil {

@@ -65,7 +65,7 @@ func (r *DaoProposalRepository) findMany(results *elastic.SearchResult, err erro
 		return nil, 0, err
 	}
 
-	var proposals []*explorer.Proposal
+	proposals := make([]*explorer.Proposal, 0)
 	for _, hit := range results.Hits.Hits {
 		var proposal *explorer.Proposal
 		if err := json.Unmarshal(hit.Source, &proposal); err == nil {

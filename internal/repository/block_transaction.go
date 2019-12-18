@@ -64,7 +64,7 @@ func (r *BlockTransactionRepository) findMany(results *elastic.SearchResult, err
 		return nil, err
 	}
 
-	var transactions = make([]*explorer.BlockTransaction, 0)
+	transactions := make([]*explorer.BlockTransaction, 0)
 	for _, hit := range results.Hits.Hits {
 		var transaction explorer.BlockTransaction
 		err = json.Unmarshal(hit.Source, &transaction)
