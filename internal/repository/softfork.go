@@ -21,7 +21,7 @@ func (r *SoftForkRepository) SoftForks() ([]*explorer.SoftFork, error) {
 		return nil, err
 	}
 
-	var softForks = make([]*explorer.SoftFork, 0)
+	softForks := make([]*explorer.SoftFork, 0)
 	for _, hit := range results.Hits.Hits {
 		var softFork *explorer.SoftFork
 		err = json.Unmarshal(hit.Source, &softFork)
