@@ -3,6 +3,7 @@ cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/NavExplorer/navcoind-go v0.0.0-20191112150958-77a6fe5f15ca/go.mod h1:cOrtPpHydEG4fcPI1fOzingmZVVvLM4jsgEUcjkNuyw=
 github.com/NavExplorer/navcoind-go v0.0.0-20191206112205-c863219fd310/go.mod h1:cOrtPpHydEG4fcPI1fOzingmZVVvLM4jsgEUcjkNuyw=
+github.com/NavExplorer/navcoind-go v0.1.1/go.mod h1:SkiAvsIfYh0pWBox2yOOiDaPOucS/bayAVkMUNR0Sv0=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191112164555-eeb1d3fb54a9/go.mod h1:TH6zSrwvcFqclkwKBFfP7XbAccd4y4B+ugISA+xYufI=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191115170602-f7182aafa831 h1:nFX+tl/pOGwR4a8eov5qZBUjdYvttACNdU7J5hEdvbs=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191115170602-f7182aafa831/go.mod h1:TH6zSrwvcFqclkwKBFfP7XbAccd4y4B+ugISA+xYufI=
@@ -10,6 +11,8 @@ github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191218142702-a7128d79d02c
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191218142702-a7128d79d02c/go.mod h1:ooC67nA4tSdO501jmXsS+5QYeVwG+kB5pyKQ0WU9wWs=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191218144006-a668ec33fc4b h1:Z6Y4/zUWtkUuKRXZieWPti2RpOHYmiF+zl4PTMe9LEM=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191218144006-a668ec33fc4b/go.mod h1:ooC67nA4tSdO501jmXsS+5QYeVwG+kB5pyKQ0WU9wWs=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191219140640-33c9739b5d75 h1:aNk8OTQ2S5XQOizAoq4AlkpcapVIyvOgctgA3Pgg7Yg=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20191219140640-33c9739b5d75/go.mod h1:sh7+Se3nlUhE7lBOgWZ6PmVuMGgUohhvvJUE0TVzzMQ=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
@@ -108,8 +111,10 @@ github.com/olivere/elastic/v7 v7.0.9/go.mod h1:2TeRd0vhLRTK9zqm5xP0uLiVeZ5yUoL7k
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.7.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.10.1/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
+github.com/onsi/ginkgo v1.11.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/gomega v1.4.3/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/onsi/gomega v1.7.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
+github.com/onsi/gomega v1.8.0/go.mod h1:Ho0h+IUsWyvy1OpqCwxlQ/21gkhVunqlU8fDGcoTdcA=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/openzipkin/zipkin-go v0.1.6/go.mod h1:QgAqvLzwWbR/WpD4A3cGpPtJrZXNIiJc5AZX7/PBEpw=
 github.com/pebbe/zmq4 v1.0.0/go.mod h1:7N4y5R18zBiu3l0vajMUWQgZyjv464prE8RCyBcmnZM=
@@ -209,6 +214,7 @@ golang.org/x/tools v0.0.0-20190226205152-f727befe758c/go.mod h1:9Yl7xja0Znq3iFh3
 golang.org/x/tools v0.0.0-20190311212946-11955173bddd/go.mod h1:LCzVGOaR6xXOjkQ3onu1FJEFr0SW1gC7cKk1uF8kGRs=
 golang.org/x/tools v0.0.0-20190312170243-e65039ee4138/go.mod h1:LCzVGOaR6xXOjkQ3onu1FJEFr0SW1gC7cKk1uF8kGRs=
 golang.org/x/tools v0.0.0-20190624180213-70d37148ca0c/go.mod h1:/rFqwRUd4F7ZHNgwSSTFct+R/Kf4OFW1sUzUTQQTgfc=
+golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 google.golang.org/api v0.3.1/go.mod h1:6wY9I6uQWHQ8EM57III9mq/AjF+i8G65rmVagqKMtkk=
 google.golang.org/appengine v1.1.0/go.mod h1:EbEs0AVv82hx2wNQdGPgUI5lhzA/G0D9YwlJXL52JkM=
 google.golang.org/appengine v1.4.0/go.mod h1:xpcJRLb0r/rnEns0DIKYYv+WjYCduHsrkT7/EB5XEv4=
@@ -230,5 +236,7 @@ gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7/go.mod h1:dt/ZhP58zS4L8KSrWD
 gopkg.in/yaml.v2 v2.2.1/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v2 v2.2.2 h1:ZCJp+EgiOT7lHqUV2J862kp8Qj64Jo6az82+3Td9dZw=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
+gopkg.in/yaml.v2 v2.2.4 h1:/eiJrUcujPVeJ3xlSWaiNi3uSVmDGBK1pDHUHAnao1I=
+gopkg.in/yaml.v2 v2.2.4/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 honnef.co/go/tools v0.0.0-20180728063816-88497007e858/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=

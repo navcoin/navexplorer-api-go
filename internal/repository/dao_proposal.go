@@ -21,9 +21,14 @@ func NewDaoProposalRepository(elastic *elastic_cache.Index) *DaoProposalReposito
 	return &DaoProposalRepository{elastic}
 }
 
-func (r *DaoProposalRepository) Proposals(status explorer.ProposalStatus, dir bool, size int, page int) ([]*explorer.Proposal, int, error) {
+func (r *DaoProposalRepository) Proposals(status *explorer.ProposalStatus, dir bool, size int, page int) ([]*explorer.Proposal, int, error) {
+	query := elastic.NewBoolQuery()
+	if status != nil {
+		query = query.Must(elastic.NewTermQuery("status.keyword", status))
+	}
+
 	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
-		Query(elastic.NewTermQuery("status.keyword", status)).
+		Query(query).
 		Sort("height", dir).
 		From((page * size) - size).
 		Size(size).

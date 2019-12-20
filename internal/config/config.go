@@ -9,11 +9,11 @@ import (
 )
 
 type Config struct {
-	Network            string
 	Debug              bool
 	SoftForkBlockCycle uint
 	ElasticSearch      ElasticSearchConfig
 	Server             ServerConfig
+	Networks           map[string]NetworkConfig
 }
 
 type ElasticSearchConfig struct {
@@ -27,6 +27,21 @@ type ElasticSearchConfig struct {
 
 type ServerConfig struct {
 	Port int
+}
+
+type NetworkConfig struct {
+	DaoCfundConsensus DaoCfundConsensusConfig
+}
+
+type DaoCfundConsensusConfig struct {
+	BlocksPerVotingCycle                uint
+	Quorum                              uint
+	MaxCountVotingCycleProposals        uint
+	MaxCountVotingCyclePaymentRequests  uint
+	VotesAcceptProposalPercentage       uint
+	VotesRejectProposalPercentage       uint
+	VotesAcceptPaymentRequestPercentage uint
+	VotesRejectPaymentRequestPercentage uint
 }
 
 func Init() {

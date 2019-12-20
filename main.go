@@ -57,9 +57,11 @@ func main() {
 	softForkResource := resource.NewSoftForkResource(container.GetSoftforkRepo())
 	r.GET("/softfork", softForkResource.GetSoftForks)
 
-	proposalResource := resource.NewDaoProposalResource(container.GetDaoProposalRepo())
-	r.GET("/proposal", proposalResource.GetProposals)
-	r.GET("/proposal/:hash", proposalResource.GetProposal)
+	dao := r.Group("/dao")
+	daoResource := resource.NewDaoResource(container.GetDaoProposalRepo(), container.GetDaoConsensusRepo())
+	dao.GET("/consensus", daoResource.GetConsensus)
+	dao.GET("/proposal", daoResource.GetProposals)
+	dao.GET("/proposal/:hash", daoResource.GetProposal)
 
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{"code": 404, "message": "Resource not found"})

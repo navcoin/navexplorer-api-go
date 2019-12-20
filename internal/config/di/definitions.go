@@ -50,6 +50,12 @@ var Definitions = []dingo.Def{
 		},
 	},
 	{
+		Name: "dao.consensus.repo",
+		Build: func(elastic *elastic_cache.Index) (*repository.DaoConsensusRepository, error) {
+			return repository.NewDaoConsensusRepository(elastic), nil
+		},
+	},
+	{
 		Name: "softfork.repo",
 		Build: func(elastic *elastic_cache.Index) (*repository.SoftForkRepository, error) {
 			return repository.NewSoftForkRepository(elastic), nil
