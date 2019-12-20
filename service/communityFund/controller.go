@@ -23,7 +23,7 @@ func (controller *Controller) GetProposals(c *gin.Context) {
 
 	size, err := strconv.Atoi(c.DefaultQuery("size", "10"))
 	if err != nil {
-		size = 10
+		size = 1000
 	}
 
 	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
