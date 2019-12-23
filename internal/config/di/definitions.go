@@ -2,7 +2,10 @@ package di
 
 import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
-	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
+	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache/repository"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
 	"github.com/sarulabs/dingo/v3"
 	log "github.com/sirupsen/logrus"
 )
@@ -32,6 +35,12 @@ var Definitions = []dingo.Def{
 		},
 	},
 	{
+		Name: "address.service",
+		Build: func(addressRepository *repository.AddressRepository, addressTransactionRepository *repository.AddressTransactionRepository) (*address.AddressService, error) {
+			return address.NewAddressService(addressRepository, addressTransactionRepository), nil
+		},
+	},
+	{
 		Name: "block.repo",
 		Build: func(elastic *elastic_cache.Index) (*repository.BlockRepository, error) {
 			return repository.NewBlockRepository(elastic), nil
@@ -44,9 +53,21 @@ var Definitions = []dingo.Def{
 		},
 	},
 	{
+		Name: "block.service",
+		Build: func(blockRepository *repository.BlockRepository, blockTransactionRepository *repository.BlockTransactionRepository) (*block.BlockService, error) {
+			return block.NewBlockService(blockRepository, blockTransactionRepository), nil
+		},
+	},
+	{
 		Name: "dao.proposal.repo",
 		Build: func(elastic *elastic_cache.Index) (*repository.DaoProposalRepository, error) {
 			return repository.NewDaoProposalRepository(elastic), nil
+		},
+	},
+	{
+		Name: "dao.payment-request.repo",
+		Build: func(elastic *elastic_cache.Index) (*repository.DaoPaymentRequestRepository, error) {
+			return repository.NewDaoPaymentRequestRepository(elastic), nil
 		},
 	},
 	{
@@ -59,6 +80,12 @@ var Definitions = []dingo.Def{
 		Name: "softfork.repo",
 		Build: func(elastic *elastic_cache.Index) (*repository.SoftForkRepository, error) {
 			return repository.NewSoftForkRepository(elastic), nil
+		},
+	},
+	{
+		Name: "dao.service",
+		Build: func(proposalRepo *repository.DaoProposalRepository, paymentRequestRepo *repository.DaoPaymentRequestRepository, consensusRepo *repository.DaoConsensusRepository) (*dao.DaoService, error) {
+			return dao.NewDaoService(proposalRepo, paymentRequestRepo, consensusRepo), nil
 		},
 	},
 }

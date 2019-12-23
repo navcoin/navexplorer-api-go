@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
+	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache/repository"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

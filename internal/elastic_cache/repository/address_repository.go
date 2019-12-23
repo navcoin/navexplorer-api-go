@@ -34,23 +34,12 @@ func (r *AddressRepository) Addresses(size int, page int) ([]*explorer.Address, 
 }
 
 func (r *AddressRepository) AddressByHash(hash string) (*explorer.Address, error) {
-	if valid, err := r.Validate(hash); valid == false || err != nil {
-		if err != nil {
-			log.WithError(err).Error("Failed to validate address")
-		}
-		return nil, ErrAddressInvalid
-	}
-
 	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
 		Do(context.Background())
 
 	return r.findOne(results, err)
-}
-
-func (r *AddressRepository) Validate(hash string) (bool, error) {
-	return true, nil
 }
 
 func (r *AddressRepository) getRichListPosition(balance uint64) (uint, error) {

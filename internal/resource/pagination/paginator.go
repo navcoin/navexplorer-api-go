@@ -17,35 +17,41 @@ type Paginator struct {
 	Elements    int  `json:"number_of_elements"`
 }
 
-func GetPaginationParams(c *gin.Context) (dir bool, size int, page int) {
-	dir = c.DefaultQuery("dir", "DESC") == "ASC"
+type Config struct {
+	Dir  bool
+	Size int
+	Page int
+}
+
+func GetConfig(c *gin.Context) *Config {
+	dir := c.DefaultQuery("dir", "DESC") == "ASC"
 
 	size, err := strconv.Atoi(c.DefaultQuery("size", "10"))
 	if err != nil {
 		size = 10
 	}
 
-	page, err = strconv.Atoi(c.DefaultQuery("page", "1"))
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil {
 		page = 1
 	}
 
-	return
+	return &Config{dir, size, page}
 }
 
-func NewPaginator(elements int, total int, size int, page int) Paginator {
+func NewPaginator(elements int, total int, config *Config) Paginator {
 	paginator := Paginator{}
 
-	paginator.CurrentPage = page
+	paginator.CurrentPage = config.Page
 	paginator.Total = total
-	paginator.Size = size
-	pages := int(math.Ceil(float64(total) / float64(size)))
+	paginator.Size = config.Size
+	pages := int(math.Ceil(float64(total) / float64(config.Size)))
 	if pages == 0 {
 		pages = 1
 	}
 	paginator.Pages = pages
 	paginator.Elements = elements
-	paginator.First = page == 1
+	paginator.First = config.Page == 1
 	paginator.Last = paginator.CurrentPage == paginator.Pages
 
 	return paginator

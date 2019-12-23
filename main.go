@@ -38,14 +38,14 @@ func main() {
 		c.String(http.StatusOK, "loaderio-4e202b2dc00926a931d50a76aa7fa34c")
 	})
 
-	addressResource := resource.NewAddressResource(container.GetAddressRepo(), container.GetAddressTransactionRepo())
+	addressResource := resource.NewAddressResource(container.GetAddressService())
 	r.GET("/address", addressResource.GetAddresses)
 	r.GET("/address/:hash", addressResource.GetAddress)
 	r.GET("/address/:hash/tx", addressResource.GetTransactions)
 	r.GET("/address/:hash/tx/cold", addressResource.GetColdTransactions)
 	r.GET("/address/:hash/validate", addressResource.ValidateAddress)
 
-	blockResource := resource.NewBlockResource(container.GetBlockRepo(), container.GetBlockTransactionRepo())
+	blockResource := resource.NewBlockResource(container.GetBlockService())
 	r.GET("/bestblock", blockResource.GetBestBlock)
 	r.GET("/block", blockResource.GetBlocks)
 	r.GET("/block/:hash", blockResource.GetBlock)
@@ -57,11 +57,14 @@ func main() {
 	softForkResource := resource.NewSoftForkResource(container.GetSoftforkRepo())
 	r.GET("/softfork", softForkResource.GetSoftForks)
 
-	dao := r.Group("/dao")
-	daoResource := resource.NewDaoResource(container.GetDaoProposalRepo(), container.GetDaoConsensusRepo())
-	dao.GET("/consensus", daoResource.GetConsensus)
-	dao.GET("/proposal", daoResource.GetProposals)
-	dao.GET("/proposal/:hash", daoResource.GetProposal)
+	daoGroup := r.Group("/dao")
+	daoResource := resource.NewDaoResource(container.GetDaoService())
+	daoGroup.GET("/cfund/block-cycle", daoResource.GetBlockCycle) //legacy
+	daoGroup.GET("/cfund/consensus", daoResource.GetConsensus)
+	daoGroup.GET("/cfund/proposal", daoResource.GetProposals)
+	daoGroup.GET("/cfund/proposal/:hash", daoResource.GetProposal)
+	daoGroup.GET("/cfund/payment-request", daoResource.GetPaymentRequests)
+	daoGroup.GET("/cfund/payment-request/:hash", daoResource.GetPaymentRequest)
 
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{"code": 404, "message": "Resource not found"})

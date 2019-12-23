@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
-	"github.com/NavExplorer/navexplorer-api-go/internal/resource/group"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/block_group"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	"strconv"
@@ -32,7 +32,7 @@ func (r *BlockRepository) BestBlock() (*explorer.Block, error) {
 	return r.findOne(results, err)
 }
 
-func (r *BlockRepository) Blocks(size int, asc bool, page int) ([]*explorer.Block, int, error) {
+func (r *BlockRepository) Blocks(asc bool, size int, page int) ([]*explorer.Block, int, error) {
 	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).
 		Sort("height", asc).
 		From((page * size) - size).
@@ -61,8 +61,8 @@ func (r *BlockRepository) Blocks(size int, asc bool, page int) ([]*explorer.Bloc
 	return blocks, int(results.Hits.TotalHits.Value), err
 }
 
-func (r *BlockRepository) BlockGroups(period string, count int) ([]*group.Group, error) {
-	groups := group.CreateGroups(period, count)
+func (r *BlockRepository) BlockGroups(period string, count int) ([]*block_group.BlockGroup, error) {
+	groups := block_group.CreateGroups(period, count)
 
 	service := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).Size(0)
 
