@@ -7,6 +7,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
+	log "github.com/sirupsen/logrus"
 )
 
 type DaoProposalRepository struct {
@@ -47,6 +48,29 @@ func (r *DaoProposalRepository) Proposal(hash string) (*explorer.Proposal, error
 		Do(context.Background())
 
 	return r.findOne(results, err)
+}
+
+func (r *DaoProposalRepository) ValueLocked() (*float64, error) {
+	lockedAgg := elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("status", explorer.ProposalAccepted))
+	lockedAgg.SubAggregation("notPaidYet", elastic.NewSumAggregation().Field("notPaidYet"))
+
+	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
+		Aggregation("locked", lockedAgg).
+		Size(0).
+		Do(context.Background())
+
+	if err != nil {
+		log.WithError(err).Error("Failed to get value details")
+		return nil, err
+	}
+
+	if stats, found := results.Aggregations.Filter("locked"); found {
+		if notPaidYet, found := stats.Aggregations.Sum("notPaidYet"); found {
+			return notPaidYet.Value, nil
+		}
+	}
+
+	return nil, errors.New("Could not find locked aggregation")
 }
 
 func (r *DaoProposalRepository) findOne(results *elastic.SearchResult, err error) (*explorer.Proposal, error) {

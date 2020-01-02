@@ -84,8 +84,13 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "dao.service",
-		Build: func(proposalRepo *repository.DaoProposalRepository, paymentRequestRepo *repository.DaoPaymentRequestRepository, consensusRepo *repository.DaoConsensusRepository) (*dao.DaoService, error) {
-			return dao.NewDaoService(proposalRepo, paymentRequestRepo, consensusRepo), nil
+		Build: func(
+			proposalRepo *repository.DaoProposalRepository,
+			paymentRequestRepo *repository.DaoPaymentRequestRepository,
+			consensusRepo *repository.DaoConsensusRepository,
+			blockTxRepo *repository.BlockTransactionRepository,
+		) (*dao.DaoService, error) {
+			return dao.NewDaoService(proposalRepo, paymentRequestRepo, consensusRepo, blockTxRepo), nil
 		},
 	},
 }

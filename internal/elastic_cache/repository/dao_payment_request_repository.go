@@ -7,6 +7,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
+	log "github.com/sirupsen/logrus"
 )
 
 type DaoPaymentRequestRepository struct {
@@ -47,6 +48,29 @@ func (r *DaoPaymentRequestRepository) PaymentRequest(hash string) (*explorer.Pay
 		Do(context.Background())
 
 	return r.findOne(results, err)
+}
+
+func (r *DaoPaymentRequestRepository) ValuePaid() (*float64, error) {
+	paidAgg := elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("status", explorer.PaymentRequestAccepted))
+	paidAgg.SubAggregation("requestedAmount", elastic.NewSumAggregation().Field("requestedAmount"))
+
+	results, err := r.elastic.Client.Search(elastic_cache.PaymentRequestIndex.Get()).
+		Aggregation("paid", paidAgg).
+		Size(0).
+		Do(context.Background())
+
+	if err != nil {
+		log.WithError(err).Error("Failed to get value details")
+		return nil, err
+	}
+
+	if stats, found := results.Aggregations.Filter("paid"); found {
+		if requestedAmount, found := stats.Aggregations.Sum("requestedAmount"); found {
+			return requestedAmount.Value, nil
+		}
+	}
+
+	return nil, errors.New("Could not find paid aggregation")
 }
 
 func (r *DaoPaymentRequestRepository) findOne(results *elastic.SearchResult, err error) (*explorer.PaymentRequest, error) {

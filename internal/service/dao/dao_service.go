@@ -8,21 +8,24 @@ import (
 )
 
 type DaoService struct {
-	proposalRepository       *repository.DaoProposalRepository
-	paymentRequestRepository *repository.DaoPaymentRequestRepository
-	consensusRepository      *repository.DaoConsensusRepository
+	proposalRepository         *repository.DaoProposalRepository
+	paymentRequestRepository   *repository.DaoPaymentRequestRepository
+	consensusRepository        *repository.DaoConsensusRepository
+	blockTransactionRepository *repository.BlockTransactionRepository
 }
 
-func NewDaoService(proposalRepository *repository.DaoProposalRepository, paymentRequestRepository *repository.DaoPaymentRequestRepository, consensusRepository *repository.DaoConsensusRepository) *DaoService {
+func NewDaoService(
+	proposalRepository *repository.DaoProposalRepository,
+	paymentRequestRepository *repository.DaoPaymentRequestRepository,
+	consensusRepository *repository.DaoConsensusRepository,
+	blockTransactionRepository *repository.BlockTransactionRepository,
+) *DaoService {
 	return &DaoService{
 		proposalRepository,
 		paymentRequestRepository,
 		consensusRepository,
+		blockTransactionRepository,
 	}
-}
-
-func (s *DaoService) GetConsensus() (*explorer.Consensus, error) {
-	return s.consensusRepository.GetConsensus()
 }
 
 func (s *DaoService) GetBlockCycle(block *explorer.Block) (*dto.BlockCycle, error) {
@@ -54,6 +57,30 @@ func (s *DaoService) GetBlockCycle(block *explorer.Block) (*dto.BlockCycle, erro
 	blockCycle.BlocksRemaining = blockCycle.BlocksInCycle - blockCycle.CurrentBlock
 
 	return blockCycle, nil
+}
+
+func (s *DaoService) GetConsensus() (*explorer.Consensus, error) {
+	return s.consensusRepository.GetConsensus()
+}
+
+func (s *DaoService) GetCfundStats() (*dto.CfundStats, error) {
+	cfundStats := new(dto.CfundStats)
+
+	if contributed, err := s.blockTransactionRepository.TotalAmountByOutputType(explorer.VoutCfundContribution); err == nil {
+		cfundStats.Contributed = *contributed
+	}
+
+	if locked, err := s.proposalRepository.ValueLocked(); err == nil {
+		cfundStats.Locked = *locked
+	}
+
+	if paid, err := s.paymentRequestRepository.ValuePaid(); err == nil {
+		cfundStats.Paid = *paid
+	}
+
+	cfundStats.Available = cfundStats.Contributed - cfundStats.Paid - cfundStats.Locked
+
+	return cfundStats, nil
 }
 
 func (s *DaoService) GetProposal(hash string) (*explorer.Proposal, error) {

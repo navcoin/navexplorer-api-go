@@ -61,6 +61,7 @@ func main() {
 	daoResource := resource.NewDaoResource(container.GetDaoService())
 	daoGroup.GET("/cfund/block-cycle", daoResource.GetBlockCycle) //legacy
 	daoGroup.GET("/cfund/consensus", daoResource.GetConsensus)
+	daoGroup.GET("/cfund/stats", daoResource.GetCfundStats)
 	daoGroup.GET("/cfund/proposal", daoResource.GetProposals)
 	daoGroup.GET("/cfund/proposal/:hash", daoResource.GetProposal)
 	daoGroup.GET("/cfund/payment-request", daoResource.GetPaymentRequests)

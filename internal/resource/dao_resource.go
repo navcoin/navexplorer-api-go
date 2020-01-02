@@ -38,6 +38,16 @@ func (r *DaoResource) GetConsensus(c *gin.Context) {
 	c.JSON(200, consensus)
 }
 
+func (r *DaoResource) GetCfundStats(c *gin.Context) {
+	cfundStats, err := r.daoService.GetCfundStats()
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, cfundStats)
+}
+
 func (r *DaoResource) GetProposals(c *gin.Context) {
 	config := pagination.GetConfig(c)
 

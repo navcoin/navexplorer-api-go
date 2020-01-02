@@ -46,6 +46,33 @@ func (r *BlockTransactionRepository) RawTransactionByHash(hash string) (*explore
 	return rawTx, err
 }
 
+func (r *BlockTransactionRepository) TotalAmountByOutputType(voutType explorer.VoutType) (*float64, error) {
+	typeAgg := elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vout.scriptPubKey.type.keyword", voutType))
+	typeAgg.SubAggregation("value", elastic.NewSumAggregation().Field("vout.value"))
+
+	agg := elastic.NewNestedAggregation().Path("vout")
+	agg.SubAggregation("vout", typeAgg)
+
+	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get()).
+		Aggregation("total", agg).
+		Size(0).
+		Do(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	total := new(float64)
+	if agg, found := results.Aggregations.Nested("total"); found {
+		if agg, found = agg.Aggregations.Filter("vout"); found {
+			if value, found := agg.Aggregations.Sum("value"); found {
+				total = value.Value
+			}
+		}
+	}
+
+	return total, nil
+}
+
 func (r *BlockTransactionRepository) findOne(results *elastic.SearchResult, err error) (*explorer.BlockTransaction, error) {
 	if err != nil || results.TotalHits() == 0 {
 		err = ErrBlockNotFound
