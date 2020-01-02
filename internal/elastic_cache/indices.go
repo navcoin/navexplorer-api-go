@@ -12,7 +12,7 @@ var (
 	AddressTransactionIndex Indices = "addresstransaction"
 	BlockIndex              Indices = "block"
 	BlockTransactionIndex   Indices = "blocktransaction"
-	ConsensusIndex          Indices = "daoconsensus"
+	ConsensusIndex          Indices = "cfundconsensus"
 	ProposalIndex           Indices = "proposal"
 	DaoVoteIndex            Indices = "daovote"
 	PaymentRequestIndex     Indices = "paymentrequest"
