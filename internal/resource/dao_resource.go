@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/gin-gonic/gin"
@@ -11,15 +12,22 @@ import (
 )
 
 type DaoResource struct {
-	daoService *dao.DaoService
+	daoService   *dao.DaoService
+	blockService *block.BlockService
 }
 
-func NewDaoResource(daoService *dao.DaoService) *DaoResource {
-	return &DaoResource{daoService}
+func NewDaoResource(daoService *dao.DaoService, blockService *block.BlockService) *DaoResource {
+	return &DaoResource{daoService, blockService}
 }
 
 func (r *DaoResource) GetBlockCycle(c *gin.Context) {
-	blockCycle, err := r.daoService.GetBlockCycle(&explorer.Block{})
+	b, err := r.blockService.GetBestBlock()
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	blockCycle, err := r.daoService.GetBlockCycleByBlock(b)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -78,16 +86,45 @@ func (r *DaoResource) GetProposals(c *gin.Context) {
 func (r *DaoResource) GetProposal(c *gin.Context) {
 	proposal, err := r.daoService.GetProposal(c.Param("hash"))
 
+	if err == repository.ErrProposalNotFound {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
+		return
+	}
+
 	if err != nil {
-		if err == repository.ErrProposalNotFound {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
-		} else {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
-		}
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
 	}
 
 	c.JSON(200, proposal)
+}
+
+func (r *DaoResource) GetProposalVotes(c *gin.Context) {
+	votes, err := r.daoService.GetProposalVotes(c.Param("hash"))
+	if err == repository.ErrProposalNotFound {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
+		return
+	}
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, votes)
+}
+
+func (r *DaoResource) GetProposalTrend(c *gin.Context) {
+	trend, err := r.daoService.GetProposalTrend(c.Param("hash"))
+	if err == repository.ErrProposalNotFound {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
+		return
+	}
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, trend)
 }
 
 func (r *DaoResource) GetPaymentRequests(c *gin.Context) {
@@ -130,4 +167,32 @@ func (r *DaoResource) GetPaymentRequest(c *gin.Context) {
 	}
 
 	c.JSON(200, paymentRequest)
+}
+
+func (r *DaoResource) GetPaymentRequestVotes(c *gin.Context) {
+	votes, err := r.daoService.GetPaymentRequestVotes(c.Param("hash"))
+	if err == repository.ErrPaymentRequestNotFound {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
+		return
+	}
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, votes)
+}
+
+func (r *DaoResource) GetPaymentRequestTrend(c *gin.Context) {
+	trend, err := r.daoService.GetPaymentRequestTrend(c.Param("hash"))
+	if err == repository.ErrProposalNotFound {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
+		return
+	}
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, trend)
 }

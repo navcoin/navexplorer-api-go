@@ -71,6 +71,12 @@ var Definitions = []dingo.Def{
 		},
 	},
 	{
+		Name: "dao.vote.repo",
+		Build: func(elastic *elastic_cache.Index) (*repository.DaoVoteRepository, error) {
+			return repository.NewDaoVoteRepository(elastic), nil
+		},
+	},
+	{
 		Name: "dao.consensus.repo",
 		Build: func(elastic *elastic_cache.Index) (*repository.DaoConsensusRepository, error) {
 			return repository.NewDaoConsensusRepository(elastic), nil
@@ -88,9 +94,11 @@ var Definitions = []dingo.Def{
 			proposalRepo *repository.DaoProposalRepository,
 			paymentRequestRepo *repository.DaoPaymentRequestRepository,
 			consensusRepo *repository.DaoConsensusRepository,
+			voteRepo *repository.DaoVoteRepository,
+			blockRepo *repository.BlockRepository,
 			blockTxRepo *repository.BlockTransactionRepository,
 		) (*dao.DaoService, error) {
-			return dao.NewDaoService(proposalRepo, paymentRequestRepo, consensusRepo, blockTxRepo), nil
+			return dao.NewDaoService(proposalRepo, paymentRequestRepo, consensusRepo, voteRepo, blockRepo, blockTxRepo), nil
 		},
 	},
 }
