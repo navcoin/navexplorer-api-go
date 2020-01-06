@@ -5,7 +5,6 @@ type BlockCycle struct {
 	Quorum          float64 `json:"minQuorum"`
 	ProposalVoting  Voting  `json:"proposalVoting"`
 	PaymentVoting   Voting  `json:"paymentVoting"`
-	Height          uint64  `json:"height"`
 	Cycle           uint    `json:"cycle"`
 	FirstBlock      uint    `json:"firstBlock"`
 	CurrentBlock    uint    `json:"currentBlock"`

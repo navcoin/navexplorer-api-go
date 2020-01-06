@@ -4,16 +4,18 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 type BlockResource struct {
 	blockService *block.BlockService
+	daoService   *dao.DaoService
 }
 
-func NewBlockResource(blockService *block.BlockService) *BlockResource {
-	return &BlockResource{blockService}
+func NewBlockResource(blockService *block.BlockService, daoService *dao.DaoService) *BlockResource {
+	return &BlockResource{blockService, daoService}
 }
 
 func (r *BlockResource) GetBestBlock(c *gin.Context) {
@@ -38,6 +40,26 @@ func (r *BlockResource) GetBlock(c *gin.Context) {
 	}
 
 	c.JSON(200, b)
+}
+
+func (r *BlockResource) GetBlockCycle(c *gin.Context) {
+	b, err := r.blockService.GetBlock(c.Param("hash"))
+	if err == repository.ErrBlockNotFound {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
+		return
+	}
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	bc, err := r.daoService.GetBlockCycleByBlock(b)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, bc)
 }
 
 func (r *BlockResource) GetBlocks(c *gin.Context) {
