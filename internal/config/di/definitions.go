@@ -2,7 +2,7 @@ package di
 
 import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
-	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache/repository"
+	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
@@ -36,7 +36,7 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "address.service",
-		Build: func(addressRepository *repository.AddressRepository, addressTransactionRepository *repository.AddressTransactionRepository) (*address.AddressService, error) {
+		Build: func(addressRepository *repository.AddressRepository, addressTransactionRepository *repository.AddressTransactionRepository) (*address.Service, error) {
 			return address.NewAddressService(addressRepository, addressTransactionRepository), nil
 		},
 	},
@@ -54,7 +54,7 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "block.service",
-		Build: func(blockRepository *repository.BlockRepository, blockTransactionRepository *repository.BlockTransactionRepository) (*block.BlockService, error) {
+		Build: func(blockRepository *repository.BlockRepository, blockTransactionRepository *repository.BlockTransactionRepository) (*block.Service, error) {
 			return block.NewBlockService(blockRepository, blockTransactionRepository), nil
 		},
 	},
@@ -97,7 +97,7 @@ var Definitions = []dingo.Def{
 			voteRepo *repository.DaoVoteRepository,
 			blockRepo *repository.BlockRepository,
 			blockTxRepo *repository.BlockTransactionRepository,
-		) (*dao.DaoService, error) {
+		) (*dao.Service, error) {
 			return dao.NewDaoService(proposalRepo, paymentRequestRepo, consensusRepo, voteRepo, blockRepo, blockTxRepo), nil
 		},
 	},

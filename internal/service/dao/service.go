@@ -1,14 +1,13 @@
 package dao
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/internal/dto"
-	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache/repository"
+	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
-	"github.com/NavExplorer/navexplorer-api-go/internal/service/voting_cycle"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao/entity"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 )
 
-type DaoService struct {
+type Service struct {
 	proposalRepository         *repository.DaoProposalRepository
 	paymentRequestRepository   *repository.DaoPaymentRequestRepository
 	consensusRepository        *repository.DaoConsensusRepository
@@ -24,8 +23,8 @@ func NewDaoService(
 	voteRepository *repository.DaoVoteRepository,
 	blockRepository *repository.BlockRepository,
 	blockTransactionRepository *repository.BlockTransactionRepository,
-) *DaoService {
-	return &DaoService{
+) *Service {
+	return &Service{
 		proposalRepository,
 		paymentRequestRepository,
 		consensusRepository,
@@ -35,11 +34,11 @@ func NewDaoService(
 	}
 }
 
-func (s *DaoService) GetBlockCycleByHeight(height uint64) (*dto.BlockCycle, error) {
+func (s *Service) GetBlockCycleByHeight(height uint64) (*entity.BlockCycle, error) {
 	return s.GetBlockCycleByBlock(&explorer.Block{RawBlock: explorer.RawBlock{Height: height}})
 }
 
-func (s *DaoService) GetBlockCycleByBlock(block *explorer.Block) (*dto.BlockCycle, error) {
+func (s *Service) GetBlockCycleByBlock(block *explorer.Block) (*entity.BlockCycle, error) {
 	consensus, err := s.GetConsensus()
 	if err != nil {
 		return nil, err
@@ -47,15 +46,15 @@ func (s *DaoService) GetBlockCycleByBlock(block *explorer.Block) (*dto.BlockCycl
 
 	bc := block.BlockCycle(consensus.BlocksPerVotingCycle, consensus.MinSumVotesPerVotingCycle)
 
-	blockCycle := &dto.BlockCycle{
+	blockCycle := &entity.BlockCycle{
 		BlocksInCycle: consensus.BlocksPerVotingCycle,
 		Quorum:        float64(consensus.MinSumVotesPerVotingCycle) / 100,
-		ProposalVoting: dto.Voting{
+		ProposalVoting: entity.Voting{
 			Cycles: consensus.MaxCountVotingCycleProposals,
 			Accept: consensus.VotesAcceptProposalPercentage,
 			Reject: consensus.VotesRejectProposalPercentage,
 		},
-		PaymentVoting: dto.Voting{
+		PaymentVoting: entity.Voting{
 			Cycles: consensus.MaxCountVotingCyclePaymentRequests,
 			Accept: consensus.VotesAcceptPaymentRequestPercentage,
 			Reject: consensus.VotesRejectPaymentRequestPercentage,
@@ -69,12 +68,12 @@ func (s *DaoService) GetBlockCycleByBlock(block *explorer.Block) (*dto.BlockCycl
 	return blockCycle, nil
 }
 
-func (s *DaoService) GetConsensus() (*explorer.Consensus, error) {
+func (s *Service) GetConsensus() (*explorer.Consensus, error) {
 	return s.consensusRepository.GetConsensus()
 }
 
-func (s *DaoService) GetCfundStats() (*dto.CfundStats, error) {
-	cfundStats := new(dto.CfundStats)
+func (s *Service) GetCfundStats() (*entity.CfundStats, error) {
+	cfundStats := new(entity.CfundStats)
 
 	if contributed, err := s.blockTransactionRepository.TotalAmountByOutputType(explorer.VoutCfundContribution); err == nil {
 		cfundStats.Contributed = *contributed
@@ -93,15 +92,15 @@ func (s *DaoService) GetCfundStats() (*dto.CfundStats, error) {
 	return cfundStats, nil
 }
 
-func (s *DaoService) GetProposals(status *explorer.ProposalStatus, config *pagination.Config) ([]*explorer.Proposal, int, error) {
+func (s *Service) GetProposals(status *explorer.ProposalStatus, config *pagination.Config) ([]*explorer.Proposal, int, error) {
 	return s.proposalRepository.Proposals(status, config.Dir, config.Size, config.Page)
 }
 
-func (s *DaoService) GetProposal(hash string) (*explorer.Proposal, error) {
+func (s *Service) GetProposal(hash string) (*explorer.Proposal, error) {
 	return s.proposalRepository.Proposal(hash)
 }
 
-func (s *DaoService) GetProposalVotes(hash string) ([]*dto.CfundVote, error) {
+func (s *Service) GetProposalVotes(hash string) ([]*entity.CfundVote, error) {
 	p, err := s.GetProposal(hash)
 	if err != nil {
 		return nil, err
@@ -120,12 +119,12 @@ func (s *DaoService) GetProposalVotes(hash string) ([]*dto.CfundVote, error) {
 	return s.voteRepository.GetVotes(
 		explorer.ProposalVote,
 		p.Hash,
-		voting_cycle.CreateVotingCycles(int(bc.ProposalVoting.Cycles), int(bc.BlocksInCycle), int(bc.FirstBlock)),
+		entity.CreateVotingCycles(int(bc.ProposalVoting.Cycles), int(bc.BlocksInCycle), int(bc.FirstBlock)),
 		bestBlock.Height,
 	)
 }
 
-func (s *DaoService) GetProposalTrend(hash string) ([]*dto.CfundVote, error) {
+func (s *Service) GetProposalTrend(hash string) ([]*entity.CfundVote, error) {
 	p, err := s.GetProposal(hash)
 	if err != nil {
 		return nil, err
@@ -141,23 +140,34 @@ func (s *DaoService) GetProposalTrend(hash string) ([]*dto.CfundVote, error) {
 		return nil, err
 	}
 
-	return s.voteRepository.GetTrend(
+	cfundVotes, err := s.voteRepository.GetVotes(
 		explorer.ProposalVote,
 		p.Hash,
-		voting_cycle.CreateVotingCycles(10, int(bc.BlocksInCycle/10), int(bc.CurrentBlock-bc.BlocksInCycle)),
+		entity.CreateVotingCycles(10, int(bc.BlocksInCycle/10), int(bc.CurrentBlock-bc.BlocksInCycle)),
 		bestBlock.Height,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, cfundVote := range cfundVotes {
+		cfundVote.Yes = int(float64(cfundVote.Yes)/10) * 100
+		cfundVote.No = int(float64(cfundVote.No)/10) * 100
+		cfundVote.Abstain = int(float64(cfundVote.Abstain)/10) * 100
+	}
+
+	return cfundVotes, nil
 }
 
-func (s *DaoService) GetPaymentRequests(status *explorer.PaymentRequestStatus, config *pagination.Config) ([]*explorer.PaymentRequest, int, error) {
+func (s *Service) GetPaymentRequests(status *explorer.PaymentRequestStatus, config *pagination.Config) ([]*explorer.PaymentRequest, int, error) {
 	return s.paymentRequestRepository.PaymentRequests(status, config.Dir, config.Size, config.Page)
 }
 
-func (s *DaoService) GetPaymentRequest(hash string) (*explorer.PaymentRequest, error) {
+func (s *Service) GetPaymentRequest(hash string) (*explorer.PaymentRequest, error) {
 	return s.paymentRequestRepository.PaymentRequest(hash)
 }
 
-func (s *DaoService) GetPaymentRequestVotes(hash string) ([]*dto.CfundVote, error) {
+func (s *Service) GetPaymentRequestVotes(hash string) ([]*entity.CfundVote, error) {
 	p, err := s.GetPaymentRequest(hash)
 	if err != nil {
 		return nil, err
@@ -176,12 +186,12 @@ func (s *DaoService) GetPaymentRequestVotes(hash string) ([]*dto.CfundVote, erro
 	return s.voteRepository.GetVotes(
 		explorer.PaymentRequestVote,
 		p.Hash,
-		voting_cycle.CreateVotingCycles(int(bc.ProposalVoting.Cycles), int(bc.BlocksInCycle), int(bc.FirstBlock)),
+		entity.CreateVotingCycles(int(bc.ProposalVoting.Cycles), int(bc.BlocksInCycle), int(bc.FirstBlock)),
 		bestBlock.Height,
 	)
 }
 
-func (s *DaoService) GetPaymentRequestTrend(hash string) ([]*dto.CfundVote, error) {
+func (s *Service) GetPaymentRequestTrend(hash string) ([]*entity.CfundVote, error) {
 	p, err := s.GetPaymentRequest(hash)
 	if err != nil {
 		return nil, err
@@ -197,10 +207,21 @@ func (s *DaoService) GetPaymentRequestTrend(hash string) ([]*dto.CfundVote, erro
 		return nil, err
 	}
 
-	return s.voteRepository.GetTrend(
+	cfundVotes, err := s.voteRepository.GetVotes(
 		explorer.PaymentRequestVote,
 		p.Hash,
-		voting_cycle.CreateVotingCycles(10, int(bc.BlocksInCycle/10), int(bc.CurrentBlock-bc.BlocksInCycle)),
+		entity.CreateVotingCycles(10, int(bc.BlocksInCycle/10), int(bc.CurrentBlock-bc.BlocksInCycle)),
 		bestBlock.Height,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, cfundVote := range cfundVotes {
+		cfundVote.Yes = int(float64(cfundVote.Yes)/10) * 100
+		cfundVote.No = int(float64(cfundVote.No)/10) * 100
+		cfundVote.Abstain = int(float64(cfundVote.Abstain)/10) * 100
+	}
+
+	return cfundVotes, nil
 }

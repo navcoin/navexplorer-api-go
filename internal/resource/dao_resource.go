@@ -2,7 +2,7 @@ package resource
 
 import (
 	"fmt"
-	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache/repository"
+	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
@@ -12,11 +12,11 @@ import (
 )
 
 type DaoResource struct {
-	daoService   *dao.DaoService
-	blockService *block.BlockService
+	daoService   *dao.Service
+	blockService *block.Service
 }
 
-func NewDaoResource(daoService *dao.DaoService, blockService *block.BlockService) *DaoResource {
+func NewDaoResource(daoService *dao.Service, blockService *block.Service) *DaoResource {
 	return &DaoResource{daoService, blockService}
 }
 

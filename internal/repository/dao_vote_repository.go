@@ -3,12 +3,10 @@ package repository
 import (
 	"context"
 	"fmt"
-	"github.com/NavExplorer/navexplorer-api-go/internal/dto"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
-	"github.com/NavExplorer/navexplorer-api-go/internal/service/voting_cycle"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao/entity"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
-	log "github.com/sirupsen/logrus"
 )
 
 type DaoVoteRepository struct {
@@ -22,9 +20,9 @@ func NewDaoVoteRepository(elastic *elastic_cache.Index) *DaoVoteRepository {
 func (r *DaoVoteRepository) GetVotes(
 	voteType explorer.VoteType,
 	hash string,
-	votingCycles []*voting_cycle.Cycle,
+	votingCycles []*entity.VotingCycle,
 	bestBlockHeight uint64,
-) ([]*dto.CfundVote, error) {
+) ([]*entity.CfundVote, error) {
 	service := r.elastic.Client.Search(elastic_cache.DaoVoteIndex.Get()).Size(0)
 
 	for _, vc := range votingCycles {
@@ -51,48 +49,28 @@ func (r *DaoVoteRepository) GetVotes(
 		return nil, err
 	}
 
-	var cfundVotes = make([]*dto.CfundVote, 0)
-	cycle := 0
+	var cfundVotes = make([]*entity.CfundVote, 0)
+	i := 0
 	for {
-		if cycles, found := results.Aggregations.Range(fmt.Sprintf("%d", cycle)); found {
-			cfundVote := &dto.CfundVote{Cycle: cycle, Start: votingCycles[cycle].Start, End: votingCycles[cycle].End}
+		if cycles, found := results.Aggregations.Range(fmt.Sprintf("%d", i)); found {
+			cfundVote := entity.NewCfundVote(i, votingCycles[i].Start, votingCycles[i].End)
 
 			if vote, found := cycles.Buckets[0].Terms("vote"); found {
 				for _, voteBucket := range vote.Buckets {
 					if voteBucket.Key.(float64) == 1 {
-						cfundVote.Vote.Yes += int(voteBucket.DocCount)
+						cfundVote.Yes += int(voteBucket.DocCount)
 					}
 					if voteBucket.Key.(float64) == -1 {
-						cfundVote.Vote.No += int(voteBucket.DocCount)
+						cfundVote.No += int(voteBucket.DocCount)
 					}
 				}
-				cfundVote.Vote.Abstain = votingCycles[cycle].End + 1 - votingCycles[cycle].Start - cfundVote.Vote.Yes - cfundVote.Vote.No
+				cfundVote.Abstain = votingCycles[i].End + 1 - votingCycles[i].Start - cfundVote.Yes - cfundVote.No
 			}
 			cfundVotes = append(cfundVotes, cfundVote)
-			cycle++
+			i++
 		} else {
 			break
 		}
-	}
-
-	return cfundVotes, nil
-}
-
-func (r *DaoVoteRepository) GetTrend(
-	voteType explorer.VoteType,
-	hash string,
-	votingCycles []*voting_cycle.Cycle,
-	bestBlockHeight uint64,
-) ([]*dto.CfundVote, error) {
-	cfundVotes, err := r.GetVotes(voteType, hash, votingCycles, bestBlockHeight)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, cfundVote := range cfundVotes {
-		cfundVote.Vote.Yes = int(float64(cfundVote.Vote.Yes)/10) * 100
-		cfundVote.Vote.No = int(float64(cfundVote.Vote.No)/10) * 100
-		cfundVote.Vote.Abstain = int(float64(cfundVote.Vote.Abstain)/10) * 100
 	}
 
 	return cfundVotes, nil

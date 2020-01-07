@@ -1,18 +1,20 @@
 package resource
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache/repository"
+	"fmt"
+	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 type AddressResource struct {
-	addressService *address.AddressService
+	addressService *address.Service
 }
 
-func NewAddressResource(addressService *address.AddressService) *AddressResource {
+func NewAddressResource(addressService *address.Service) *AddressResource {
 	return &AddressResource{addressService}
 }
 
@@ -83,4 +85,23 @@ func (r *AddressResource) ValidateAddress(c *gin.Context) {
 	}
 
 	c.JSON(200, validateAddress)
+}
+
+func (r *AddressResource) GetStakingReport(c *gin.Context) {
+	period := group.GetPeriod(c.DefaultQuery("period", "daily"))
+	if period == nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": fmt.Sprintf("Invalid period `%s`", c.Query("period")),
+			"status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	report, err := r.addressService.GetStakingReport(c.Param("hash"), period)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, report)
 }

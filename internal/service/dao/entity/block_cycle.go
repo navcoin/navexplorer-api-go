@@ -1,4 +1,4 @@
-package dto
+package entity
 
 type BlockCycle struct {
 	BlocksInCycle   uint    `json:"blocksInCycle"`

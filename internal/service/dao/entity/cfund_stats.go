@@ -1,4 +1,4 @@
-package dto
+package entity
 
 type CfundStats struct {
 	Contributed float64 `json:"contributed"`

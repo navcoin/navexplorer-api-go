@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
-	"github.com/NavExplorer/navexplorer-api-go/internal/service/block_group"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/block/entity"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	"strconv"
@@ -61,20 +62,19 @@ func (r *BlockRepository) Blocks(asc bool, size int, page int) ([]*explorer.Bloc
 	return blocks, int(results.Hits.TotalHits.Value), err
 }
 
-func (r *BlockRepository) BlockGroups(period string, count int) ([]*block_group.BlockGroup, error) {
-	groups := block_group.CreateGroups(period, count)
-
+func (r *BlockRepository) BlockGroups(period string, count int) ([]*entity.BlockGroup, error) {
 	service := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).Size(0)
 
-	for idx, group := range groups {
-		agg := elastic.NewRangeAggregation().Field("created").AddRange(group.Start, group.End)
+	timeGroups := group.CreateTimeGroup(group.GetPeriod(period), count)
+	for i := range timeGroups {
+		agg := elastic.NewRangeAggregation().Field("created").AddRange(timeGroups[i].Start, timeGroups[i].End)
 		agg.SubAggregation("stake", elastic.NewSumAggregation().Field("stake"))
 		agg.SubAggregation("fees", elastic.NewSumAggregation().Field("fees"))
 		agg.SubAggregation("spend", elastic.NewSumAggregation().Field("spend"))
 		agg.SubAggregation("transactions", elastic.NewSumAggregation().Field("transactions"))
 		agg.SubAggregation("height", elastic.NewMaxAggregation().Field("height"))
 
-		service.Aggregation(string(idx), agg)
+		service.Aggregation(string(i), agg)
 	}
 
 	results, err := service.Do(context.Background())
@@ -82,34 +82,38 @@ func (r *BlockRepository) BlockGroups(period string, count int) ([]*block_group.
 		return nil, err
 	}
 
-	for idx, _ := range groups {
-		if agg, found := results.Aggregations.Range(string(idx)); found {
-			groups[idx].Blocks = agg.Buckets[0].DocCount
+	blockGroups := make([]*entity.BlockGroup, 0)
+	for i := range timeGroups {
+		blockGroup := &entity.BlockGroup{TimeGroup: *timeGroups[i], Period: *group.GetPeriod(period)}
+
+		if agg, found := results.Aggregations.Range(string(i)); found {
+			blockGroup.Blocks = agg.Buckets[0].DocCount
 
 			if stake, found := agg.Buckets[0].Aggregations.Sum("stake"); found {
-				groups[idx].Stake = int64(*stake.Value)
+				blockGroup.Stake = int64(*stake.Value)
 			}
 			if fees, found := agg.Buckets[0].Aggregations.Sum("fees"); found {
-				groups[idx].Fees = int64(*fees.Value)
+				blockGroup.Fees = int64(*fees.Value)
 			}
 
 			if spend, found := agg.Buckets[0].Aggregations.Sum("spend"); found {
-				groups[idx].Spend = int64(*spend.Value)
+				blockGroup.Spend = int64(*spend.Value)
 			}
 
 			if transactions, found := agg.Buckets[0].Aggregations.Sum("transactions"); found {
-				groups[idx].Transactions = int64(*transactions.Value)
+				blockGroup.Transactions = int64(*transactions.Value)
 			}
 
 			if height, found := agg.Buckets[0].Aggregations.Max("height"); found {
 				if height.Value != nil {
-					groups[idx].Height = int64(*height.Value)
+					blockGroup.Height = int64(*height.Value)
 				}
 			}
+			blockGroups = append(blockGroups, blockGroup)
 		}
 	}
 
-	return groups, err
+	return blockGroups, err
 }
 
 func (r *BlockRepository) BlockByHashOrHeight(hash string) (*explorer.Block, error) {
