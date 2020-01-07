@@ -33,6 +33,55 @@ func (r *BlockRepository) BestBlock() (*explorer.Block, error) {
 	return r.findOne(results, err)
 }
 
+func (r *BlockRepository) GetBlockGroups(blockGroups []*entity.BlockGroup) error {
+	service := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).Size(0)
+
+	for i := range blockGroups {
+		agg := elastic.NewRangeAggregation().Field("time").AddRange(blockGroups[i].Start, blockGroups[i].End)
+		agg.SubAggregation("stake", elastic.NewSumAggregation().Field("stake"))
+		agg.SubAggregation("fees", elastic.NewSumAggregation().Field("fees"))
+		agg.SubAggregation("spend", elastic.NewSumAggregation().Field("spend"))
+		agg.SubAggregation("tx", elastic.NewSumAggregation().Field("tx_count"))
+		agg.SubAggregation("height", elastic.NewMaxAggregation().Field("height"))
+
+		service.Aggregation(string(i), agg)
+	}
+
+	results, err := service.Do(context.Background())
+	if err != nil {
+		return err
+	}
+
+	for i := range blockGroups {
+		if agg, found := results.Aggregations.Range(string(i)); found {
+			bucket := agg.Buckets[0]
+			blockGroups[i].Blocks = bucket.DocCount
+			if stake, found := bucket.Aggregations.Sum("stake"); found {
+				blockGroups[i].Stake = int64(*stake.Value)
+			}
+			if fees, found := bucket.Aggregations.Sum("fees"); found {
+				blockGroups[i].Fees = int64(*fees.Value)
+			}
+
+			if spend, found := bucket.Aggregations.Sum("spend"); found {
+				blockGroups[i].Spend = int64(*spend.Value)
+			}
+
+			if transactions, found := bucket.Aggregations.Sum("tx"); found {
+				blockGroups[i].Transactions = int64(*transactions.Value)
+			}
+
+			if height, found := bucket.Aggregations.Max("height"); found {
+				if height.Value != nil {
+					blockGroups[i].Height = int64(*height.Value)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func (r *BlockRepository) Blocks(asc bool, size int, page int) ([]*explorer.Block, int, error) {
 	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).
 		Sort("height", asc).

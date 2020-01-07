@@ -3,6 +3,8 @@ package block
 import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/block/entity"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 )
 
@@ -20,6 +22,23 @@ func NewBlockService(
 
 func (s *Service) GetBestBlock() (*explorer.Block, error) {
 	return s.blockRepo.BestBlock()
+}
+
+func (s *Service) GetBlockGroups(period *group.Period, count int) ([]*entity.BlockGroup, error) {
+	timeGroups := group.CreateTimeGroup(period, count)
+
+	blockGroups := make([]*entity.BlockGroup, 0)
+	for i := range timeGroups {
+		blockGroup := &entity.BlockGroup{
+			TimeGroup: *timeGroups[i],
+			Period:    *period,
+		}
+		blockGroups = append(blockGroups, blockGroup)
+	}
+
+	err := s.blockRepo.GetBlockGroups(blockGroups)
+
+	return blockGroups, err
 }
 
 func (s *Service) GetBlock(hash string) (*explorer.Block, error) {

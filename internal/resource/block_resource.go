@@ -1,12 +1,15 @@
 package resource
 
 import (
+	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 type BlockResource struct {
@@ -26,6 +29,30 @@ func (r *BlockResource) GetBestBlock(c *gin.Context) {
 	}
 
 	c.JSON(200, b.Height)
+}
+
+func (r *BlockResource) GetBlockGroups(c *gin.Context) {
+	period := group.GetPeriod(c.DefaultQuery("period", "daily"))
+	if period == nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": fmt.Sprintf("Invalid period `%s`", c.Query("period")),
+			"status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	count, err := strconv.Atoi(c.DefaultQuery("count", "10"))
+	if err != nil || count < 10 {
+		count = 10
+	}
+
+	groups, err := r.blockService.GetBlockGroups(period, count)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, groups)
 }
 
 func (r *BlockResource) GetBlock(c *gin.Context) {

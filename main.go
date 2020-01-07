@@ -49,6 +49,7 @@ func main() {
 
 	blockResource := resource.NewBlockResource(container.GetBlockService(), container.GetDaoService())
 	r.GET("/bestblock", blockResource.GetBestBlock)
+	r.GET("/blockgroup", blockResource.GetBlockGroups)
 	r.GET("/block", blockResource.GetBlocks)
 	r.GET("/block/:hash", blockResource.GetBlock)
 	r.GET("/block/:hash/cycle", blockResource.GetBlockCycle)
