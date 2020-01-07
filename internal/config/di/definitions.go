@@ -36,8 +36,12 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "address.service",
-		Build: func(addressRepository *repository.AddressRepository, addressTransactionRepository *repository.AddressTransactionRepository) (*address.Service, error) {
-			return address.NewAddressService(addressRepository, addressTransactionRepository), nil
+		Build: func(
+			addressRepository *repository.AddressRepository,
+			addressTransactionRepository *repository.AddressTransactionRepository,
+			blockTransactionRepository *repository.BlockTransactionRepository,
+		) (*address.Service, error) {
+			return address.NewAddressService(addressRepository, addressTransactionRepository, blockTransactionRepository), nil
 		},
 	},
 	{

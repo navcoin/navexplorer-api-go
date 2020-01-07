@@ -11,13 +11,19 @@ import (
 type Service struct {
 	addressRepository            *repository.AddressRepository
 	addressTransactionRepository *repository.AddressTransactionRepository
+	blockTransactionRepository   *repository.BlockTransactionRepository
 }
 
 func NewAddressService(
 	addressRepository *repository.AddressRepository,
 	addressTransactionRepository *repository.AddressTransactionRepository,
+	blockTransactionRepository *repository.BlockTransactionRepository,
 ) *Service {
-	return &Service{addressRepository, addressTransactionRepository}
+	return &Service{
+		addressRepository,
+		addressTransactionRepository,
+		blockTransactionRepository,
+	}
 }
 
 func (s *Service) GetAddress(hash string) (*explorer.Address, error) {
@@ -48,6 +54,10 @@ func (s *Service) GetStakingReport(hash string, period *group.Period) ([]*entity
 	err := s.addressTransactionRepository.GetStakingReport(hash, stakingReport)
 
 	return stakingReport, err
+}
+
+func (s *Service) GetAssociatedStakingAddresses(address string) ([]string, error) {
+	return s.blockTransactionRepository.GetAssociatedStakingAddresses(address)
 }
 
 func (s *Service) ValidateAddress(hash string) (bool, error) {

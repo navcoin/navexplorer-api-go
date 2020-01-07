@@ -105,3 +105,13 @@ func (r *AddressResource) GetStakingReport(c *gin.Context) {
 
 	c.JSON(200, report)
 }
+
+func (r *AddressResource) GetAssociatedStakingAddresses(c *gin.Context) {
+	addresses, err := r.addressService.GetAssociatedStakingAddresses(c.Param("hash"))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, addresses)
+}

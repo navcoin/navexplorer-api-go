@@ -73,6 +73,40 @@ func (r *BlockTransactionRepository) TotalAmountByOutputType(voutType explorer.V
 	return total, nil
 }
 
+func (r *BlockTransactionRepository) GetAssociatedStakingAddresses(address string) ([]string, error) {
+	//outputsQuery := elastic.NewBoolQuery()
+	//outputsQuery = outputsQuery.Must(elastic.NewMatchQuery("outputs.type", "COLD_STAKING"))
+	//outputsQuery = outputsQuery.Must(elastic.NewMatchQuery("outputs.addresses.keyword", address))
+	//
+	//query := elastic.NewNestedQuery("outputs", outputsQuery)
+	//
+	//results, err := client.Search(config.Get().SelectedNetwork + block.IndexBlockTransaction).
+	//	Query(query).
+	//	Size(50000000).
+	//	Sort("time", false).
+	//	Do(context.Background())
+	//if err != nil {
+	//	return
+	//}
+
+	stakingAddresses := make([]string, 0)
+	//for _, hit := range results.Hits.Hits {
+	//	var transaction block.Transaction
+	//	err := json.Unmarshal(*hit.Source, &transaction)
+	//	if err == nil {
+	//		for _, output := range transaction.Outputs {
+	//			if len(output.Addresses) == 2 && output.Addresses[1] == address {
+	//				if !contains(stakingAddresses, output.Addresses[0]) {
+	//					stakingAddresses = append(stakingAddresses, output.Addresses[0])
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
+
+	return stakingAddresses, nil
+}
+
 func (r *BlockTransactionRepository) findOne(results *elastic.SearchResult, err error) (*explorer.BlockTransaction, error) {
 	if err != nil || results.TotalHits() == 0 {
 		err = ErrBlockNotFound

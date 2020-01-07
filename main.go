@@ -45,6 +45,7 @@ func main() {
 	r.GET("/address/:hash/tx/cold", addressResource.GetColdTransactions)
 	r.GET("/address/:hash/validate", addressResource.ValidateAddress)
 	r.GET("/address/:hash/staking", addressResource.GetStakingReport)
+	r.GET("/address/:hash/assoc/staking", addressResource.GetAssociatedStakingAddresses)
 
 	blockResource := resource.NewBlockResource(container.GetBlockService(), container.GetDaoService())
 	r.GET("/bestblock", blockResource.GetBestBlock)
