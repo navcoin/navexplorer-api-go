@@ -41,6 +41,20 @@ func (r *DaoPaymentRequestRepository) PaymentRequests(status *explorer.PaymentRe
 	return r.findMany(results, err)
 }
 
+func (r *DaoPaymentRequestRepository) PaymentRequestsForProposal(proposal *explorer.Proposal) ([]*explorer.PaymentRequest, error) {
+	results, err := r.elastic.Client.Search(elastic_cache.PaymentRequestIndex.Get()).
+		Query(elastic.NewTermQuery("proposalHash.keyword", proposal.Hash)).
+		Size(999).
+		Do(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	paymentRequests, _, err := r.findMany(results, err)
+
+	return paymentRequests, err
+}
+
 func (r *DaoPaymentRequestRepository) PaymentRequest(hash string) (*explorer.PaymentRequest, error) {
 	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).

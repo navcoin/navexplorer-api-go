@@ -163,6 +163,10 @@ func (s *Service) GetPaymentRequests(status *explorer.PaymentRequestStatus, conf
 	return s.paymentRequestRepository.PaymentRequests(status, config.Dir, config.Size, config.Page)
 }
 
+func (s *Service) GetPaymentRequestsForProposal(proposal *explorer.Proposal) ([]*explorer.PaymentRequest, error) {
+	return s.paymentRequestRepository.PaymentRequestsForProposal(proposal)
+}
+
 func (s *Service) GetPaymentRequest(hash string) (*explorer.PaymentRequest, error) {
 	return s.paymentRequestRepository.PaymentRequest(hash)
 }

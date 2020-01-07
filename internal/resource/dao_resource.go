@@ -154,6 +154,23 @@ func (r *DaoResource) GetPaymentRequests(c *gin.Context) {
 	c.JSON(200, paymentRequests)
 }
 
+func (r *DaoResource) GetPaymentRequestsForProposal(c *gin.Context) {
+	proposal, err := r.daoService.GetProposal(c.Param("hash"))
+
+	if err == repository.ErrProposalNotFound {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
+		return
+	}
+
+	paymentRequests, err := r.daoService.GetPaymentRequestsForProposal(proposal)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, paymentRequests)
+}
+
 func (r *DaoResource) GetPaymentRequest(c *gin.Context) {
 	paymentRequest, err := r.daoService.GetPaymentRequest(c.Param("hash"))
 

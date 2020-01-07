@@ -70,6 +70,7 @@ func main() {
 	daoGroup.GET("/cfund/proposal/:hash", daoResource.GetProposal)
 	daoGroup.GET("/cfund/proposal/:hash/votes", daoResource.GetProposalVotes)
 	daoGroup.GET("/cfund/proposal/:hash/trend", daoResource.GetProposalVotes)
+	daoGroup.GET("/cfund/proposal/:hash/payment-request", daoResource.GetPaymentRequestsForProposal)
 	daoGroup.GET("/cfund/payment-request", daoResource.GetPaymentRequests)
 	daoGroup.GET("/cfund/payment-request/:hash", daoResource.GetPaymentRequest)
 	daoGroup.GET("/cfund/payment-request/:hash/votes", daoResource.GetPaymentRequestVotes)
