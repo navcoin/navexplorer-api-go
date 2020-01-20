@@ -58,8 +58,9 @@ func main() {
 	r.GET("/tx/:hash", blockResource.GetTransactionByHash)
 	r.GET("/tx/:hash/raw", blockResource.GetRawTransactionByHash)
 
-	softForkResource := resource.NewSoftForkResource(container.GetSoftforkRepo())
+	softForkResource := resource.NewSoftForkResource(container.GetSoftforkService(), container.GetSoftforkRepo())
 	r.GET("/softfork", softForkResource.GetSoftForks)
+	r.GET("/softfork/cycle", softForkResource.GetSoftForkCycle)
 
 	daoGroup := r.Group("/dao")
 	daoResource := resource.NewDaoResource(container.GetDaoService(), container.GetBlockService())

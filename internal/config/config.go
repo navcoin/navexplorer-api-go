@@ -10,10 +10,9 @@ import (
 
 type Config struct {
 	Debug              bool
-	SoftForkBlockCycle uint
+	SoftForkBlockCycle int
 	ElasticSearch      ElasticSearchConfig
 	Server             ServerConfig
-	Networks           map[string]NetworkConfig
 }
 
 type ElasticSearchConfig struct {
@@ -29,21 +28,6 @@ type ServerConfig struct {
 	Port int
 }
 
-type NetworkConfig struct {
-	DaoCfundConsensus DaoCfundConsensusConfig
-}
-
-type DaoCfundConsensusConfig struct {
-	BlocksPerVotingCycle                uint
-	Quorum                              uint
-	MaxCountVotingCycleProposals        uint
-	MaxCountVotingCyclePaymentRequests  uint
-	VotesAcceptProposalPercentage       uint
-	VotesRejectProposalPercentage       uint
-	VotesAcceptPaymentRequestPercentage uint
-	VotesRejectPaymentRequestPercentage uint
-}
-
 func Init() {
 	err := godotenv.Load()
 	if err != nil {
@@ -53,7 +37,8 @@ func Init() {
 
 func Get() *Config {
 	return &Config{
-		Debug: getBool("DEBUG", false),
+		Debug:              getBool("DEBUG", false),
+		SoftForkBlockCycle: getInt("SOFTFORK_BLOCK_CYCLE", 20160),
 		ElasticSearch: ElasticSearchConfig{
 			Hosts:       getSlice("ELASTIC_SEARCH_HOSTS", make([]string, 0), ","),
 			Sniff:       getBool("ELASTIC_SEARCH_SNIFF", true),

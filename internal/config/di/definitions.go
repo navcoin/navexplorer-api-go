@@ -1,11 +1,13 @@
 package di
 
 import (
+	"github.com/NavExplorer/navexplorer-api-go/internal/config"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/softfork"
 	"github.com/sarulabs/dingo/v3"
 	log "github.com/sirupsen/logrus"
 )
@@ -90,6 +92,12 @@ var Definitions = []dingo.Def{
 		Name: "softfork.repo",
 		Build: func(elastic *elastic_cache.Index) (*repository.SoftForkRepository, error) {
 			return repository.NewSoftForkRepository(elastic), nil
+		},
+	},
+	{
+		Name: "softfork.service",
+		Build: func(blockRepository *repository.BlockRepository) (*softfork.Service, error) {
+			return softfork.NewSoftForkService(blockRepository, uint64(config.Get().SoftForkBlockCycle)), nil
 		},
 	},
 	{
