@@ -22,7 +22,7 @@ func NewDaoPaymentRequestRepository(elastic *elastic_cache.Index) *DaoPaymentReq
 	return &DaoPaymentRequestRepository{elastic}
 }
 
-func (r *DaoPaymentRequestRepository) PaymentRequests(status *explorer.PaymentRequestStatus, dir bool, size int, page int) ([]*explorer.PaymentRequest, int, error) {
+func (r *DaoPaymentRequestRepository) PaymentRequests(status *explorer.PaymentRequestStatus, dir bool, size int, page int) ([]*explorer.PaymentRequest, int64, error) {
 	query := elastic.NewBoolQuery()
 	if status != nil {
 		query = query.Must(elastic.NewTermQuery("status.keyword", status))
@@ -103,7 +103,7 @@ func (r *DaoPaymentRequestRepository) findOne(results *elastic.SearchResult, err
 	return paymentRequest, err
 }
 
-func (r *DaoPaymentRequestRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.PaymentRequest, int, error) {
+func (r *DaoPaymentRequestRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.PaymentRequest, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
@@ -116,5 +116,5 @@ func (r *DaoPaymentRequestRepository) findMany(results *elastic.SearchResult, er
 		}
 	}
 
-	return paymentRequests, int(results.Hits.TotalHits.Value), err
+	return paymentRequests, results.TotalHits(), err
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -54,6 +55,9 @@ func (r *AddressResource) GetTransactions(c *gin.Context) {
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
+	}
+	for _, tx := range txs {
+		log.Infof("TX %s @ %d", tx.Hash, tx.Height)
 	}
 
 	paginator := pagination.NewPaginator(len(txs), total, config)

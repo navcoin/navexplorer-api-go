@@ -8,13 +8,13 @@ import (
 )
 
 type Paginator struct {
-	CurrentPage int  `json:"currentPage"`
-	First       bool `json:"first"`
-	Last        bool `json:"last"`
-	Total       int  `json:"total"`
-	Size        int  `json:"size"`
-	Pages       int  `json:"total_pages"`
-	Elements    int  `json:"number_of_elements"`
+	First       bool  `json:"first"`
+	Last        bool  `json:"last"`
+	Total       int64 `json:"total"`
+	PageSize    int   `json:"page_size"`
+	CurrentPage int   `json:"current_page"`
+	Pages       int   `json:"total_pages"`
+	Elements    int   `json:"number_of_elements"`
 }
 
 type Config struct {
@@ -39,12 +39,12 @@ func GetConfig(c *gin.Context) *Config {
 	return &Config{dir, size, page}
 }
 
-func NewPaginator(elements int, total int, config *Config) Paginator {
+func NewPaginator(elements int, total int64, config *Config) Paginator {
 	paginator := Paginator{}
 
 	paginator.CurrentPage = config.Page
 	paginator.Total = total
-	paginator.Size = config.Size
+	paginator.PageSize = config.Size
 	pages := int(math.Ceil(float64(total) / float64(config.Size)))
 	if pages == 0 {
 		pages = 1

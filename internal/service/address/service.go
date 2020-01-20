@@ -30,11 +30,11 @@ func (s *Service) GetAddress(hash string) (*explorer.Address, error) {
 	return s.addressRepository.AddressByHash(hash)
 }
 
-func (s *Service) GetAddresses(config *pagination.Config) ([]*explorer.Address, int, error) {
+func (s *Service) GetAddresses(config *pagination.Config) ([]*explorer.Address, int64, error) {
 	return s.addressRepository.Addresses(config.Size, config.Page)
 }
 
-func (s *Service) GetTransactions(hash string, cold bool, config *pagination.Config) ([]*explorer.AddressTransaction, int, error) {
+func (s *Service) GetTransactions(hash string, cold bool, config *pagination.Config) ([]*explorer.AddressTransaction, int64, error) {
 	return s.addressTransactionRepository.TransactionsByHash(hash, cold, config.Dir, config.Size, config.Page)
 }
 

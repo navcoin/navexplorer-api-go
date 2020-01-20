@@ -92,7 +92,7 @@ func (s *Service) GetCfundStats() (*entity.CfundStats, error) {
 	return cfundStats, nil
 }
 
-func (s *Service) GetProposals(status *explorer.ProposalStatus, config *pagination.Config) ([]*explorer.Proposal, int, error) {
+func (s *Service) GetProposals(status *explorer.ProposalStatus, config *pagination.Config) ([]*explorer.Proposal, int64, error) {
 	return s.proposalRepository.Proposals(status, config.Dir, config.Size, config.Page)
 }
 
@@ -159,7 +159,7 @@ func (s *Service) GetProposalTrend(hash string) ([]*entity.CfundVote, error) {
 	return cfundVotes, nil
 }
 
-func (s *Service) GetPaymentRequests(status *explorer.PaymentRequestStatus, config *pagination.Config) ([]*explorer.PaymentRequest, int, error) {
+func (s *Service) GetPaymentRequests(status *explorer.PaymentRequestStatus, config *pagination.Config) ([]*explorer.PaymentRequest, int64, error) {
 	return s.paymentRequestRepository.PaymentRequests(status, config.Dir, config.Size, config.Page)
 }
 

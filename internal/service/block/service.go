@@ -49,7 +49,7 @@ func (s *Service) GetRawBlock(hash string) (*explorer.RawBlock, error) {
 	return s.blockRepo.RawBlockByHashOrHeight(hash)
 }
 
-func (s *Service) GetBlocks(config *pagination.Config) ([]*explorer.Block, int, error) {
+func (s *Service) GetBlocks(config *pagination.Config) ([]*explorer.Block, int64, error) {
 	return s.blockRepo.Blocks(config.Dir, config.Size, config.Page)
 }
 

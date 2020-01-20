@@ -23,7 +23,7 @@ func NewAddressRepository(elastic *elastic_cache.Index) *AddressRepository {
 	return &AddressRepository{elastic}
 }
 
-func (r *AddressRepository) Addresses(size int, page int) ([]*explorer.Address, int, error) {
+func (r *AddressRepository) Addresses(size int, page int) ([]*explorer.Address, int64, error) {
 	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
 		Sort("balance", false).
 		From((page * size) - size).
@@ -75,7 +75,7 @@ func (r *AddressRepository) findOne(results *elastic.SearchResult, err error) (*
 	return address, err
 }
 
-func (r *AddressRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.Address, int, error) {
+func (r *AddressRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.Address, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
@@ -89,5 +89,5 @@ func (r *AddressRepository) findMany(results *elastic.SearchResult, err error) (
 		}
 	}
 
-	return addresses, int(results.Hits.TotalHits.Value), err
+	return addresses, results.TotalHits(), err
 }

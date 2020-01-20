@@ -20,6 +20,16 @@ github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200106170045-b8a575fb2546
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200106170045-b8a575fb2546/go.mod h1:cZIlVixkMHLWXr3MivfB+5Sluit2vQ/BbdFWgiQuvBg=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200107224957-63b754cb0c27 h1:RzX3LdArFKOkcEXmJ08BLehzFizQKieZ5amcOHywjFk=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200107224957-63b754cb0c27/go.mod h1:cZIlVixkMHLWXr3MivfB+5Sluit2vQ/BbdFWgiQuvBg=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200109110428-0075394b0482 h1:mU8KuE7QcQ4sTy+eR3gsi+yoPOLAbFbL/yDisdlB5JU=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200109110428-0075394b0482/go.mod h1:cZIlVixkMHLWXr3MivfB+5Sluit2vQ/BbdFWgiQuvBg=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200118201401-3158cba41644 h1:6OrKyC/h9A5lOco9Gv+oqcUKMWrqxgvoVCU7FNdPO0Y=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200118201401-3158cba41644/go.mod h1:cZIlVixkMHLWXr3MivfB+5Sluit2vQ/BbdFWgiQuvBg=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200119141021-4ac5756d6039 h1:+mpI9dfsCsugueLKip0WxtNAzRv4dvrzkxqaq2Bc4yg=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200119141021-4ac5756d6039/go.mod h1:cZIlVixkMHLWXr3MivfB+5Sluit2vQ/BbdFWgiQuvBg=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200119141449-b210d1d297ff h1:ZRkwmAl3/JFJeohdomwcQB0W8+S95mAMAWknTScEHT0=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200119141449-b210d1d297ff/go.mod h1:cZIlVixkMHLWXr3MivfB+5Sluit2vQ/BbdFWgiQuvBg=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200120204806-176e29f33a8b h1:0vKiT5Lq6q9BxNlUzeN+CIyXT1bKdj2Rhs6K0h3a7ho=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200120204806-176e29f33a8b/go.mod h1:cZIlVixkMHLWXr3MivfB+5Sluit2vQ/BbdFWgiQuvBg=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=

@@ -22,7 +22,7 @@ func NewDaoProposalRepository(elastic *elastic_cache.Index) *DaoProposalReposito
 	return &DaoProposalRepository{elastic}
 }
 
-func (r *DaoProposalRepository) Proposals(status *explorer.ProposalStatus, dir bool, size int, page int) ([]*explorer.Proposal, int, error) {
+func (r *DaoProposalRepository) Proposals(status *explorer.ProposalStatus, dir bool, size int, page int) ([]*explorer.Proposal, int64, error) {
 	query := elastic.NewBoolQuery()
 	if status != nil {
 		query = query.Must(elastic.NewTermQuery("status.keyword", status))
@@ -89,7 +89,7 @@ func (r *DaoProposalRepository) findOne(results *elastic.SearchResult, err error
 	return proposal, err
 }
 
-func (r *DaoProposalRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.Proposal, int, error) {
+func (r *DaoProposalRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.Proposal, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
@@ -102,5 +102,5 @@ func (r *DaoProposalRepository) findMany(results *elastic.SearchResult, err erro
 		}
 	}
 
-	return proposals, int(results.Hits.TotalHits.Value), err
+	return proposals, results.TotalHits(), err
 }

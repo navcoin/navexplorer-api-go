@@ -82,7 +82,7 @@ func (r *BlockRepository) GetBlockGroups(blockGroups []*entity.BlockGroup) error
 	return nil
 }
 
-func (r *BlockRepository) Blocks(asc bool, size int, page int) ([]*explorer.Block, int, error) {
+func (r *BlockRepository) Blocks(asc bool, size int, page int) ([]*explorer.Block, int64, error) {
 	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).
 		Sort("height", asc).
 		From((page * size) - size).
@@ -108,7 +108,7 @@ func (r *BlockRepository) Blocks(asc bool, size int, page int) ([]*explorer.Bloc
 		}
 	}
 
-	return blocks, int(results.Hits.TotalHits.Value), err
+	return blocks, results.TotalHits(), err
 }
 
 func (r *BlockRepository) BlockGroups(period string, count int) ([]*entity.BlockGroup, error) {
