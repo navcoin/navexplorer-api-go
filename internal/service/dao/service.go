@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"errors"
+	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao/entity"
@@ -100,32 +102,64 @@ func (s *Service) GetProposal(hash string) (*explorer.Proposal, error) {
 	return s.proposalRepository.Proposal(hash)
 }
 
-func (s *Service) GetProposalVotes(hash string) ([]*entity.CfundVote, error) {
-	p, err := s.GetProposal(hash)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *Service) GetVotingCycles(element explorer.ChainHeight) ([]*entity.VotingCycle, error) {
 	bestBlock, err := s.blockRepository.BestBlock()
 	if err != nil {
 		return nil, err
 	}
 
-	bc, err := s.GetBlockCycleByHeight(p.Height)
+	bc, err := s.GetBlockCycleByHeight(element.GetHeight())
 	if err != nil {
 		return nil, err
 	}
 
-	return s.voteRepository.GetVotes(
-		explorer.ProposalVote,
-		p.Hash,
-		entity.CreateVotingCycles(int(bc.ProposalVoting.Cycles), int(bc.BlocksInCycle), int(bc.FirstBlock)),
-		bestBlock.Height,
-	)
+	return entity.CreateVotingCycles(int(bc.ProposalVoting.Cycles), int(bc.BlocksInCycle), int(bc.FirstBlock), bestBlock.Height), nil
+}
+
+func (s *Service) GetVotingCycle(element explorer.ChainHeight, cycleIndex int) (*entity.VotingCycle, error) {
+	votingCycles, err := s.GetVotingCycles(element)
+	if err != nil {
+		return nil, err
+	}
+	for _, votingCycle := range votingCycles {
+		if votingCycle.Index == cycleIndex {
+			return votingCycle, nil
+		}
+	}
+
+	return nil, errors.New(fmt.Sprintf("Voting Cycle Index %d not found", cycleIndex))
+}
+
+func (s *Service) GetProposalVotes(hash string) ([]*entity.CfundVote, error) {
+	proposal, err := s.GetProposal(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	votingCycles, err := s.GetVotingCycles(proposal)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.voteRepository.GetVotes(explorer.ProposalVote, hash, votingCycles)
+}
+
+func (s *Service) GetProposalVotingAddresses(hash string, cycleIndex int) (*entity.CfundVoteAddresses, error) {
+	proposal, err := s.GetProposal(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	votingCycle, err := s.GetVotingCycle(proposal, cycleIndex)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.voteRepository.GetVotingAddresses(explorer.ProposalVote, hash, votingCycle)
 }
 
 func (s *Service) GetProposalTrend(hash string) ([]*entity.CfundVote, error) {
-	p, err := s.GetProposal(hash)
+	proposal, err := s.GetProposal(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -142,9 +176,8 @@ func (s *Service) GetProposalTrend(hash string) ([]*entity.CfundVote, error) {
 
 	cfundVotes, err := s.voteRepository.GetVotes(
 		explorer.ProposalVote,
-		p.Hash,
-		entity.CreateVotingCycles(10, int(bc.BlocksInCycle/10), int(bc.CurrentBlock-bc.BlocksInCycle)),
-		bestBlock.Height,
+		proposal.Hash,
+		entity.CreateVotingCycles(10, int(bc.BlocksInCycle/10), int(bc.CurrentBlock-bc.BlocksInCycle), bestBlock.Height),
 	)
 	if err != nil {
 		return nil, err
@@ -177,22 +210,26 @@ func (s *Service) GetPaymentRequestVotes(hash string) ([]*entity.CfundVote, erro
 		return nil, err
 	}
 
-	bestBlock, err := s.blockRepository.BestBlock()
+	votingCycles, err := s.GetVotingCycles(p)
 	if err != nil {
 		return nil, err
 	}
 
-	bc, err := s.GetBlockCycleByHeight(p.Height)
+	return s.voteRepository.GetVotes(explorer.PaymentRequestVote, p.Hash, votingCycles)
+}
+
+func (s *Service) GetPaymentRequestVotingAddresses(hash string, cycleIndex int) (*entity.CfundVoteAddresses, error) {
+	proposal, err := s.GetPaymentRequest(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.voteRepository.GetVotes(
-		explorer.PaymentRequestVote,
-		p.Hash,
-		entity.CreateVotingCycles(int(bc.ProposalVoting.Cycles), int(bc.BlocksInCycle), int(bc.FirstBlock)),
-		bestBlock.Height,
-	)
+	votingCycle, err := s.GetVotingCycle(proposal, cycleIndex)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.voteRepository.GetVotingAddresses(explorer.PaymentRequestVote, hash, votingCycle)
 }
 
 func (s *Service) GetPaymentRequestTrend(hash string) ([]*entity.CfundVote, error) {
@@ -214,8 +251,7 @@ func (s *Service) GetPaymentRequestTrend(hash string) ([]*entity.CfundVote, erro
 	cfundVotes, err := s.voteRepository.GetVotes(
 		explorer.PaymentRequestVote,
 		p.Hash,
-		entity.CreateVotingCycles(10, int(bc.BlocksInCycle/10), int(bc.CurrentBlock-bc.BlocksInCycle)),
-		bestBlock.Height,
+		entity.CreateVotingCycles(10, int(bc.BlocksInCycle/10), int(bc.CurrentBlock-bc.BlocksInCycle), bestBlock.Height),
 	)
 	if err != nil {
 		return nil, err

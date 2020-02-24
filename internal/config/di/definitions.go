@@ -6,6 +6,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/coin"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/softfork"
 	"github.com/sarulabs/dingo/v3"
@@ -41,9 +42,10 @@ var Definitions = []dingo.Def{
 		Build: func(
 			addressRepository *repository.AddressRepository,
 			addressTransactionRepository *repository.AddressTransactionRepository,
+			blockRepository *repository.BlockRepository,
 			blockTransactionRepository *repository.BlockTransactionRepository,
 		) (*address.Service, error) {
-			return address.NewAddressService(addressRepository, addressTransactionRepository, blockTransactionRepository), nil
+			return address.NewAddressService(addressRepository, addressTransactionRepository, blockRepository, blockTransactionRepository), nil
 		},
 	},
 	{
@@ -62,6 +64,12 @@ var Definitions = []dingo.Def{
 		Name: "block.service",
 		Build: func(blockRepository *repository.BlockRepository, blockTransactionRepository *repository.BlockTransactionRepository) (*block.Service, error) {
 			return block.NewBlockService(blockRepository, blockTransactionRepository), nil
+		},
+	},
+	{
+		Name: "coin.service",
+		Build: func(addressRepository *repository.AddressRepository) (*coin.Service, error) {
+			return coin.NewCoinService(addressRepository), nil
 		},
 	},
 	{
@@ -96,8 +104,8 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "softfork.service",
-		Build: func(blockRepository *repository.BlockRepository) (*softfork.Service, error) {
-			return softfork.NewSoftForkService(blockRepository, uint64(config.Get().SoftForkBlockCycle)), nil
+		Build: func(blockRepository *repository.BlockRepository, softforkRepository *repository.SoftForkRepository) (*softfork.Service, error) {
+			return softfork.NewSoftForkService(blockRepository, softforkRepository, uint64(config.Get().SoftForkBlockCycle)), nil
 		},
 	},
 	{

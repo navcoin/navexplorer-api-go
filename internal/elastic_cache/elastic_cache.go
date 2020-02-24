@@ -21,7 +21,7 @@ func New() (*Index, error) {
 	}
 
 	if config.Get().ElasticSearch.Username != "" {
-		logrus.Info("Using ES Authentication")
+		logrus.Infof("Using ES Authentication: %s:%s", config.Get().ElasticSearch.Username, config.Get().ElasticSearch.Password)
 		opts = append(opts, elastic.SetBasicAuth(
 			config.Get().ElasticSearch.Username,
 			config.Get().ElasticSearch.Password,

@@ -181,6 +181,11 @@ func (r *BlockRepository) BlockByHashOrHeight(hash string) (*explorer.Block, err
 		return nil, err
 	}
 
+	nextBlock, _ := r.BlockByHeight(block.Height + 1)
+	if nextBlock != nil {
+		block.Nextblockhash = nextBlock.Hash
+	}
+
 	block.Best = block.Height == bestBlock.Height
 	block.Confirmations = bestBlock.Height - block.Height + 1
 
@@ -216,6 +221,28 @@ func (r *BlockRepository) RawBlockByHashOrHeight(hash string) (*explorer.RawBloc
 	err = json.Unmarshal(blockJson, rawBlock)
 
 	return rawBlock, err
+}
+
+func (r *BlockRepository) FeesForLastBlocks(blocks int) (fees float64, err error) {
+	bestBlock, err := r.BestBlock()
+	if err != nil {
+		return
+	}
+
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).
+		Query(elastic.NewRangeQuery("height").Gt(bestBlock.Height-uint64(blocks))).
+		Aggregation("fees", elastic.NewSumAggregation().Field("fees")).
+		Size(0).
+		Do(context.Background())
+	if err != nil {
+		return 0, err
+	}
+
+	if feesValue, found := results.Aggregations.Sum("fees"); found {
+		fees = *feesValue.Value / 100000000
+	}
+
+	return
 }
 
 func (r *BlockRepository) findOne(results *elastic.SearchResult, err error) (*explorer.Block, error) {

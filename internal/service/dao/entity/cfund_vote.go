@@ -11,11 +11,20 @@ type CfundVote struct {
 	Yes     int `json:"yes"`
 	No      int `json:"no"`
 	Abstain int `json:"abstain"`
+
+	Addresses []*CfundVoteAddress `json:"addresses"`
+}
+
+type CfundVoteAddress struct {
+	Address string `json:"address"`
+	Yes     int    `json:"yes"`
+	No      int    `json:"no"`
 }
 
 func NewCfundVote(cycle int, start int, end int) *CfundVote {
 	return &CfundVote{
 		BlockGroup: group.BlockGroup{Start: start, End: end},
 		Cycle:      cycle,
+		Addresses:  make([]*CfundVoteAddress, 0),
 	}
 }

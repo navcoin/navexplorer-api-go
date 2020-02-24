@@ -6,6 +6,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
+	log "github.com/sirupsen/logrus"
 )
 
 type BlockTransactionRepository struct {
@@ -73,38 +74,41 @@ func (r *BlockTransactionRepository) TotalAmountByOutputType(voutType explorer.V
 	return total, nil
 }
 
-func (r *BlockTransactionRepository) GetAssociatedStakingAddresses(address string) ([]string, error) {
-	//outputsQuery := elastic.NewBoolQuery()
-	//outputsQuery = outputsQuery.Must(elastic.NewMatchQuery("outputs.type", "COLD_STAKING"))
-	//outputsQuery = outputsQuery.Must(elastic.NewMatchQuery("outputs.addresses.keyword", address))
-	//
-	//query := elastic.NewNestedQuery("outputs", outputsQuery)
-	//
-	//results, err := client.Search(config.Get().SelectedNetwork + block.IndexBlockTransaction).
-	//	Query(query).
-	//	Size(50000000).
-	//	Sort("time", false).
-	//	Do(context.Background())
-	//if err != nil {
-	//	return
-	//}
-
+func (r *BlockTransactionRepository) AssociatedStakingAddresses(address string) ([]string, error) {
 	stakingAddresses := make([]string, 0)
-	//for _, hit := range results.Hits.Hits {
-	//	var transaction block.Transaction
-	//	err := json.Unmarshal(*hit.Source, &transaction)
-	//	if err == nil {
-	//		for _, output := range transaction.Outputs {
-	//			if len(output.Addresses) == 2 && output.Addresses[1] == address {
-	//				if !contains(stakingAddresses, output.Addresses[0]) {
-	//					stakingAddresses = append(stakingAddresses, output.Addresses[0])
-	//				}
-	//			}
-	//		}
-	//	}
-	//}
 
-	return stakingAddresses, nil
+	outputsQuery := elastic.NewBoolQuery()
+	outputsQuery = outputsQuery.Must(elastic.NewMatchQuery("outputs.type", "COLD_STAKING"))
+	outputsQuery = outputsQuery.Must(elastic.NewMatchQuery("outputs.addresses.keyword", address))
+
+	query := elastic.NewNestedQuery("outputs", outputsQuery)
+
+	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get()).
+		Query(query).
+		Size(50000000).
+		Sort("time", false).
+		Do(context.Background())
+
+	if err != nil {
+		log.WithError(err).Error("Failed to get staking addresses")
+		return stakingAddresses, err
+	}
+
+	for _, hit := range results.Hits.Hits {
+		transaction := new(explorer.BlockTransaction)
+		err := json.Unmarshal(hit.Source, &transaction)
+		if err == nil {
+			for _, output := range transaction.Vout {
+				if len(output.ScriptPubKey.Addresses) == 2 && output.ScriptPubKey.Addresses[1] == address {
+					if !contains(stakingAddresses, output.ScriptPubKey.Addresses[0]) {
+						stakingAddresses = append(stakingAddresses, output.ScriptPubKey.Addresses[0])
+					}
+				}
+			}
+		}
+	}
+
+	return stakingAddresses, err
 }
 
 func (r *BlockTransactionRepository) findOne(results *elastic.SearchResult, err error) (*explorer.BlockTransaction, error) {
@@ -135,4 +139,13 @@ func (r *BlockTransactionRepository) findMany(results *elastic.SearchResult, err
 	}
 
 	return transactions, nil
+}
+
+func contains(a []string, x string) bool {
+	for _, n := range a {
+		if x == n {
+			return true
+		}
+	}
+	return false
 }

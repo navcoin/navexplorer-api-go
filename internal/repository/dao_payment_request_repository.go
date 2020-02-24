@@ -89,7 +89,7 @@ func (r *DaoPaymentRequestRepository) ValuePaid() (*float64, error) {
 
 func (r *DaoPaymentRequestRepository) findOne(results *elastic.SearchResult, err error) (*explorer.PaymentRequest, error) {
 	if err != nil || results.TotalHits() == 0 {
-		err = ErrProposalNotFound
+		err = ErrPaymentRequestNotFound
 		return nil, err
 	}
 

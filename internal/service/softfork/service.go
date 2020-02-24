@@ -3,15 +3,17 @@ package softfork
 import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/softfork/entity"
+	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 )
 
 type Service struct {
-	blockRepo *repository.BlockRepository
-	cycleSize uint64
+	blockRepo          *repository.BlockRepository
+	softForkRepository *repository.SoftForkRepository
+	cycleSize          uint64
 }
 
-func NewSoftForkService(blockRepo *repository.BlockRepository, cycleSize uint64) *Service {
-	return &Service{blockRepo, cycleSize}
+func NewSoftForkService(blockRepo *repository.BlockRepository, softForkRepo *repository.SoftForkRepository, cycleSize uint64) *Service {
+	return &Service{blockRepo, softForkRepo, cycleSize}
 }
 
 func (s *Service) GetCycle() (*entity.SoftForkCycle, error) {
@@ -29,4 +31,8 @@ func (s *Service) GetCycle() (*entity.SoftForkCycle, error) {
 	}
 
 	return cycle, nil
+}
+
+func (s *Service) GetSoftForks() (softForks []*explorer.SoftFork, err error) {
+	return s.softForkRepository.SoftForks()
 }

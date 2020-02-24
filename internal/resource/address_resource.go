@@ -7,8 +7,8 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strings"
 )
 
 type AddressResource struct {
@@ -51,13 +51,10 @@ func (r *AddressResource) GetAddress(c *gin.Context) {
 func (r *AddressResource) GetTransactions(c *gin.Context) {
 	config := pagination.GetConfig(c)
 
-	txs, total, err := r.addressService.GetTransactions(c.Param("hash"), false, config)
+	txs, total, err := r.addressService.GetTransactions(c.Param("hash"), strings.Join(getFilters(c), " "), false, config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
-	}
-	for _, tx := range txs {
-		log.Infof("TX %s @ %d", tx.Hash, tx.Height)
 	}
 
 	paginator := pagination.NewPaginator(len(txs), total, config)
@@ -69,7 +66,12 @@ func (r *AddressResource) GetTransactions(c *gin.Context) {
 func (r *AddressResource) GetColdTransactions(c *gin.Context) {
 	config := pagination.GetConfig(c)
 
-	txs, total, err := r.addressService.GetTransactions(c.Param("hash"), true, config)
+	filters := make([]string, 0)
+	if filtersParam := c.DefaultQuery("filters", ""); filtersParam != "" {
+		filters = strings.Split(filtersParam, ",")
+	}
+
+	txs, total, err := r.addressService.GetTransactions(c.Param("hash"), strings.Join(filters, " "), true, config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -101,7 +103,7 @@ func (r *AddressResource) GetStakingReport(c *gin.Context) {
 		return
 	}
 
-	report, err := r.addressService.GetStakingReport(c.Param("hash"), period)
+	report, err := r.addressService.GetStakingReport()
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return

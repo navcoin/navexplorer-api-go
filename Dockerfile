@@ -17,6 +17,6 @@ WORKDIR /app
 
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /go/bin/api /app/api
-COPY .env.dist /app/.env
+COPY .env /app/.env
 
 ENTRYPOINT ["/app/api"]

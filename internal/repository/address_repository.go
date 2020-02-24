@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/address/entity"
+	entitycoin "github.com/NavExplorer/navexplorer-api-go/internal/service/coin/entity"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 var (
@@ -40,6 +43,87 @@ func (r *AddressRepository) AddressByHash(hash string) (*explorer.Address, error
 		Do(context.Background())
 
 	return r.findOne(results, err)
+}
+
+func (r *AddressRepository) BalancesForAddresses(addresses []string) ([]*entity.Balance, error) {
+	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
+		Query(elastic.NewMatchQuery("hash", strings.Join(addresses, " "))).
+		Size(5000).
+		Do(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	balances := make([]*entity.Balance, 0)
+	for _, hit := range results.Hits.Hits {
+		address := new(explorer.Address)
+		err := json.Unmarshal(hit.Source, &address)
+		if err == nil {
+			balance := &entity.Balance{
+				Address:           address.Hash,
+				Balance:           float64(address.Balance) / 100000000,
+				ColdStakedBalance: float64(address.ColdBalance) / 100000000,
+			}
+			balances = append(balances, balance)
+		}
+	}
+
+	return balances, err
+}
+
+func (r *AddressRepository) WealthDistribution(groups []int) ([]*entitycoin.Wealth, error) {
+	totalWealth := new(entitycoin.Wealth)
+
+	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
+		Aggregation("totalWealth", elastic.NewSumAggregation().Field("balance")).
+		Do(context.Background())
+	if total, found := results.Aggregations.Sum("totalWealth"); found {
+		totalWealth.Balance = *total.Value
+		totalWealth.Percentage = 100
+	}
+
+	distribution := make([]*entitycoin.Wealth, len(groups)+1)
+
+	for i := 0; i < len(groups); i++ {
+		results, _ := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
+			From(0).
+			Size(groups[i]).
+			Sort("balance", false).
+			Do(context.Background())
+
+		wealth := new(entitycoin.Wealth)
+		wealth.Group = groups[i]
+
+		for _, element := range results.Hits.Hits {
+			address := new(explorer.Address)
+			err = json.Unmarshal(element.Source, &address)
+
+			wealth.Balance += float64(address.Balance) / 100000000
+			wealth.Percentage = int64((wealth.Balance / totalWealth.Balance) * 100)
+		}
+
+		distribution[i] = wealth
+	}
+
+	distribution[len(groups)] = totalWealth
+
+	return distribution, err
+}
+
+func (r *AddressRepository) GetTotalSupply() (totalSupply float64, err error) {
+	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
+		Aggregation("totalWealth", elastic.NewSumAggregation().Field("balance")).
+		Size(0).
+		Do(context.Background())
+	if err != nil {
+		return
+	}
+
+	if total, found := results.Aggregations.Sum("totalWealth"); found {
+		totalSupply = *total.Value / 100000000
+	}
+
+	return
 }
 
 func (r *AddressRepository) getRichListPosition(balance uint64) (uint, error) {
