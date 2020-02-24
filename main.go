@@ -38,8 +38,6 @@ func main() {
 		c.String(http.StatusOK, "loaderio-4e202b2dc00926a931d50a76aa7fa34c")
 	})
 
-	includeLegacyApiEndpoints(r)
-
 	addressResource := resource.NewAddressResource(container.GetAddressService())
 	r.GET("/address", addressResource.GetAddresses)
 	r.GET("/address/:hash", addressResource.GetAddress)
