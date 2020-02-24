@@ -13,6 +13,7 @@ type Config struct {
 	SoftForkBlockCycle int
 	ElasticSearch      ElasticSearchConfig
 	Server             ServerConfig
+	Legacy             bool
 }
 
 type ElasticSearchConfig struct {
@@ -50,6 +51,7 @@ func Get() *Config {
 		Server: ServerConfig{
 			Port: getInt("PORT", 8080),
 		},
+		Legacy: getBool("LEGACY", true),
 	}
 }
 

@@ -78,6 +78,10 @@ func main() {
 	daoGroup.GET("/cfund/payment-request/:hash/votes", daoResource.GetPaymentRequestVotes)
 	daoGroup.GET("/cfund/payment-request/:hash/votes/:cycle/addresses", daoResource.GetPaymentRequestVoteAddresses)
 
+	if config.Get().Legacy == true {
+		includeLegacyApiEndpoints(r)
+	}
+
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{"code": 404, "message": "Resource not found"})
 	})
