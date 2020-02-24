@@ -9,6 +9,7 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/sarulabs/dingo/v3"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -90,6 +91,7 @@ func main() {
 }
 
 func includeLegacyApiEndpoints(r *gin.Engine) {
+	log.Info("Including Legacy endpoints")
 	api := r.Group("/api")
 
 	legacyResource := resource.NewLegacyResource(
