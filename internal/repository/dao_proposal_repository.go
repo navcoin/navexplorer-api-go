@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao/entity"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
@@ -24,7 +25,7 @@ func NewDaoProposalRepository(elastic *elastic_cache.Index) *DaoProposalReposito
 
 func (r *DaoProposalRepository) Proposals(status *explorer.ProposalStatus, dir bool, size int, page int) ([]*explorer.Proposal, int64, error) {
 	query := elastic.NewBoolQuery()
-	if status != nil {
+	if status != nil && *status != "" {
 		query = query.Must(elastic.NewTermQuery("status.keyword", status))
 	}
 
@@ -39,6 +40,33 @@ func (r *DaoProposalRepository) Proposals(status *explorer.ProposalStatus, dir b
 	}
 
 	return r.findMany(results, err)
+}
+
+func (r *DaoProposalRepository) LegacyProposals(status *explorer.ProposalStatus, dir bool, size int, page int) ([]*entity.LegacyProposal, int64, error) {
+	query := elastic.NewBoolQuery()
+	if status != nil && *status != "" {
+		query = query.Must(elastic.NewTermQuery("status.keyword", status))
+	}
+
+	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
+		Query(query).
+		Sort("height", dir).
+		From((page * size) - size).
+		Size(size).
+		Do(context.Background())
+	if err != nil {
+		return nil, 0, err
+	}
+
+	proposals := make([]*entity.LegacyProposal, 0)
+	for _, hit := range results.Hits.Hits {
+		var proposal *entity.LegacyProposal
+		if err := json.Unmarshal(hit.Source, &proposal); err == nil {
+			proposals = append(proposals, proposal)
+		}
+	}
+
+	return proposals, results.TotalHits(), err
 }
 
 func (r *DaoProposalRepository) Proposal(hash string) (*explorer.Proposal, error) {

@@ -359,6 +359,7 @@ func (r *LegacyResource) GetProposals(c *gin.Context) {
 	config := pagination.GetConfig(c)
 
 	statusString := c.DefaultQuery("status", "")
+
 	if statusString != "" {
 		if valid := explorer.ProposalStatusIsValid(statusString); valid == false {
 			handleError(c, errors.New(fmt.Sprintf("Invalid Status(%s)", statusString)), http.StatusBadRequest)
@@ -367,7 +368,7 @@ func (r *LegacyResource) GetProposals(c *gin.Context) {
 	}
 
 	status := explorer.ProposalStatus(statusString)
-	proposals, total, err := r.daoService.GetProposals(&status, config)
+	proposals, total, err := r.daoService.GetLegacyProposals(&status, config)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return

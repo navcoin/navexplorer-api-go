@@ -17,8 +17,13 @@ func SetReleaseMode(debug bool) {
 }
 
 func NetworkSelect(c *gin.Context) {
-	SetParameter("network", c.GetHeader("Network"))
-	c.Header("X-Network", GetParameter("network", "mainnet").(string))
+	network := c.GetHeader("Network")
+	if network == "" {
+		network = "mainnet"
+	}
+
+	SetParameter("network", network)
+	c.Header("X-Network", network)
 }
 
 func Options(c *gin.Context) {

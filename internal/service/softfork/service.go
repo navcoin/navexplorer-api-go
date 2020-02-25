@@ -9,11 +9,10 @@ import (
 type Service struct {
 	blockRepo          *repository.BlockRepository
 	softForkRepository *repository.SoftForkRepository
-	cycleSize          uint64
 }
 
-func NewSoftForkService(blockRepo *repository.BlockRepository, softForkRepo *repository.SoftForkRepository, cycleSize uint64) *Service {
-	return &Service{blockRepo, softForkRepo, cycleSize}
+func NewSoftForkService(blockRepo *repository.BlockRepository, softForkRepo *repository.SoftForkRepository) *Service {
+	return &Service{blockRepo, softForkRepo}
 }
 
 func (s *Service) GetCycle() (*entity.SoftForkCycle, error) {
@@ -22,12 +21,13 @@ func (s *Service) GetCycle() (*entity.SoftForkCycle, error) {
 		return nil, err
 	}
 
+	cycleSize := entity.GetBlocksInCycle()
 	cycle := &entity.SoftForkCycle{
-		BlocksInCycle:   s.cycleSize,
-		BlockCycle:      (block.Height)/(s.cycleSize) + 1,
+		BlocksInCycle:   cycleSize,
+		BlockCycle:      (block.Height / cycleSize) + 1,
 		CurrentBlock:    block.Height,
-		FirstBlock:      (block.Height / s.cycleSize) * s.cycleSize,
-		RemainingBlocks: ((block.Height / s.cycleSize) * s.cycleSize) + s.cycleSize - block.Height,
+		FirstBlock:      (block.Height / cycleSize) * cycleSize,
+		RemainingBlocks: ((block.Height / cycleSize) * cycleSize) + cycleSize - block.Height,
 	}
 
 	return cycle, nil

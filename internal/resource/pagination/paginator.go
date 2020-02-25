@@ -11,7 +11,7 @@ type Paginator struct {
 	First       bool  `json:"first"`
 	Last        bool  `json:"last"`
 	Total       int64 `json:"total"`
-	PageSize    int   `json:"page_size"`
+	PageSize    int   `json:"size"`
 	CurrentPage int   `json:"current_page"`
 	Pages       int   `json:"total_pages"`
 	Elements    int   `json:"number_of_elements"`

@@ -1,7 +1,6 @@
 package di
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/internal/config"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
@@ -19,7 +18,7 @@ var Definitions = []dingo.Def{
 		Build: func() (*elastic_cache.Index, error) {
 			elastic, err := elastic_cache.New()
 			if err != nil {
-				log.WithError(err).Fatal("Failed toStart ES")
+				log.WithError(err).Fatal("Failed to start ES")
 			}
 
 			return elastic, nil
@@ -105,7 +104,7 @@ var Definitions = []dingo.Def{
 	{
 		Name: "softfork.service",
 		Build: func(blockRepository *repository.BlockRepository, softforkRepository *repository.SoftForkRepository) (*softfork.Service, error) {
-			return softfork.NewSoftForkService(blockRepository, softforkRepository, uint64(config.Get().SoftForkBlockCycle)), nil
+			return softfork.NewSoftForkService(blockRepository, softforkRepository), nil
 		},
 	},
 	{

@@ -72,17 +72,17 @@ func (r *AddressRepository) BalancesForAddresses(addresses []string) ([]*entity.
 }
 
 func (r *AddressRepository) WealthDistribution(groups []int) ([]*entitycoin.Wealth, error) {
-	totalWealth := new(entitycoin.Wealth)
-
-	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
-		Aggregation("totalWealth", elastic.NewSumAggregation().Field("balance")).
-		Do(context.Background())
-	if total, found := results.Aggregations.Sum("totalWealth"); found {
-		totalWealth.Balance = *total.Value
-		totalWealth.Percentage = 100
+	totalSupply, err := r.GetTotalSupply()
+	if err != nil {
+		return nil, err
 	}
 
-	distribution := make([]*entitycoin.Wealth, len(groups)+1)
+	totalWealth := &entitycoin.Wealth{
+		Balance:    totalSupply,
+		Percentage: 100,
+	}
+
+	distribution := make([]*entitycoin.Wealth, 0)
 
 	for i := 0; i < len(groups); i++ {
 		results, _ := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
@@ -91,8 +91,7 @@ func (r *AddressRepository) WealthDistribution(groups []int) ([]*entitycoin.Weal
 			Sort("balance", false).
 			Do(context.Background())
 
-		wealth := new(entitycoin.Wealth)
-		wealth.Group = groups[i]
+		wealth := &entitycoin.Wealth{Group: groups[i]}
 
 		for _, element := range results.Hits.Hits {
 			address := new(explorer.Address)
@@ -102,10 +101,10 @@ func (r *AddressRepository) WealthDistribution(groups []int) ([]*entitycoin.Weal
 			wealth.Percentage = int64((wealth.Balance / totalWealth.Balance) * 100)
 		}
 
-		distribution[i] = wealth
+		distribution = append(distribution, wealth)
 	}
 
-	distribution[len(groups)] = totalWealth
+	distribution = append(distribution, totalWealth)
 
 	return distribution, err
 }
