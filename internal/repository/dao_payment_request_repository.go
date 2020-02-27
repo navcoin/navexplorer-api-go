@@ -56,7 +56,7 @@ func (r *DaoPaymentRequestRepository) PaymentRequestsForProposal(proposal *explo
 }
 
 func (r *DaoPaymentRequestRepository) PaymentRequest(hash string) (*explorer.PaymentRequest, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.PaymentRequestIndex.Get()).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
 		Do(context.Background())
@@ -65,7 +65,7 @@ func (r *DaoPaymentRequestRepository) PaymentRequest(hash string) (*explorer.Pay
 }
 
 func (r *DaoPaymentRequestRepository) ValuePaid() (*float64, error) {
-	paidAgg := elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("status", explorer.PaymentRequestAccepted))
+	paidAgg := elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("status", explorer.PaymentRequestPaid))
 	paidAgg.SubAggregation("requestedAmount", elastic.NewSumAggregation().Field("requestedAmount"))
 
 	results, err := r.elastic.Client.Search(elastic_cache.PaymentRequestIndex.Get()).
