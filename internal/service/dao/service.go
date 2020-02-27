@@ -62,10 +62,10 @@ func (s *Service) GetBlockCycleByBlock(block *explorer.Block) (*entity.BlockCycl
 			Reject: consensus.VotesRejectPaymentRequestPercentage,
 		},
 		Cycle:      bc.Cycle,
-		FirstBlock: (bc.Cycle * bc.Size) - bc.Size + 1,
+		FirstBlock: (bc.Cycle * bc.Size) - bc.Size,
 	}
 	blockCycle.CurrentBlock = uint(block.Height)
-	blockCycle.BlocksRemaining = blockCycle.BlocksInCycle + blockCycle.FirstBlock - blockCycle.CurrentBlock
+	blockCycle.BlocksRemaining = blockCycle.BlocksInCycle + blockCycle.FirstBlock - blockCycle.CurrentBlock - 1
 
 	return blockCycle, nil
 }
@@ -96,30 +96,6 @@ func (s *Service) GetCfundStats() (*entity.CfundStats, error) {
 
 func (s *Service) GetProposals(status *explorer.ProposalStatus, config *pagination.Config) ([]*explorer.Proposal, int64, error) {
 	return s.proposalRepository.Proposals(status, config.Dir, config.Size, config.Page)
-}
-
-func (s *Service) GetLegacyProposals(status *explorer.ProposalStatus, config *pagination.Config) ([]*entity.LegacyProposal, int64, error) {
-	proposals, count, err := s.proposalRepository.LegacyProposals(status, config.Dir, config.Size, config.Page)
-
-	for _, proposal := range proposals {
-		votingCycles, err := s.GetVotingCycles(proposal)
-		if err != nil {
-			return nil, 0, err
-		}
-
-		onlyTheLast := []*entity.VotingCycle{votingCycles[len(votingCycles)-1]}
-		votes, err := s.voteRepository.GetVotes(explorer.ProposalVote, proposal.Hash, onlyTheLast)
-		if err != nil {
-			return nil, 0, err
-		}
-		if len(votes) > 1 {
-			proposal.VotesYes = votes[0].Yes
-			proposal.VotesNo = votes[0].No
-			proposal.VotingCycle = votes[0].Cycle
-		}
-	}
-
-	return proposals, count, err
 }
 
 func (s *Service) GetProposal(hash string) (*explorer.Proposal, error) {
