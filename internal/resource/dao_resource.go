@@ -9,7 +9,6 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 )
 
 type DaoResource struct {
@@ -114,25 +113,6 @@ func (r *DaoResource) GetProposalVotes(c *gin.Context) {
 	c.JSON(200, votes)
 }
 
-func (r *DaoResource) GetProposalVoteAddresses(c *gin.Context) {
-	cycle, err := strconv.Atoi(c.Param("cycle"))
-	if err != nil {
-		cycle = 0
-	}
-
-	votingAddresses, err := r.daoService.GetProposalVotingAddresses(c.Param("hash"), cycle)
-	if err == repository.ErrProposalNotFound {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
-		return
-	}
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
-		return
-	}
-
-	c.JSON(200, votingAddresses)
-}
-
 func (r *DaoResource) GetProposalTrend(c *gin.Context) {
 	trend, err := r.daoService.GetProposalTrend(c.Param("hash"))
 	if err == repository.ErrProposalNotFound {
@@ -218,25 +198,6 @@ func (r *DaoResource) GetPaymentRequestVotes(c *gin.Context) {
 	}
 
 	c.JSON(200, votes)
-}
-
-func (r *DaoResource) GetPaymentRequestVoteAddresses(c *gin.Context) {
-	cycle, err := strconv.Atoi(c.Param("cycle"))
-	if err != nil {
-		cycle = 0
-	}
-
-	votingAddresses, err := r.daoService.GetPaymentRequestVotingAddresses(c.Param("hash"), cycle)
-	if err == repository.ErrProposalNotFound {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
-		return
-	}
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
-		return
-	}
-
-	c.JSON(200, votingAddresses)
 }
 
 func (r *DaoResource) GetPaymentRequestTrend(c *gin.Context) {

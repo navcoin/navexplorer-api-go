@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address/entity"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
@@ -79,11 +80,15 @@ func (r *AddressTransactionRepository) BalanceChart(address string) (chart entit
 	return chart, err
 }
 
-func (r *AddressTransactionRepository) StakingChart(period string, address string) (groups []*entity.StakingGroup, err error) {
-	service := r.elastic.Client.Search(elastic_cache.AddressTransactionIndex.Get())
-
+func (r *AddressTransactionRepository) StakingChart(period string, hash string) (groups []*entity.StakingGroup, err error) {
 	count := 12
 	now := time.Now().UTC().Truncate(time.Second)
+
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewMatchQuery("hash", hash))
+	query = query.Must(elastic.NewMatchQuery("type", "stake cold_stake"))
+
+	agg := elastic.NewFilterAggregation().Filter(query)
 
 	for i := 0; i < count; i++ {
 		group := &entity.StakingGroup{End: now}
@@ -122,47 +127,33 @@ func (r *AddressTransactionRepository) StakingChart(period string, address strin
 			}
 		}
 
-		agg := elastic.NewRangeAggregation().Field("time").AddRange(group.Start, group.End)
-		agg.SubAggregation("sent", elastic.NewSumAggregation().Field("sent"))
-		agg.SubAggregation("received", elastic.NewSumAggregation().Field("received"))
-		agg.SubAggregation("coldStakingSent", elastic.NewSumAggregation().Field("coldStakingSent"))
-		agg.SubAggregation("coldStakingReceived", elastic.NewSumAggregation().Field("coldStakingReceived"))
-		agg.SubAggregation("delegateStake", elastic.NewSumAggregation().Field("delegateStake"))
+		timeAgg := elastic.NewRangeAggregation().Field("time").AddRange(group.Start, group.End)
+		timeAgg.SubAggregation("total", elastic.NewSumAggregation().Field("total"))
 
-		query := elastic.NewBoolQuery()
-		query = query.Must(elastic.NewMatchQuery("address", address))
-		query = query.Must(elastic.NewMatchQuery("type", "STAKING COLD_STAKING"))
-		service.Query(query)
-		service.Aggregation(string(i), agg)
+		agg.SubAggregation(fmt.Sprintf("group-%d", i), timeAgg)
 
 		groups = append(groups, group)
 	}
 
-	results, err := service.Do(context.Background())
+	results, err := r.elastic.Client.Search(elastic_cache.AddressTransactionIndex.Get()).
+		Aggregation("groups", agg).
+		Size(0).
+		Do(context.Background())
 	if results != nil {
-		for i := 0; i < count; i++ {
-			if agg, found := results.Aggregations.Range(string(i)); found {
-				bucket := agg.Buckets[0]
-				groups[i].Stakes = bucket.DocCount
-				sent := int64(0)
-				received := int64(0)
-				if sentValue, found := bucket.Aggregations.Sum("sent"); found {
-					sent = sent + int64(*sentValue.Value)
-				}
-				if coldStakingSentValue, found := bucket.Aggregations.Sum("coldStakingSent"); found {
-					sent = sent + int64(*coldStakingSentValue.Value)
-				}
-				if receivedValue, found := bucket.Aggregations.Sum("received"); found {
-					received = received + int64(*receivedValue.Value)
-				}
-				if coldStakingReceivedValue, found := bucket.Aggregations.Sum("coldStakingReceived"); found {
-					received = received + int64(*coldStakingReceivedValue.Value)
-				}
-				if delegateStakeValue, found := bucket.Aggregations.Sum("delegateStake"); found {
-					received = received + int64(*delegateStakeValue.Value)
-				}
+		i := 0
+		for {
+			if agg, found := results.Aggregations.Filter("groups"); found {
+				if groupAgg, found := agg.Aggregations.Range(fmt.Sprintf("group-%d", i)); found {
+					bucket := groupAgg.Buckets[0]
+					groups[i].Stakes = bucket.DocCount
 
-				groups[i].Amount = received - sent
+					if totalValue, found := bucket.Aggregations.Sum("total"); found {
+						groups[i].Amount = int64(*totalValue.Value)
+					}
+					i++
+				} else {
+					break
+				}
 			}
 		}
 	}

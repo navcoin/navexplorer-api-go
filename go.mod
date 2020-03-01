@@ -5,7 +5,7 @@ go 1.13
 replace github.com/ugorji/go v1.1.4 => github.com/ugorji/go/codec v0.0.0-20190204201341-e444a5086c43
 
 require (
-	github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200227101258-9c62a0811d3d
+	github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200228163226-b92f0f9a2e4d
 	github.com/gin-contrib/cors v1.3.0
 	github.com/gin-contrib/gzip v0.0.1
 	github.com/gin-gonic/gin v1.5.0

@@ -1,12 +1,11 @@
 package dao
 
 import (
-	"errors"
-	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao/entity"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
+	log "github.com/sirupsen/logrus"
 )
 
 type Service struct {
@@ -102,7 +101,7 @@ func (s *Service) GetProposal(hash string) (*explorer.Proposal, error) {
 	return s.proposalRepository.Proposal(hash)
 }
 
-func (s *Service) GetVotingCycles(element explorer.ChainHeight) ([]*entity.VotingCycle, error) {
+func (s *Service) GetVotingCycles(element explorer.ChainHeight, max uint64) ([]*entity.VotingCycle, error) {
 	bestBlock, err := s.blockRepository.BestBlock()
 	if err != nil {
 		return nil, err
@@ -113,21 +112,7 @@ func (s *Service) GetVotingCycles(element explorer.ChainHeight) ([]*entity.Votin
 		return nil, err
 	}
 
-	return entity.CreateVotingCycles(int(bc.ProposalVoting.Cycles), int(bc.BlocksInCycle), int(bc.FirstBlock), bestBlock.Height), nil
-}
-
-func (s *Service) GetVotingCycle(element explorer.ChainHeight, cycleIndex int) (*entity.VotingCycle, error) {
-	votingCycles, err := s.GetVotingCycles(element)
-	if err != nil {
-		return nil, err
-	}
-	for _, votingCycle := range votingCycles {
-		if votingCycle.Index == cycleIndex {
-			return votingCycle, nil
-		}
-	}
-
-	return nil, errors.New(fmt.Sprintf("Voting Cycle Index %d not found", cycleIndex))
+	return entity.CreateVotingCycles(int(bc.ProposalVoting.Cycles), int(bc.BlocksInCycle), int(bc.FirstBlock), bestBlock.Height, max), nil
 }
 
 func (s *Service) GetProposalVotes(hash string) ([]*entity.CfundVote, error) {
@@ -136,7 +121,7 @@ func (s *Service) GetProposalVotes(hash string) ([]*entity.CfundVote, error) {
 		return nil, err
 	}
 
-	votingCycles, err := s.GetVotingCycles(proposal)
+	votingCycles, err := s.GetVotingCycles(proposal, proposal.UpdatedOnBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -144,21 +129,7 @@ func (s *Service) GetProposalVotes(hash string) ([]*entity.CfundVote, error) {
 	return s.voteRepository.GetVotes(explorer.ProposalVote, hash, votingCycles)
 }
 
-func (s *Service) GetProposalVotingAddresses(hash string, cycleIndex int) (*entity.CfundVoteAddresses, error) {
-	proposal, err := s.GetProposal(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	votingCycle, err := s.GetVotingCycle(proposal, cycleIndex)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.voteRepository.GetVotingAddresses(explorer.ProposalVote, hash, votingCycle)
-}
-
-func (s *Service) GetProposalTrend(hash string) ([]*entity.CfundVote, error) {
+func (s *Service) GetProposalTrend(hash string) ([]*entity.CfundTrend, error) {
 	proposal, err := s.GetProposal(hash)
 	if err != nil {
 		return nil, err
@@ -174,22 +145,38 @@ func (s *Service) GetProposalTrend(hash string) ([]*entity.CfundVote, error) {
 		return nil, err
 	}
 
+	firstBlock := int(bc.CurrentBlock - bc.BlocksInCycle)
+	if proposal.UpdatedOnBlock != 0 {
+		firstBlock = int(proposal.UpdatedOnBlock)
+	}
 	cfundVotes, err := s.voteRepository.GetVotes(
 		explorer.ProposalVote,
 		proposal.Hash,
-		entity.CreateVotingCycles(10, int(bc.BlocksInCycle/10), int(bc.CurrentBlock-bc.BlocksInCycle), bestBlock.Height),
+		entity.CreateVotingCycles(10, int(bc.BlocksInCycle/10), firstBlock, bestBlock.Height, 0),
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	cfundTrends := make([]*entity.CfundTrend, 0)
 	for _, cfundVote := range cfundVotes {
-		cfundVote.Yes = int(float64(cfundVote.Yes)/10) * 100
-		cfundVote.No = int(float64(cfundVote.No)/10) * 100
-		cfundVote.Abstain = int(float64(cfundVote.Abstain)/10) * 100
+		cfundTrend := &entity.CfundTrend{
+			BlockGroup: cfundVote.BlockGroup,
+			Votes: entity.Votes{
+				Yes:     cfundVote.Yes,
+				No:      cfundVote.No,
+				Abstain: cfundVote.Abstain,
+			},
+			Trend: entity.Votes{
+				Yes:     int(float64(cfundVote.Yes*10) / float64(bc.BlocksInCycle) * 100),
+				No:      int(float64(cfundVote.No*10) / float64(bc.BlocksInCycle) * 100),
+				Abstain: int(float64(cfundVote.Abstain*10) / float64(bc.BlocksInCycle) * 100),
+			},
+		}
+		cfundTrends = append(cfundTrends, cfundTrend)
 	}
 
-	return cfundVotes, nil
+	return cfundTrends, nil
 }
 
 func (s *Service) GetPaymentRequests(status *explorer.PaymentRequestStatus, config *pagination.Config) ([]*explorer.PaymentRequest, int64, error) {
@@ -205,12 +192,14 @@ func (s *Service) GetPaymentRequest(hash string) (*explorer.PaymentRequest, erro
 }
 
 func (s *Service) GetPaymentRequestVotes(hash string) ([]*entity.CfundVote, error) {
+	log.Debugf("GetPaymentRequestVotes(hash:%s)", hash)
+
 	p, err := s.GetPaymentRequest(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	votingCycles, err := s.GetVotingCycles(p)
+	votingCycles, err := s.GetVotingCycles(p, p.UpdatedOnBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -218,21 +207,8 @@ func (s *Service) GetPaymentRequestVotes(hash string) ([]*entity.CfundVote, erro
 	return s.voteRepository.GetVotes(explorer.PaymentRequestVote, p.Hash, votingCycles)
 }
 
-func (s *Service) GetPaymentRequestVotingAddresses(hash string, cycleIndex int) (*entity.CfundVoteAddresses, error) {
-	proposal, err := s.GetPaymentRequest(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	votingCycle, err := s.GetVotingCycle(proposal, cycleIndex)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.voteRepository.GetVotingAddresses(explorer.PaymentRequestVote, hash, votingCycle)
-}
-
-func (s *Service) GetPaymentRequestTrend(hash string) ([]*entity.CfundVote, error) {
+func (s *Service) GetPaymentRequestTrend(hash string) ([]*entity.CfundTrend, error) {
+	log.Debugf("GetPaymentRequestTrend(hash:%s)", hash)
 	p, err := s.GetPaymentRequest(hash)
 	if err != nil {
 		return nil, err
@@ -248,20 +224,37 @@ func (s *Service) GetPaymentRequestTrend(hash string) ([]*entity.CfundVote, erro
 		return nil, err
 	}
 
+	firstBlock := int(bc.CurrentBlock - bc.BlocksInCycle)
+	if p.UpdatedOnBlock != 0 {
+		firstBlock = int(p.UpdatedOnBlock)
+	}
+
 	cfundVotes, err := s.voteRepository.GetVotes(
 		explorer.PaymentRequestVote,
 		p.Hash,
-		entity.CreateVotingCycles(10, int(bc.BlocksInCycle/10), int(bc.CurrentBlock-bc.BlocksInCycle), bestBlock.Height),
+		entity.CreateVotingCycles(10, int(bc.BlocksInCycle/10), firstBlock, bestBlock.Height, 0),
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	cfundTrends := make([]*entity.CfundTrend, 0)
 	for _, cfundVote := range cfundVotes {
-		cfundVote.Yes = int(float64(cfundVote.Yes)/10) * 100
-		cfundVote.No = int(float64(cfundVote.No)/10) * 100
-		cfundVote.Abstain = int(float64(cfundVote.Abstain)/10) * 100
+		cfundTrend := &entity.CfundTrend{
+			BlockGroup: cfundVote.BlockGroup,
+			Votes: entity.Votes{
+				Yes:     cfundVote.Yes,
+				No:      cfundVote.No,
+				Abstain: cfundVote.Abstain,
+			},
+			Trend: entity.Votes{
+				Yes:     int(float64(cfundVote.Yes*10) / float64(bc.BlocksInCycle) * 100),
+				No:      int(float64(cfundVote.No*10) / float64(bc.BlocksInCycle) * 100),
+				Abstain: int(float64(cfundVote.Abstain*10) / float64(bc.BlocksInCycle) * 100),
+			},
+		}
+		cfundTrends = append(cfundTrends, cfundTrend)
 	}
 
-	return cfundVotes, nil
+	return cfundTrends, nil
 }

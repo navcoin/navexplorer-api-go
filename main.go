@@ -19,6 +19,10 @@ func main() {
 	config.Init()
 	container, _ = dic.NewContainer(dingo.App)
 
+	if config.Get().Debug {
+		log.SetLevel(log.DebugLevel)
+	}
+
 	framework.SetReleaseMode(config.Get().Debug)
 
 	r := gin.New()
@@ -44,7 +48,7 @@ func main() {
 	r.GET("/address/:hash/tx", addressResource.GetTransactions)
 	r.GET("/address/:hash/tx/cold", addressResource.GetColdTransactions)
 	r.GET("/address/:hash/validate", addressResource.ValidateAddress)
-	r.GET("/address/:hash/staking", addressResource.GetStakingReport)
+	r.GET("/address/:hash/staking", addressResource.GetStakingChart)
 	r.GET("/address/:hash/assoc/staking", addressResource.GetAssociatedStakingAddresses)
 
 	blockResource := resource.NewBlockResource(container.GetBlockService(), container.GetDaoService())
@@ -69,13 +73,12 @@ func main() {
 	daoGroup.GET("/cfund/proposal", daoResource.GetProposals)
 	daoGroup.GET("/cfund/proposal/:hash", daoResource.GetProposal)
 	daoGroup.GET("/cfund/proposal/:hash/votes", daoResource.GetProposalVotes)
-	daoGroup.GET("/cfund/proposal/:hash/votes/:cycle/addresses", daoResource.GetProposalVoteAddresses)
-	daoGroup.GET("/cfund/proposal/:hash/trend", daoResource.GetProposalVotes)
+	daoGroup.GET("/cfund/proposal/:hash/trend", daoResource.GetProposalTrend)
 	daoGroup.GET("/cfund/proposal/:hash/payment-request", daoResource.GetPaymentRequestsForProposal)
 	daoGroup.GET("/cfund/payment-request", daoResource.GetPaymentRequests)
 	daoGroup.GET("/cfund/payment-request/:hash", daoResource.GetPaymentRequest)
 	daoGroup.GET("/cfund/payment-request/:hash/votes", daoResource.GetPaymentRequestVotes)
-	daoGroup.GET("/cfund/payment-request/:hash/votes/:cycle/addresses", daoResource.GetPaymentRequestVoteAddresses)
+	daoGroup.GET("/cfund/payment-request/:hash/trend", daoResource.GetPaymentRequestTrend)
 
 	if config.Get().Legacy == true {
 		includeLegacyApiEndpoints(r)

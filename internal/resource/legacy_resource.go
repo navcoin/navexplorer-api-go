@@ -368,7 +368,7 @@ func (r *LegacyResource) GetProposals(c *gin.Context) {
 	}
 
 	status := explorer.ProposalStatus(statusString)
-	proposals, total, err := r.daoService.GetLegacyProposals(&status, config)
+	proposals, total, err := r.daoService.GetProposals(&status, config)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
