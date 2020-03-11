@@ -1,6 +1,6 @@
 package entity
 
-import "github.com/NavExplorer/navexplorer-api-go/internal/framework"
+import "github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
 
 type SoftForkCycle struct {
 	BlocksInCycle   uint64 `json:"blocksInCycle"`
@@ -11,9 +11,9 @@ type SoftForkCycle struct {
 }
 
 func GetBlocksInCycle() uint64 {
-	if framework.GetParameter("network", "mainnet") == "testnet" {
-		return 800
-	} else {
+	if param.GetGlobalParam("network", "mainnet") == "mainnet" {
 		return 20160
+	} else {
+		return 800
 	}
 }

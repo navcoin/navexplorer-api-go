@@ -3,12 +3,14 @@ package dao
 import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao/entity"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	log "github.com/sirupsen/logrus"
 )
 
 type Service struct {
+	consensusService           *consensus.Service
 	proposalRepository         *repository.DaoProposalRepository
 	paymentRequestRepository   *repository.DaoPaymentRequestRepository
 	consensusRepository        *repository.DaoConsensusRepository
@@ -18,6 +20,7 @@ type Service struct {
 }
 
 func NewDaoService(
+	consensusService *consensus.Service,
 	proposalRepository *repository.DaoProposalRepository,
 	paymentRequestRepository *repository.DaoPaymentRequestRepository,
 	consensusRepository *repository.DaoConsensusRepository,
@@ -26,6 +29,7 @@ func NewDaoService(
 	blockTransactionRepository *repository.BlockTransactionRepository,
 ) *Service {
 	return &Service{
+		consensusService,
 		proposalRepository,
 		paymentRequestRepository,
 		consensusRepository,
@@ -35,33 +39,29 @@ func NewDaoService(
 	}
 }
 
-func (s *Service) GetBlockCycleByHeight(height uint64) (*entity.BlockCycle, error) {
+func (s *Service) GetBlockCycleByHeight(height uint64) (*entity.LegacyBlockCycle, error) {
 	return s.GetBlockCycleByBlock(&explorer.Block{RawBlock: explorer.RawBlock{Height: height}})
 }
 
-func (s *Service) GetBlockCycleByBlock(block *explorer.Block) (*entity.BlockCycle, error) {
-	consensus, err := s.GetConsensus()
-	if err != nil {
-		return nil, err
-	}
+func (s *Service) GetBlockCycleByBlock(block *explorer.Block) (*entity.LegacyBlockCycle, error) {
+	bc := block.BlockCycle(s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value)
 
-	bc := block.BlockCycle(consensus.BlocksPerVotingCycle, consensus.MinSumVotesPerVotingCycle)
-
-	blockCycle := &entity.BlockCycle{
-		BlocksInCycle: consensus.BlocksPerVotingCycle,
-		Quorum:        float64(consensus.MinSumVotesPerVotingCycle) / 100,
+	blockCycle := &entity.LegacyBlockCycle{
+		BlocksInCycle: uint(s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value),
 		ProposalVoting: entity.Voting{
-			Cycles: consensus.MaxCountVotingCycleProposals,
-			Accept: consensus.VotesAcceptProposalPercentage,
-			Reject: consensus.VotesRejectProposalPercentage,
+			Quorum: float64(s.consensusService.GetParameter(consensus.PROPOSAL_MIN_QUORUM).Value) / 100,
+			Cycles: uint(s.consensusService.GetParameter(consensus.PROPOSAL_MAX_VOTING_CYCLES).Value),
+			Accept: uint(s.consensusService.GetParameter(consensus.PROPOSAL_MIN_ACCEPT).Value),
+			Reject: uint(s.consensusService.GetParameter(consensus.PROPOSAL_MIN_REJECT).Value),
 		},
 		PaymentVoting: entity.Voting{
-			Cycles: consensus.MaxCountVotingCyclePaymentRequests,
-			Accept: consensus.VotesAcceptPaymentRequestPercentage,
-			Reject: consensus.VotesRejectPaymentRequestPercentage,
+			Quorum: float64(s.consensusService.GetParameter(consensus.PAYMENT_REQUEST_MIN_QUORUM).Value) / 100,
+			Cycles: uint(s.consensusService.GetParameter(consensus.PAYMENT_REQUEST_MAX_VOTING_CYCLES).Value),
+			Accept: uint(s.consensusService.GetParameter(consensus.PAYMENT_REQUEST_MIN_ACCEPT).Value),
+			Reject: uint(s.consensusService.GetParameter(consensus.PAYMENT_REQUEST_MIN_REJECT).Value),
 		},
-		Cycle:      bc.Cycle,
-		FirstBlock: (bc.Cycle * bc.Size) - bc.Size,
+		Cycle:      uint(bc.Cycle),
+		FirstBlock: uint((bc.Cycle * bc.Size) - bc.Size),
 	}
 	blockCycle.CurrentBlock = uint(block.Height)
 	blockCycle.BlocksRemaining = blockCycle.BlocksInCycle + blockCycle.FirstBlock - blockCycle.CurrentBlock - 1
@@ -69,8 +69,8 @@ func (s *Service) GetBlockCycleByBlock(block *explorer.Block) (*entity.BlockCycl
 	return blockCycle, nil
 }
 
-func (s *Service) GetConsensus() (*explorer.Consensus, error) {
-	return s.consensusRepository.GetConsensus()
+func (s *Service) GetConsensus() (*explorer.ConsensusParameters, error) {
+	return s.consensusService.GetParameters()
 }
 
 func (s *Service) GetCfundStats() (*entity.CfundStats, error) {
@@ -112,7 +112,13 @@ func (s *Service) GetVotingCycles(element explorer.ChainHeight, max uint64) ([]*
 		return nil, err
 	}
 
-	return entity.CreateVotingCycles(int(bc.ProposalVoting.Cycles), int(bc.BlocksInCycle), int(bc.FirstBlock), bestBlock.Height, max), nil
+	return entity.CreateVotingCycles(
+		s.consensusService.GetParameter(consensus.PROPOSAL_MAX_VOTING_CYCLES).Value,
+		s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value,
+		int(bc.FirstBlock),
+		bestBlock.Height,
+		max,
+	), nil
 }
 
 func (s *Service) GetProposalVotes(hash string) ([]*entity.CfundVote, error) {

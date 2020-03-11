@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
+	"github.com/getsentry/raven-go"
 )
 
 type DaoConsensusRepository struct {
@@ -20,22 +22,28 @@ func NewDaoConsensusRepository(elastic *elastic_cache.Index) *DaoConsensusReposi
 	return &DaoConsensusRepository{elastic}
 }
 
-func (r *DaoConsensusRepository) GetConsensus() (*explorer.Consensus, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.ConsensusIndex.Get()).
-		Size(1).
+func (r *DaoConsensusRepository) GetConsensusParameters(network string) (*explorer.ConsensusParameters, error) {
+	results, err := r.elastic.Client.Search(fmt.Sprintf("%s.%s", network, elastic_cache.ConsensusIndex)).
+		Size(1000).
 		Do(context.Background())
-
-	if err != nil || results.TotalHits() == 0 {
-		err = ErrConsensusNotFound
+	if err != nil || results == nil {
+		raven.CaptureError(err, nil)
 		return nil, err
 	}
 
-	var consensus *explorer.Consensus
-	hit := results.Hits.Hits[0]
-	err = json.Unmarshal(hit.Source, &consensus)
-	if err != nil {
-		return nil, err
+	if len(results.Hits.Hits) == 0 {
+		return nil, ErrConsensusNotFound
 	}
 
-	return consensus, err
+	consensusParameters := new(explorer.ConsensusParameters)
+	for _, hit := range results.Hits.Hits {
+		var consensusParameter *explorer.ConsensusParameter
+		if err = json.Unmarshal(hit.Source, &consensusParameter); err != nil {
+			return nil, err
+		}
+		consensusParameter.MetaData = explorer.NewMetaData(hit.Id, hit.Index)
+		consensusParameters.Add(consensusParameter)
+	}
+
+	return consensusParameters, nil
 }

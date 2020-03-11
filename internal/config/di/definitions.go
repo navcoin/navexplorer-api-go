@@ -7,6 +7,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/coin"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/softfork"
 	"github.com/sarulabs/dingo/v3"
 	log "github.com/sirupsen/logrus"
@@ -110,6 +111,7 @@ var Definitions = []dingo.Def{
 	{
 		Name: "dao.service",
 		Build: func(
+			consensusService *consensus.Service,
 			proposalRepo *repository.DaoProposalRepository,
 			paymentRequestRepo *repository.DaoPaymentRequestRepository,
 			consensusRepo *repository.DaoConsensusRepository,
@@ -117,7 +119,15 @@ var Definitions = []dingo.Def{
 			blockRepo *repository.BlockRepository,
 			blockTxRepo *repository.BlockTransactionRepository,
 		) (*dao.Service, error) {
-			return dao.NewDaoService(proposalRepo, paymentRequestRepo, consensusRepo, voteRepo, blockRepo, blockTxRepo), nil
+			return dao.NewDaoService(consensusService, proposalRepo, paymentRequestRepo, consensusRepo, voteRepo, blockRepo, blockTxRepo), nil
+		},
+	},
+	{
+		Name: "dao.consensus.service",
+		Build: func(
+			consensusRepo *repository.DaoConsensusRepository,
+		) (*consensus.Service, error) {
+			return consensus.NewConsensusService(consensusRepo), nil
 		},
 	},
 }

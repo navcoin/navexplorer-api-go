@@ -38,10 +38,6 @@ func main() {
 		c.String(http.StatusOK, "Welcome to NavExplorer API!")
 	})
 
-	r.GET("/loaderio-4e202b2dc00926a931d50a76aa7fa34c.txt", func(c *gin.Context) {
-		c.String(http.StatusOK, "loaderio-4e202b2dc00926a931d50a76aa7fa34c")
-	})
-
 	addressResource := resource.NewAddressResource(container.GetAddressService())
 	r.GET("/address", addressResource.GetAddresses)
 	r.GET("/address/:hash", addressResource.GetAddress)
@@ -68,17 +64,19 @@ func main() {
 
 	daoGroup := r.Group("/dao")
 	daoResource := resource.NewDaoResource(container.GetDaoService(), container.GetBlockService())
-	daoGroup.GET("/cfund/consensus", daoResource.GetConsensus)
-	daoGroup.GET("/cfund/stats", daoResource.GetCfundStats)
-	daoGroup.GET("/cfund/proposal", daoResource.GetProposals)
-	daoGroup.GET("/cfund/proposal/:hash", daoResource.GetProposal)
-	daoGroup.GET("/cfund/proposal/:hash/votes", daoResource.GetProposalVotes)
-	daoGroup.GET("/cfund/proposal/:hash/trend", daoResource.GetProposalTrend)
-	daoGroup.GET("/cfund/proposal/:hash/payment-request", daoResource.GetPaymentRequestsForProposal)
-	daoGroup.GET("/cfund/payment-request", daoResource.GetPaymentRequests)
-	daoGroup.GET("/cfund/payment-request/:hash", daoResource.GetPaymentRequest)
-	daoGroup.GET("/cfund/payment-request/:hash/votes", daoResource.GetPaymentRequestVotes)
-	daoGroup.GET("/cfund/payment-request/:hash/trend", daoResource.GetPaymentRequestTrend)
+	daoGroup.GET("/consensus", daoResource.GetConsensus)
+
+	cfundGroup := daoGroup.Group("/cfund")
+	cfundGroup.GET("/stats", daoResource.GetCfundStats)
+	cfundGroup.GET("/proposal", daoResource.GetProposals)
+	cfundGroup.GET("/proposal/:hash", daoResource.GetProposal)
+	cfundGroup.GET("/proposal/:hash/votes", daoResource.GetProposalVotes)
+	cfundGroup.GET("/proposal/:hash/trend", daoResource.GetProposalTrend)
+	cfundGroup.GET("/proposal/:hash/payment-request", daoResource.GetPaymentRequestsForProposal)
+	cfundGroup.GET("/payment-request", daoResource.GetPaymentRequests)
+	cfundGroup.GET("/payment-request/:hash", daoResource.GetPaymentRequest)
+	cfundGroup.GET("/payment-request/:hash/votes", daoResource.GetPaymentRequestVotes)
+	cfundGroup.GET("/payment-request/:hash/trend", daoResource.GetPaymentRequestTrend)
 
 	if config.Get().Legacy == true {
 		includeLegacyApiEndpoints(r)

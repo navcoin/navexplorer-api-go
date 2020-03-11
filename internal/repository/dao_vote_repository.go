@@ -78,6 +78,9 @@ func (r *DaoVoteRepository) GetVotes(voteType explorer.VoteType, hash string, vo
 				}
 			}
 
+			if cfundVote.Yes+cfundVote.No+cfundVote.Abstain == 0 {
+				break
+			}
 			cfundVotes = append(cfundVotes, cfundVote)
 			i++
 		} else {

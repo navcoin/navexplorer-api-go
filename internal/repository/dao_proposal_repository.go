@@ -79,7 +79,12 @@ func (r *DaoProposalRepository) Proposal(hash string) (*explorer.Proposal, error
 }
 
 func (r *DaoProposalRepository) ValueLocked() (*float64, error) {
-	lockedAgg := elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("status", explorer.ProposalAccepted))
+
+	query := elastic.NewBoolQuery()
+	//query = query.Must(elastic.NewMatchQuery("status", explorer.ProposalAccepted))
+	query = query.Must(elastic.NewMatchQuery("state", 1))
+
+	lockedAgg := elastic.NewFilterAggregation().Filter(query)
 	lockedAgg.SubAggregation("notPaidYet", elastic.NewSumAggregation().Field("notPaidYet"))
 
 	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).

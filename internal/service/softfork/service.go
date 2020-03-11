@@ -22,6 +22,7 @@ func (s *Service) GetCycle() (*entity.SoftForkCycle, error) {
 	}
 
 	cycleSize := entity.GetBlocksInCycle()
+
 	cycle := &entity.SoftForkCycle{
 		BlocksInCycle:   cycleSize,
 		BlockCycle:      (block.Height / cycleSize) + 1,

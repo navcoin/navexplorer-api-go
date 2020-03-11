@@ -43,7 +43,7 @@ func (r *DaoResource) GetConsensus(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, consensus)
+	c.JSON(200, consensus.All())
 }
 
 func (r *DaoResource) GetCfundStats(c *gin.Context) {

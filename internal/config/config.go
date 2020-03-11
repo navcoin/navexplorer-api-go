@@ -9,11 +9,10 @@ import (
 )
 
 type Config struct {
-	Debug              bool
-	SoftForkBlockCycle int
-	ElasticSearch      ElasticSearchConfig
-	Server             ServerConfig
-	Legacy             bool
+	Debug         bool
+	ElasticSearch ElasticSearchConfig
+	Server        ServerConfig
+	Legacy        bool
 }
 
 type ElasticSearchConfig struct {
@@ -38,8 +37,7 @@ func Init() {
 
 func Get() *Config {
 	return &Config{
-		Debug:              getBool("DEBUG", false),
-		SoftForkBlockCycle: getInt("SOFTFORK_BLOCK_CYCLE", 20160),
+		Debug: getBool("DEBUG", false),
 		ElasticSearch: ElasticSearchConfig{
 			Hosts:       getSlice("ELASTIC_SEARCH_HOSTS", make([]string, 0), ","),
 			Sniff:       getBool("ELASTIC_SEARCH_SNIFF", true),

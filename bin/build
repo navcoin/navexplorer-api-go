@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
 set -e
 
+if [ $# -eq 0 ]
+  then
+    tag="latest"
+  else
+    tag=$1
+fi
+
+echo "Using tag $tag"
+
 dingo -src=./internal/config/di -dest=./generated
 
-docker build . -t navexplorer/api:dev
-docker push navexplorer/api:dev
+docker build . -t navexplorer/api:$tag
+docker push navexplorer/api:$tag
