@@ -125,7 +125,7 @@ func (r *AddressRepository) GetTotalSupply() (totalSupply float64, err error) {
 	return
 }
 
-func (r *AddressRepository) getRichListPosition(balance uint64) (uint, error) {
+func (r *AddressRepository) getRichListPosition(balance int64) (uint, error) {
 	position, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get()).
 		Query(elastic.NewRangeQuery("balance").Gt(balance)).
 		Do(context.Background())
