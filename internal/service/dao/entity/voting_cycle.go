@@ -11,7 +11,9 @@ type VotingCycle struct {
 	Index int
 }
 
-func CreateVotingCycles(segments int, size int, firstBlock int, bestHeight uint64, maxStart uint64) []*VotingCycle {
+func CreateVotingCycles(segments int, size int, firstBlock int, maxStart int) []*VotingCycle {
+	log.WithFields(log.Fields{"segments": segments, "size": size, "firstBlock": firstBlock, "maxStart": maxStart}).Info("CreateVotingCycles")
+
 	votingCycles := make([]*VotingCycle, 0)
 
 	for i := 0; i <= segments-1; i++ {
@@ -21,21 +23,16 @@ func CreateVotingCycles(segments int, size int, firstBlock int, bestHeight uint6
 		} else {
 			votingCycle.Start = votingCycles[i-1].End + 1
 		}
-		votingCycle.End = votingCycle.Start + size
+		votingCycle.End = votingCycle.Start + size - 1
 
-		if votingCycle.Start > int(bestHeight) {
-			log.Debugf("VotingCycle Start > best height (%d > %d)", votingCycle.Start, bestHeight)
+		if maxStart != 0 && votingCycle.Start > maxStart {
+			log.Debugf("VotingCycle Start > maxStart (%d > %d)", votingCycle.Start, maxStart)
 			// Dont continue if cycles in the future
 			return votingCycles
 		}
-		log.Debugf("Creating Voting Cycle: %d %d - %d -- Max:%d", votingCycle.Index, votingCycle.Start, votingCycle.End, maxStart)
 
+		log.Debugf("Creating Voting Cycle: %d %d - %d -- Max:%d", votingCycle.Index, votingCycle.Start, votingCycle.End, int(maxStart))
 		votingCycles = append(votingCycles, votingCycle)
-
-		if int(maxStart) != 0 && votingCycle.Start > int(maxStart) {
-			// Dont continue if entity transitioned in the previous cycle
-			return votingCycles
-		}
 	}
 
 	return votingCycles

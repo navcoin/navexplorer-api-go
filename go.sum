@@ -65,6 +65,10 @@ github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200325230137-f7db6546a355
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200325230137-f7db6546a355/go.mod h1:6f4vrgXeSE1Mw/MteHzIAD9iHBH+oJJUh/zfEtvQ2rM=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200325232129-1227e617f117 h1:62R7I9qLHrL8Jmy87PpX75DqxjBm+iSaTZpOZww3IL4=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200325232129-1227e617f117/go.mod h1:LvnfKTS7xngmQjez4AhH25A3t4UEZ3xNdajP+oEQFUU=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200406194841-3344410a30fb h1:cdH++3mybphc5siIXzXv2aLZe/pm9Jg6ZIFlwJTEng0=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200406194841-3344410a30fb/go.mod h1:LvnfKTS7xngmQjez4AhH25A3t4UEZ3xNdajP+oEQFUU=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200406195851-9b1e66a4d6d4 h1:dryF+lVxHkQ9JPLabjgebAh6Kzn2898cspqJKAyFwag=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200406195851-9b1e66a4d6d4/go.mod h1:LvnfKTS7xngmQjez4AhH25A3t4UEZ3xNdajP+oEQFUU=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=

@@ -25,8 +25,8 @@ func NewDaoProposalRepository(elastic *elastic_cache.Index) *DaoProposalReposito
 
 func (r *DaoProposalRepository) Proposals(status *explorer.ProposalStatus, dir bool, size int, page int) ([]*explorer.Proposal, int64, error) {
 	query := elastic.NewBoolQuery()
-	if status != nil && *status != "" {
-		query = query.Must(elastic.NewTermQuery("status.keyword", status))
+	if status != nil {
+		query = query.Must(elastic.NewTermQuery("status.keyword", status.Status))
 	}
 
 	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
@@ -44,7 +44,7 @@ func (r *DaoProposalRepository) Proposals(status *explorer.ProposalStatus, dir b
 
 func (r *DaoProposalRepository) LegacyProposals(status *explorer.ProposalStatus, dir bool, size int, page int) ([]*entity.LegacyProposal, int64, error) {
 	query := elastic.NewBoolQuery()
-	if status != nil && *status != "" {
+	if status != nil {
 		query = query.Must(elastic.NewTermQuery("status.keyword", status))
 	}
 

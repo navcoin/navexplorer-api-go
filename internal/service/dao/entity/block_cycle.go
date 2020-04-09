@@ -8,6 +8,10 @@ type BlockCycle struct {
 	BlocksRemaining int `json:"blocksRemaining"`
 }
 
+func (bc *BlockCycle) LastBlock() int {
+	return bc.FirstBlock + bc.BlocksInCycle - 1
+}
+
 type LegacyBlockCycle struct {
 	BlocksInCycle   uint   `json:"blocksInCycle"`
 	ProposalVoting  Voting `json:"proposalVoting"`

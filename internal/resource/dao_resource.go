@@ -59,6 +59,7 @@ func (r *DaoResource) GetCfundStats(c *gin.Context) {
 func (r *DaoResource) GetProposals(c *gin.Context) {
 	config := pagination.GetConfig(c)
 
+	var status explorer.ProposalStatus
 	statusString := c.DefaultQuery("status", "")
 	if statusString != "" {
 		if valid := explorer.ProposalStatusIsValid(statusString); valid == false {
@@ -68,9 +69,9 @@ func (r *DaoResource) GetProposals(c *gin.Context) {
 			})
 			return
 		}
+		status = explorer.GetStatusByStatus(statusString)
 	}
 
-	status := explorer.ProposalStatus(statusString)
 	proposals, total, err := r.daoService.GetProposals(&status, config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})

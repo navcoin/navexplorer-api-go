@@ -3,10 +3,7 @@ package entity
 import "github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 
 type LegacyProposal struct {
-	explorer.RawProposal
-
-	Height         uint64 `json:"height"`
-	UpdatedOnBlock uint64 `json:"updatedOnBlock"`
+	explorer.Proposal
 
 	VotesYes    int `json:"votesYes"`
 	VotesNo     int `json:"votesNo"`
