@@ -133,7 +133,7 @@ func (s *Service) GetProposalVotes(hash string) ([]*entity.CfundVote, error) {
 		return nil, err
 	}
 
-	max, err := s.getMax(proposal)
+	max, err := s.getMax(proposal.Status, proposal.StateChangedOnBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func (s *Service) GetProposalTrend(hash string) ([]*entity.CfundTrend, error) {
 		return nil, err
 	}
 
-	max, err := s.getMax(proposal)
+	max, err := s.getMax(proposal.Status, proposal.StateChangedOnBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -206,45 +206,42 @@ func (s *Service) GetPaymentRequest(hash string) (*explorer.PaymentRequest, erro
 func (s *Service) GetPaymentRequestVotes(hash string) ([]*entity.CfundVote, error) {
 	log.Debugf("GetPaymentRequestVotes(hash:%s)", hash)
 
-	p, err := s.GetPaymentRequest(hash)
+	paymentRequest, err := s.GetPaymentRequest(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	votingCycles, err := s.GetVotingCycles(p, int(p.UpdatedOnBlock))
+	max, err := s.getMax(string(paymentRequest.Status), paymentRequest.StateChangedOnBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.voteRepository.GetVotes(explorer.PaymentRequestVote, p.Hash, votingCycles)
+	votingCycles, err := s.GetVotingCycles(paymentRequest, max)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.voteRepository.GetVotes(explorer.PaymentRequestVote, hash, votingCycles)
 }
 
 func (s *Service) GetPaymentRequestTrend(hash string) ([]*entity.CfundTrend, error) {
 	log.Debugf("GetPaymentRequestTrend(hash:%s)", hash)
-	p, err := s.GetPaymentRequest(hash)
+	paymentRequest, err := s.GetPaymentRequest(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	bestBlock, err := s.blockRepository.BestBlock()
+	max, err := s.getMax(string(paymentRequest.Status), paymentRequest.StateChangedOnBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	bc, err := s.GetBlockCycleByBlock(bestBlock)
-	if err != nil {
-		return nil, err
-	}
-
-	firstBlock := int(bc.CurrentBlock - bc.BlocksInCycle)
-	if p.UpdatedOnBlock != 0 {
-		firstBlock = int(p.UpdatedOnBlock)
-	}
+	size := s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value
 
 	cfundVotes, err := s.voteRepository.GetVotes(
 		explorer.PaymentRequestVote,
-		p.Hash,
-		entity.CreateVotingCycles(10, int(bc.BlocksInCycle/10), firstBlock, 0),
+		paymentRequest.Hash,
+		entity.CreateVotingCycles(10, size/10, max-size, 0),
 	)
 	if err != nil {
 		return nil, err
@@ -260,9 +257,9 @@ func (s *Service) GetPaymentRequestTrend(hash string) ([]*entity.CfundTrend, err
 				Abstain: cfundVote.Abstain,
 			},
 			Trend: entity.Votes{
-				Yes:     int(float64(cfundVote.Yes*10) / float64(bc.BlocksInCycle) * 100),
-				No:      int(float64(cfundVote.No*10) / float64(bc.BlocksInCycle) * 100),
-				Abstain: int(float64(cfundVote.Abstain*10) / float64(bc.BlocksInCycle) * 100),
+				Yes:     int(float64(cfundVote.Yes*10) / float64(size) * 100),
+				No:      int(float64(cfundVote.No*10) / float64(size) * 100),
+				Abstain: int(float64(cfundVote.Abstain*10) / float64(size) * 100),
 			},
 		}
 		cfundTrends = append(cfundTrends, cfundTrend)
@@ -271,14 +268,14 @@ func (s *Service) GetPaymentRequestTrend(hash string) ([]*entity.CfundTrend, err
 	return cfundTrends, nil
 }
 
-func (s *Service) getMax(proposal *explorer.Proposal) (int, error) {
+func (s *Service) getMax(status string, stateChangedOnBlock string) (int, error) {
 	var block *explorer.Block
 	var err error
 
-	if proposal.Status == explorer.ProposalPending.Status {
+	if status == explorer.ProposalPending.Status {
 		block, err = s.blockRepository.BestBlock()
 	} else {
-		block, err = s.blockRepository.BlockByHash(proposal.StateChangedOnBlock)
+		block, err = s.blockRepository.BlockByHash(stateChangedOnBlock)
 	}
 
 	if err != nil {
