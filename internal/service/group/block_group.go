@@ -1,6 +1,6 @@
 package group
 
 type BlockGroup struct {
-	Start int `json:"start"`
-	End   int `json:"end"`
+	Start uint `json:"start"`
+	End   uint `json:"end"`
 }

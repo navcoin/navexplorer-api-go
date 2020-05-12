@@ -22,7 +22,7 @@ type CfundVoteAddress struct {
 	Abstain int    `json:"abstain"`
 }
 
-func NewCfundVote(cycle int, start int, end int) *CfundVote {
+func NewCfundVote(cycle int, start uint, end uint) *CfundVote {
 	return &CfundVote{
 		BlockGroup: group.BlockGroup{Start: start, End: end},
 		Cycle:      cycle,

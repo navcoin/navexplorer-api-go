@@ -361,13 +361,13 @@ func (r *LegacyResource) GetProposals(c *gin.Context) {
 	statusString := c.DefaultQuery("status", "")
 
 	if statusString != "" {
-		if valid := explorer.ProposalStatusIsValid(statusString); valid == false {
+		if valid := explorer.IsProposalStatusValid(statusString); valid == false {
 			handleError(c, errors.New(fmt.Sprintf("Invalid Status(%s)", statusString)), http.StatusBadRequest)
 			return
 		}
 	}
 
-	status := explorer.GetStatusByStatus(statusString)
+	status := explorer.GetProposalStatusByStatus(statusString)
 	proposals, total, err := r.daoService.GetProposals(&status, config)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
@@ -451,13 +451,13 @@ func (r *LegacyResource) GetPaymentRequestsByState(c *gin.Context) {
 
 	statusString := c.DefaultQuery("status", "")
 	if statusString != "" {
-		if valid := explorer.PaymentRequestStatusIsValid(statusString); valid == false {
+		if valid := explorer.IsPaymentRequestStatusValid(statusString); valid == false {
 			handleError(c, errors.New(fmt.Sprintf("Invalid Status(%s)", statusString)), http.StatusBadRequest)
 			return
 		}
 	}
 
-	status := explorer.PaymentRequestStatus(statusString)
+	status := explorer.GetPaymentRequestStatusByStatus(statusString)
 	paymentRequests, total, err := r.daoService.GetPaymentRequests(&status, config)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)

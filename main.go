@@ -64,7 +64,10 @@ func main() {
 
 	daoGroup := r.Group("/dao")
 	daoResource := resource.NewDaoResource(container.GetDaoService(), container.GetBlockService())
-	daoGroup.GET("/consensus", daoResource.GetConsensus)
+	daoGroup.GET("/consensus/parameters", daoResource.GetConsensusParameters)
+	daoGroup.GET("/consensus/consultations", daoResource.GetConsensusConsultations)
+	daoGroup.GET("/consultation", daoResource.GetConsultations)
+	daoGroup.GET("/consultation/:hash", daoResource.GetConsultation)
 
 	cfundGroup := daoGroup.Group("/cfund")
 	cfundGroup.GET("/stats", daoResource.GetCfundStats)

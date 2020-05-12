@@ -25,7 +25,7 @@ func NewDaoPaymentRequestRepository(elastic *elastic_cache.Index) *DaoPaymentReq
 func (r *DaoPaymentRequestRepository) PaymentRequests(status *explorer.PaymentRequestStatus, dir bool, size int, page int) ([]*explorer.PaymentRequest, int64, error) {
 	query := elastic.NewBoolQuery()
 	if status != nil {
-		query = query.Must(elastic.NewTermQuery("status.keyword", status))
+		query = query.Must(elastic.NewTermQuery("status.keyword", status.Status))
 	}
 
 	results, err := r.elastic.Client.Search(elastic_cache.PaymentRequestIndex.Get()).

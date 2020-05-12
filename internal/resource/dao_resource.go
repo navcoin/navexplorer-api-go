@@ -9,6 +9,7 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 type DaoResource struct {
@@ -36,7 +37,7 @@ func (r *DaoResource) GetBlockCycle(c *gin.Context) {
 	c.JSON(200, blockCycle)
 }
 
-func (r *DaoResource) GetConsensus(c *gin.Context) {
+func (r *DaoResource) GetConsensusParameters(c *gin.Context) {
 	consensus, err := r.daoService.GetConsensus()
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
@@ -62,14 +63,14 @@ func (r *DaoResource) GetProposals(c *gin.Context) {
 	var status explorer.ProposalStatus
 	statusString := c.DefaultQuery("status", "")
 	if statusString != "" {
-		if valid := explorer.ProposalStatusIsValid(statusString); valid == false {
+		if valid := explorer.IsProposalStatusValid(statusString); valid == false {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": fmt.Sprintf("Invalid Status(%s)", statusString),
 				"status":  http.StatusBadRequest,
 			})
 			return
 		}
-		status = explorer.GetStatusByStatus(statusString)
+		status = explorer.GetProposalStatusByStatus(statusString)
 	}
 
 	proposals, total, err := r.daoService.GetProposals(&status, config)
@@ -133,7 +134,7 @@ func (r *DaoResource) GetPaymentRequests(c *gin.Context) {
 
 	statusString := c.DefaultQuery("status", "")
 	if statusString != "" {
-		if valid := explorer.PaymentRequestStatusIsValid(statusString); valid == false {
+		if valid := explorer.IsPaymentRequestStatusValid(statusString); valid == false {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": fmt.Sprintf("Invalid Status(%s)", statusString),
 				"status":  http.StatusBadRequest,
@@ -142,7 +143,7 @@ func (r *DaoResource) GetPaymentRequests(c *gin.Context) {
 		}
 	}
 
-	status := explorer.PaymentRequestStatus(statusString)
+	status := explorer.GetPaymentRequestStatusByStatus(statusString)
 	paymentRequests, total, err := r.daoService.GetPaymentRequests(&status, config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
@@ -213,4 +214,64 @@ func (r *DaoResource) GetPaymentRequestTrend(c *gin.Context) {
 	}
 
 	c.JSON(200, trend)
+}
+
+func (r *DaoResource) GetConsultations(c *gin.Context) {
+	config := pagination.GetConfig(c)
+
+	state, err := strconv.Atoi(c.DefaultQuery("state", "0"))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	if valid := explorer.IsConsultationStateValid(uint(state)); valid == false {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": fmt.Sprintf("Invalid Consultation State(%d)", state),
+			"status":  http.StatusBadRequest,
+		})
+		return
+	}
+	consultations, total, err := r.daoService.GetConsultations(explorer.GetConsultationStatusByState(uint(state)), config)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	paginator := pagination.NewPaginator(len(consultations), total, config)
+	paginator.WriteHeader(c)
+
+	c.JSON(200, consultations)
+}
+
+func (r *DaoResource) GetConsultation(c *gin.Context) {
+	proposal, err := r.daoService.GetConsultation(c.Param("hash"))
+
+	if err == repository.ErrConsultationNotFound {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
+		return
+	}
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, proposal)
+}
+
+func (r *DaoResource) GetConsensusConsultations(c *gin.Context) {
+	config := pagination.GetConfig(c)
+	config.Size = 5000
+
+	consultations, total, err := r.daoService.GetConsensusConsultations(config)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	paginator := pagination.NewPaginator(len(consultations), total, config)
+	paginator.WriteHeader(c)
+
+	c.JSON(200, consultations)
 }

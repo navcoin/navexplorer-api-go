@@ -13,6 +13,7 @@ type Service struct {
 	consensusService           *consensus.Service
 	proposalRepository         *repository.DaoProposalRepository
 	paymentRequestRepository   *repository.DaoPaymentRequestRepository
+	consultationRepository     *repository.DaoConsultationRepository
 	consensusRepository        *repository.DaoConsensusRepository
 	voteRepository             *repository.DaoVoteRepository
 	blockRepository            *repository.BlockRepository
@@ -23,6 +24,7 @@ func NewDaoService(
 	consensusService *consensus.Service,
 	proposalRepository *repository.DaoProposalRepository,
 	paymentRequestRepository *repository.DaoPaymentRequestRepository,
+	consultationRepository *repository.DaoConsultationRepository,
 	consensusRepository *repository.DaoConsensusRepository,
 	voteRepository *repository.DaoVoteRepository,
 	blockRepository *repository.BlockRepository,
@@ -32,6 +34,7 @@ func NewDaoService(
 		consensusService,
 		proposalRepository,
 		paymentRequestRepository,
+		consultationRepository,
 		consensusRepository,
 		voteRepository,
 		blockRepository,
@@ -39,28 +42,11 @@ func NewDaoService(
 	}
 }
 
-func (s *Service) GetBlockCycle(height uint64) *entity.BlockCycle {
-	size := s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value
-	cycle := explorer.GetCycleForHeight(height, size)
-
-	bc := &entity.BlockCycle{
-		Cycle:         cycle,
-		BlocksInCycle: size,
-		FirstBlock:    (cycle * size) - size,
-		CurrentBlock:  int(height),
-	}
-	bc.BlocksRemaining = bc.BlocksInCycle + bc.FirstBlock - bc.CurrentBlock - 1
-
-	return bc
-}
-
 func (s *Service) GetBlockCycleByHeight(height uint64) (*entity.LegacyBlockCycle, error) {
 	return s.GetBlockCycleByBlock(&explorer.Block{RawBlock: explorer.RawBlock{Height: height}})
 }
 
 func (s *Service) GetBlockCycleByBlock(block *explorer.Block) (*entity.LegacyBlockCycle, error) {
-	bc := block.BlockCycle(s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value)
-
 	blockCycle := &entity.LegacyBlockCycle{
 		BlocksInCycle: uint(s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value),
 		ProposalVoting: entity.Voting{
@@ -75,8 +61,8 @@ func (s *Service) GetBlockCycleByBlock(block *explorer.Block) (*entity.LegacyBlo
 			Accept: uint(s.consensusService.GetParameter(consensus.PAYMENT_REQUEST_MIN_ACCEPT).Value),
 			Reject: uint(s.consensusService.GetParameter(consensus.PAYMENT_REQUEST_MIN_REJECT).Value),
 		},
-		Cycle:      uint(bc.Cycle),
-		FirstBlock: uint((bc.Cycle * bc.Size) - bc.Size),
+		Cycle:      block.BlockCycle.Cycle,
+		FirstBlock: (block.BlockCycle.Cycle * block.BlockCycle.Size) - block.BlockCycle.Size,
 	}
 	blockCycle.CurrentBlock = uint(block.Height)
 	blockCycle.BlocksRemaining = blockCycle.BlocksInCycle + blockCycle.FirstBlock - blockCycle.CurrentBlock - 1
@@ -116,11 +102,16 @@ func (s *Service) GetProposal(hash string) (*explorer.Proposal, error) {
 	return s.proposalRepository.Proposal(hash)
 }
 
-func (s *Service) GetVotingCycles(element explorer.ChainHeight, max int) ([]*entity.VotingCycle, error) {
+func (s *Service) GetVotingCycles(element explorer.ChainHeight, max uint) ([]*entity.VotingCycle, error) {
+	block, err := s.blockRepository.BlockByHeight(element.GetHeight())
+	if err != nil {
+		return nil, err
+	}
+
 	return entity.CreateVotingCycles(
-		s.consensusService.GetParameter(consensus.PROPOSAL_MAX_VOTING_CYCLES).Value,
-		s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value,
-		s.GetBlockCycle(element.GetHeight()).FirstBlock,
+		uint(s.consensusService.GetParameter(consensus.PROPOSAL_MAX_VOTING_CYCLES).Value),
+		uint(s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value),
+		uint(block.Height)-block.BlockCycle.Index,
 		max,
 	), nil
 }
@@ -159,7 +150,7 @@ func (s *Service) GetProposalTrend(hash string) ([]*entity.CfundTrend, error) {
 		return nil, err
 	}
 
-	size := s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value
+	size := uint(s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value)
 
 	cfundVotes, err := s.voteRepository.GetVotes(
 		explorer.ProposalVote,
@@ -211,7 +202,7 @@ func (s *Service) GetPaymentRequestVotes(hash string) ([]*entity.CfundVote, erro
 		return nil, err
 	}
 
-	max, err := s.getMax(string(paymentRequest.Status), paymentRequest.StateChangedOnBlock)
+	max, err := s.getMax(paymentRequest.Status, paymentRequest.StateChangedOnBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -231,12 +222,12 @@ func (s *Service) GetPaymentRequestTrend(hash string) ([]*entity.CfundTrend, err
 		return nil, err
 	}
 
-	max, err := s.getMax(string(paymentRequest.Status), paymentRequest.StateChangedOnBlock)
+	max, err := s.getMax(paymentRequest.Status, paymentRequest.StateChangedOnBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	size := s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value
+	size := uint(s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value)
 
 	cfundVotes, err := s.voteRepository.GetVotes(
 		explorer.PaymentRequestVote,
@@ -268,7 +259,19 @@ func (s *Service) GetPaymentRequestTrend(hash string) ([]*entity.CfundTrend, err
 	return cfundTrends, nil
 }
 
-func (s *Service) getMax(status string, stateChangedOnBlock string) (int, error) {
+func (s *Service) GetConsultations(status explorer.ConsultationStatus, config *pagination.Config) ([]*explorer.Consultation, int64, error) {
+	return s.consultationRepository.Consultations(status, config.Dir, config.Size, config.Page)
+}
+
+func (s *Service) GetConsultation(hash string) (*explorer.Consultation, error) {
+	return s.consultationRepository.Consultation(hash)
+}
+
+func (s *Service) GetConsensusConsultations(config *pagination.Config) ([]*explorer.Consultation, int64, error) {
+	return s.consultationRepository.ConsensusConsultations(config.Dir, config.Size, config.Page)
+}
+
+func (s *Service) getMax(status string, stateChangedOnBlock string) (uint, error) {
 	var block *explorer.Block
 	var err error
 
@@ -283,5 +286,5 @@ func (s *Service) getMax(status string, stateChangedOnBlock string) (int, error)
 	}
 
 	log.Info("max ", block.Height)
-	return int(block.Height), nil
+	return uint(block.Height), nil
 }

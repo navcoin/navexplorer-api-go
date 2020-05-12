@@ -11,12 +11,12 @@ type VotingCycle struct {
 	Index int
 }
 
-func CreateVotingCycles(segments int, size int, firstBlock int, maxStart int) []*VotingCycle {
+func CreateVotingCycles(segments uint, size uint, firstBlock uint, maxStart uint) []*VotingCycle {
 	log.WithFields(log.Fields{"segments": segments, "size": size, "firstBlock": firstBlock, "maxStart": maxStart}).Info("CreateVotingCycles")
 
 	votingCycles := make([]*VotingCycle, 0)
 
-	for i := 0; i <= segments-1; i++ {
+	for i := 0; i <= int(segments)-1; i++ {
 		votingCycle := &VotingCycle{Index: i}
 		if i == 0 {
 			votingCycle.Start = firstBlock
