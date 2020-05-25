@@ -1,8 +1,8 @@
 package resource
 
 import (
+	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -18,9 +18,9 @@ func NewAddressResource(addressService *address.Service) *AddressResource {
 }
 
 func (r *AddressResource) GetAddresses(c *gin.Context) {
-	config := pagination.GetConfig(c)
+	config, _ := pagination.Bind(c)
 
-	addresses, total, err := r.addressService.GetAddresses(pagination.GetConfig(c))
+	addresses, total, err := r.addressService.GetAddresses(config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -47,7 +47,7 @@ func (r *AddressResource) GetAddress(c *gin.Context) {
 }
 
 func (r *AddressResource) GetTransactions(c *gin.Context) {
-	config := pagination.GetConfig(c)
+	config, _ := pagination.Bind(c)
 
 	txs, total, err := r.addressService.GetTransactions(c.Param("hash"), strings.Join(getFilters(c), " "), false, config)
 	if err != nil {
@@ -62,7 +62,7 @@ func (r *AddressResource) GetTransactions(c *gin.Context) {
 }
 
 func (r *AddressResource) GetColdTransactions(c *gin.Context) {
-	config := pagination.GetConfig(c)
+	config, _ := pagination.Bind(c)
 
 	filters := make([]string, 0)
 	if filtersParam := c.DefaultQuery("filters", ""); filtersParam != "" {
