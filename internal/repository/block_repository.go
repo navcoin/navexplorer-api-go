@@ -87,6 +87,7 @@ func (r *BlockRepository) Blocks(asc bool, size int, page int) ([]*explorer.Bloc
 		Sort("height", asc).
 		From((page * size) - size).
 		Size(size).
+		TrackTotalHits(true).
 		Do(context.Background())
 	if err != nil {
 		return nil, 0, err
