@@ -2,8 +2,8 @@ package resource
 
 import (
 	"fmt"
+	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
@@ -29,6 +29,16 @@ func (r *BlockResource) GetBestBlock(c *gin.Context) {
 	}
 
 	c.JSON(200, b.Height)
+}
+
+func (r *BlockResource) GetBestBlockCycle(c *gin.Context) {
+	b, err := r.blockService.GetBestBlock()
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, b.BlockCycle)
 }
 
 func (r *BlockResource) GetBlockGroups(c *gin.Context) {
@@ -90,15 +100,15 @@ func (r *BlockResource) GetBlockCycle(c *gin.Context) {
 }
 
 func (r *BlockResource) GetBlocks(c *gin.Context) {
-	paginationConfig := pagination.GetConfig(c)
+	config, _ := pagination.Bind(c)
 
-	blocks, total, err := r.blockService.GetBlocks(pagination.GetConfig(c))
+	blocks, total, err := r.blockService.GetBlocks(config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
 	}
 
-	paginator := pagination.NewPaginator(len(blocks), total, paginationConfig)
+	paginator := pagination.NewPaginator(len(blocks), total, config)
 	paginator.WriteHeader(c)
 
 	c.JSON(200, blocks)

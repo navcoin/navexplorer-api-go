@@ -49,6 +49,7 @@ func main() {
 
 	blockResource := resource.NewBlockResource(container.GetBlockService(), container.GetDaoService())
 	r.GET("/bestblock", blockResource.GetBestBlock)
+	r.GET("/blockcycle", blockResource.GetBestBlockCycle)
 	r.GET("/blockgroup", blockResource.GetBlockGroups)
 	r.GET("/block", blockResource.GetBlocks)
 	r.GET("/block/:hash", blockResource.GetBlock)
@@ -65,7 +66,7 @@ func main() {
 	daoGroup := r.Group("/dao")
 	daoResource := resource.NewDaoResource(container.GetDaoService(), container.GetBlockService())
 	daoGroup.GET("/consensus/parameters", daoResource.GetConsensusParameters)
-	daoGroup.GET("/consensus/consultations", daoResource.GetConsensusConsultations)
+	daoGroup.GET("/consensus/parameters/:id", daoResource.GetConsensusParameter)
 	daoGroup.GET("/consultation", daoResource.GetConsultations)
 	daoGroup.GET("/consultation/:hash", daoResource.GetConsultation)
 
@@ -129,12 +130,10 @@ func includeLegacyApiEndpoints(r *gin.Engine) {
 
 	api.GET("/community-fund/block-cycle", legacyResource.GetBlockCycle)
 	api.GET("/community-fund/stats", legacyResource.GetCfundStats)
-	api.GET("/community-fund/proposal", legacyResource.GetProposals)
 	api.GET("/community-fund/proposal/:hash", legacyResource.GetProposal)
 	api.GET("/community-fund/proposal/:hash/trend", legacyResource.GetProposalVotingTrend)
 	api.GET("/community-fund/proposal/:hash/vote/:vote", legacyResource.GetProposalVotes)
 	api.GET("/community-fund/proposal/:hash/payment-request", legacyResource.GetPaymentRequestsForProposal)
-	api.GET("/community-fund/payment-request", legacyResource.GetPaymentRequestsByState)
 	api.GET("/community-fund/payment-request/:hash", legacyResource.GetPaymentRequestByHash)
 	api.GET("/community-fund/payment-request/:hash/trend", legacyResource.GetPaymentRequestVotingTrend)
 	api.GET("/community-fund/payment-request/:hash/vote/:vote", legacyResource.GetPaymentRequestVotes)

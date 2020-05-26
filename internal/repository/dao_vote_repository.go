@@ -33,8 +33,8 @@ func (r *DaoVoteRepository) GetVotes(voteType explorer.VoteType, hash string, vo
 
 			voteAgg := elastic.NewFilterAggregation().Filter(voteQuery)
 			voteAgg.SubAggregation("yes", elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("votes.vote", 1)))
-			voteAgg.SubAggregation("abstain", elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("votes.vote", 0)))
-			voteAgg.SubAggregation("no", elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("votes.vote", -1)))
+			voteAgg.SubAggregation("abstain", elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("votes.vote", -1)))
+			voteAgg.SubAggregation("no", elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("votes.vote", 0)))
 
 			votesAgg := elastic.NewNestedAggregation().Path("votes")
 			votesAgg.SubAggregation("vote", voteAgg)

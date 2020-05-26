@@ -22,19 +22,11 @@ func (s *Service) GetParameters() (*explorer.ConsensusParameters, error) {
 		log.Fatal("No network specified to get consensus parameters")
 	}
 
-	parameters := param.GetNetworkParam(network, "consensus", nil)
-	if parameters != nil {
-		return parameters.(*explorer.ConsensusParameters), nil
-	}
-
 	p, err := s.consensusRepository.GetConsensusParameters(network)
 	if err != nil {
 		log.WithError(err).Error("Failed to get consensus parameters")
 		return nil, err
 	}
-	log.Info(p.Get(1))
-
-	param.SetNetworkParam(network, "consensus", p)
 
 	return p, nil
 }

@@ -1,23 +1,23 @@
 package resource
 
 import (
-	"fmt"
+	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
-	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 )
 
 type DaoResource struct {
-	daoService   *dao.Service
+	daoService   service.DaoService
 	blockService *block.Service
 }
 
-func NewDaoResource(daoService *dao.Service, blockService *block.Service) *DaoResource {
+func NewDaoResource(daoService service.DaoService, blockService *block.Service) *DaoResource {
 	return &DaoResource{daoService, blockService}
 }
 
@@ -47,6 +47,33 @@ func (r *DaoResource) GetConsensusParameters(c *gin.Context) {
 	c.JSON(200, consensus.All())
 }
 
+func (r *DaoResource) GetConsensusParameter(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		log.WithError(err).Error("Invalid consensus parameter")
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Consensus Parameter not provided", "status": http.StatusBadRequest,
+		})
+		return
+	}
+
+	consensus, err := r.daoService.GetConsensus()
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	parameter := consensus.Get(id)
+	if parameter == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"message": "Consensus parameter not found", "status": http.StatusInternalServerError,
+		})
+		return
+	}
+
+	c.JSON(200, parameter)
+}
+
 func (r *DaoResource) GetCfundStats(c *gin.Context) {
 	cfundStats, err := r.daoService.GetCfundStats()
 	if err != nil {
@@ -58,22 +85,18 @@ func (r *DaoResource) GetCfundStats(c *gin.Context) {
 }
 
 func (r *DaoResource) GetProposals(c *gin.Context) {
-	config := pagination.GetConfig(c)
+	config, _ := pagination.Bind(c)
 
-	var status explorer.ProposalStatus
-	statusString := c.DefaultQuery("status", "")
-	if statusString != "" {
-		if valid := explorer.IsProposalStatusValid(statusString); valid == false {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": fmt.Sprintf("Invalid Status(%s)", statusString),
-				"status":  http.StatusBadRequest,
-			})
-			return
-		}
-		status = explorer.GetProposalStatusByStatus(statusString)
+	var parameters dao.ProposalParameters
+	if err := c.BindQuery(&parameters); err != nil {
+		log.WithError(err).Error("Failed to bind query")
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request", "status": http.StatusBadRequest,
+		})
+		return
 	}
 
-	proposals, total, err := r.daoService.GetProposals(&status, config)
+	proposals, total, err := r.daoService.GetProposals(parameters, config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -130,21 +153,18 @@ func (r *DaoResource) GetProposalTrend(c *gin.Context) {
 }
 
 func (r *DaoResource) GetPaymentRequests(c *gin.Context) {
-	config := pagination.GetConfig(c)
+	config, _ := pagination.Bind(c)
 
-	statusString := c.DefaultQuery("status", "")
-	if statusString != "" {
-		if valid := explorer.IsPaymentRequestStatusValid(statusString); valid == false {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": fmt.Sprintf("Invalid Status(%s)", statusString),
-				"status":  http.StatusBadRequest,
-			})
-			return
-		}
+	var parameters dao.PaymentRequestParameters
+	if err := c.BindQuery(&parameters); err != nil {
+		log.WithError(err).Error("Failed to bind query")
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request", "status": http.StatusBadRequest,
+		})
+		return
 	}
 
-	status := explorer.GetPaymentRequestStatusByStatus(statusString)
-	paymentRequests, total, err := r.daoService.GetPaymentRequests(&status, config)
+	paymentRequests, total, err := r.daoService.GetPaymentRequests(parameters, config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -204,7 +224,7 @@ func (r *DaoResource) GetPaymentRequestVotes(c *gin.Context) {
 
 func (r *DaoResource) GetPaymentRequestTrend(c *gin.Context) {
 	trend, err := r.daoService.GetPaymentRequestTrend(c.Param("hash"))
-	if err == repository.ErrProposalNotFound {
+	if err == repository.ErrPaymentRequestNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
 	}
@@ -217,22 +237,18 @@ func (r *DaoResource) GetPaymentRequestTrend(c *gin.Context) {
 }
 
 func (r *DaoResource) GetConsultations(c *gin.Context) {
-	config := pagination.GetConfig(c)
+	config, _ := pagination.Bind(c)
 
-	state, err := strconv.Atoi(c.DefaultQuery("state", "0"))
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
-		return
-	}
-
-	if valid := explorer.IsConsultationStateValid(uint(state)); valid == false {
+	var parameters dao.ConsultationParameters
+	if err := c.BindQuery(&parameters); err != nil {
+		log.WithError(err).Error("Failed to bind query")
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": fmt.Sprintf("Invalid Consultation State(%d)", state),
-			"status":  http.StatusBadRequest,
+			"message": "Invalid request", "status": http.StatusBadRequest,
 		})
 		return
 	}
-	consultations, total, err := r.daoService.GetConsultations(explorer.GetConsultationStatusByState(uint(state)), config)
+
+	consultations, total, err := r.daoService.GetConsultations(parameters, config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -258,20 +274,4 @@ func (r *DaoResource) GetConsultation(c *gin.Context) {
 	}
 
 	c.JSON(200, proposal)
-}
-
-func (r *DaoResource) GetConsensusConsultations(c *gin.Context) {
-	config := pagination.GetConfig(c)
-	config.Size = 5000
-
-	consultations, total, err := r.daoService.GetConsensusConsultations(config)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
-		return
-	}
-
-	paginator := pagination.NewPaginator(len(consultations), total, config)
-	paginator.WriteHeader(c)
-
-	c.JSON(200, consultations)
 }

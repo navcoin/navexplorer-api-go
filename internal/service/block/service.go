@@ -1,8 +1,8 @@
 package block
 
 import (
+	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block/entity"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
@@ -50,7 +50,7 @@ func (s *Service) GetRawBlock(hash string) (*explorer.RawBlock, error) {
 }
 
 func (s *Service) GetBlocks(config *pagination.Config) ([]*explorer.Block, int64, error) {
-	return s.blockRepo.Blocks(config.Dir, config.Size, config.Page)
+	return s.blockRepo.Blocks(config.Ascending, config.Size, config.Page)
 }
 
 func (s *Service) GetTransactions(blockHash string) ([]*explorer.BlockTransaction, error) {

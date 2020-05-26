@@ -1,8 +1,8 @@
 package dao
 
 import (
+	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao/entity"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
@@ -18,6 +18,24 @@ type Service struct {
 	voteRepository             *repository.DaoVoteRepository
 	blockRepository            *repository.BlockRepository
 	blockTransactionRepository *repository.BlockTransactionRepository
+}
+
+type ConsultationParameters struct {
+	State     *uint                        `form:"state"`
+	Status    *explorer.ConsultationStatus `form:"-"`
+	Consensus *bool                        `form:"consensus"`
+	Min       *uint                        `form:"min"`
+}
+
+type ProposalParameters struct {
+	State *uint `form:"state"`
+	Votes bool  `form:"votes"`
+}
+
+type PaymentRequestParameters struct {
+	Proposal string `form:"proposal"`
+	State    *uint  `form:"state"`
+	Votes    bool   `form:"votes"`
 }
 
 func NewDaoService(
@@ -94,25 +112,43 @@ func (s *Service) GetCfundStats() (*entity.CfundStats, error) {
 	return cfundStats, nil
 }
 
-func (s *Service) GetProposals(status *explorer.ProposalStatus, config *pagination.Config) ([]*explorer.Proposal, int64, error) {
-	return s.proposalRepository.Proposals(status, config.Dir, config.Size, config.Page)
+func (s *Service) GetProposals(parameters ProposalParameters, config *pagination.Config) ([]*explorer.Proposal, int64, error) {
+	var status *explorer.ProposalStatus
+	if parameters.State != nil && explorer.IsProposalStateValid(*parameters.State) {
+		s := explorer.GetProposalStatusByState(*parameters.State)
+		status = &s
+	}
+
+	return s.proposalRepository.Proposals(status, config.Ascending, config.Size, config.Page)
 }
 
 func (s *Service) GetProposal(hash string) (*explorer.Proposal, error) {
 	return s.proposalRepository.Proposal(hash)
 }
 
-func (s *Service) GetVotingCycles(element explorer.ChainHeight, max uint) ([]*entity.VotingCycle, error) {
+func (s *Service) GetVotingCycles(element explorer.ChainHeight, count uint) ([]*entity.VotingCycle, error) {
+	log.Infof("GetVotingCycles for %T", element)
+
 	block, err := s.blockRepository.BlockByHeight(element.GetHeight())
 	if err != nil {
 		return nil, err
 	}
 
+	var segments uint
+	switch e := element.(type) {
+	case *explorer.Proposal:
+		segments = uint(s.consensusService.GetParameter(consensus.PROPOSAL_MAX_VOTING_CYCLES).Value) + 2
+	case *explorer.PaymentRequest:
+		segments = uint(s.consensusService.GetParameter(consensus.PAYMENT_REQUEST_MAX_VOTING_CYCLES).Value) + 2
+	default:
+		log.Fatalf("Unable get get Max voting cycles from %T", e)
+	}
+
 	return entity.CreateVotingCycles(
-		uint(s.consensusService.GetParameter(consensus.PROPOSAL_MAX_VOTING_CYCLES).Value),
+		segments,
 		uint(s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value),
 		uint(block.Height)-block.BlockCycle.Index,
-		max,
+		count+1,
 	), nil
 }
 
@@ -124,12 +160,7 @@ func (s *Service) GetProposalVotes(hash string) ([]*entity.CfundVote, error) {
 		return nil, err
 	}
 
-	max, err := s.getMax(proposal.Status, proposal.StateChangedOnBlock)
-	if err != nil {
-		return nil, err
-	}
-
-	votingCycles, err := s.GetVotingCycles(proposal, max)
+	votingCycles, err := s.GetVotingCycles(proposal, proposal.VotingCycle)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +186,7 @@ func (s *Service) GetProposalTrend(hash string) ([]*entity.CfundTrend, error) {
 	cfundVotes, err := s.voteRepository.GetVotes(
 		explorer.ProposalVote,
 		proposal.Hash,
-		entity.CreateVotingCycles(10, size/10, max-size, 0),
+		entity.CreateVotingCycles(10, size/10, max-size+1, 10),
 	)
 	if err != nil {
 		return nil, err
@@ -182,8 +213,19 @@ func (s *Service) GetProposalTrend(hash string) ([]*entity.CfundTrend, error) {
 	return cfundTrends, nil
 }
 
-func (s *Service) GetPaymentRequests(status *explorer.PaymentRequestStatus, config *pagination.Config) ([]*explorer.PaymentRequest, int64, error) {
-	return s.paymentRequestRepository.PaymentRequests(status, config.Dir, config.Size, config.Page)
+func (s *Service) GetPaymentRequests(parameters PaymentRequestParameters, config *pagination.Config) ([]*explorer.PaymentRequest, int64, error) {
+	var status *explorer.PaymentRequestStatus
+	if parameters.State != nil && explorer.IsPaymentRequestStateValid(*parameters.State) {
+		s := explorer.GetPaymentRequestStatusByState(*parameters.State)
+		status = &s
+	}
+
+	var proposalHash string
+	if parameters.Proposal != "" {
+		proposalHash = parameters.Proposal
+	}
+
+	return s.paymentRequestRepository.PaymentRequests(proposalHash, status, config.Ascending, config.Size, config.Page)
 }
 
 func (s *Service) GetPaymentRequestsForProposal(proposal *explorer.Proposal) ([]*explorer.PaymentRequest, error) {
@@ -202,12 +244,7 @@ func (s *Service) GetPaymentRequestVotes(hash string) ([]*entity.CfundVote, erro
 		return nil, err
 	}
 
-	max, err := s.getMax(paymentRequest.Status, paymentRequest.StateChangedOnBlock)
-	if err != nil {
-		return nil, err
-	}
-
-	votingCycles, err := s.GetVotingCycles(paymentRequest, max)
+	votingCycles, err := s.GetVotingCycles(paymentRequest, paymentRequest.VotingCycle)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +269,7 @@ func (s *Service) GetPaymentRequestTrend(hash string) ([]*entity.CfundTrend, err
 	cfundVotes, err := s.voteRepository.GetVotes(
 		explorer.PaymentRequestVote,
 		paymentRequest.Hash,
-		entity.CreateVotingCycles(10, size/10, max-size, 0),
+		entity.CreateVotingCycles(10, size/10, max-size, 10),
 	)
 	if err != nil {
 		return nil, err
@@ -259,8 +296,13 @@ func (s *Service) GetPaymentRequestTrend(hash string) ([]*entity.CfundTrend, err
 	return cfundTrends, nil
 }
 
-func (s *Service) GetConsultations(status explorer.ConsultationStatus, config *pagination.Config) ([]*explorer.Consultation, int64, error) {
-	return s.consultationRepository.Consultations(status, config.Dir, config.Size, config.Page)
+func (s *Service) GetConsultations(parameters ConsultationParameters, config *pagination.Config) ([]*explorer.Consultation, int64, error) {
+	if parameters.State != nil && explorer.IsConsultationStateValid(*parameters.State) {
+		s := explorer.GetConsultationStatusByState(*parameters.State)
+		parameters.Status = &s
+	}
+
+	return s.consultationRepository.Consultations(parameters.Status, parameters.Consensus, parameters.Min, config.Ascending, config.Size, config.Page)
 }
 
 func (s *Service) GetConsultation(hash string) (*explorer.Consultation, error) {
@@ -268,7 +310,7 @@ func (s *Service) GetConsultation(hash string) (*explorer.Consultation, error) {
 }
 
 func (s *Service) GetConsensusConsultations(config *pagination.Config) ([]*explorer.Consultation, int64, error) {
-	return s.consultationRepository.ConsensusConsultations(config.Dir, config.Size, config.Page)
+	return s.consultationRepository.ConsensusConsultations(config.Ascending, config.Size, config.Page)
 }
 
 func (s *Service) getMax(status string, stateChangedOnBlock string) (uint, error) {

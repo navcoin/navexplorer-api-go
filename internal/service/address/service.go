@@ -1,8 +1,8 @@
 package address
 
 import (
+	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address/entity"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"time"
@@ -38,7 +38,7 @@ func (s *Service) GetAddresses(config *pagination.Config) ([]*explorer.Address, 
 }
 
 func (s *Service) GetTransactions(hash string, types string, cold bool, config *pagination.Config) ([]*explorer.AddressTransaction, int64, error) {
-	return s.addressTransactionRepository.TransactionsByHash(hash, types, cold, config.Dir, config.Size, config.Page)
+	return s.addressTransactionRepository.TransactionsByHash(hash, types, cold, config.Ascending, config.Size, config.Page)
 }
 
 func (s *Service) GetBalanceChart(address string) (entity.Chart, error) {

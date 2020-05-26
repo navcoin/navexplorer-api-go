@@ -3,8 +3,8 @@ package pagination
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 	"math"
-	"strconv"
 )
 
 type Paginator struct {
@@ -18,25 +18,19 @@ type Paginator struct {
 }
 
 type Config struct {
-	Dir  bool
-	Size int
-	Page int
+	Ascending bool `form:"ascending,default=false"`
+	Size      int  `form:"size,default=10"`
+	Page      int  `form:"page,default=1"`
 }
 
-func GetConfig(c *gin.Context) *Config {
-	dir := c.DefaultQuery("dir", "DESC") == "ASC"
-
-	size, err := strconv.Atoi(c.DefaultQuery("size", "10"))
-	if err != nil {
-		size = 10
+func Bind(c *gin.Context) (*Config, error) {
+	var config Config
+	if err := c.BindQuery(&config); err != nil {
+		log.WithError(err).Error("Failed to Bind pagination")
+		return nil, err
 	}
 
-	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if err != nil {
-		page = 1
-	}
-
-	return &Config{dir, size, page}
+	return &config, nil
 }
 
 func NewPaginator(elements int, total int64, config *Config) Paginator {

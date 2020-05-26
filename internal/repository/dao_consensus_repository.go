@@ -25,6 +25,7 @@ func NewDaoConsensusRepository(elastic *elastic_cache.Index) *DaoConsensusReposi
 func (r *DaoConsensusRepository) GetConsensusParameters(network string) (*explorer.ConsensusParameters, error) {
 	results, err := r.elastic.Client.Search(fmt.Sprintf("%s.%s", network, elastic_cache.ConsensusIndex)).
 		Size(1000).
+		Sort("id", true).
 		Do(context.Background())
 	if err != nil || results == nil {
 		raven.CaptureError(err, nil)

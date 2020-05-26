@@ -3,8 +3,8 @@ package resource
 import (
 	"errors"
 	"fmt"
+	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/internal/resource/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/coin"
@@ -61,9 +61,9 @@ func (r *LegacyResource) GetAddress(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetAddresses(c *gin.Context) {
-	config := pagination.GetConfig(c)
+	config, _ := pagination.Bind(c)
 
-	a, total, err := r.addressService.GetAddresses(pagination.GetConfig(c))
+	a, total, err := r.addressService.GetAddresses(config)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -76,7 +76,7 @@ func (r *LegacyResource) GetAddresses(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetTransactions(c *gin.Context) {
-	config := pagination.GetConfig(c)
+	config, _ := pagination.Bind(c)
 
 	txs, total, err := r.addressService.GetTransactions(c.Param("hash"), strings.Join(getFilters(c), " "), false, config)
 	if err != nil {
@@ -91,7 +91,7 @@ func (r *LegacyResource) GetTransactions(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetColdTransactions(c *gin.Context) {
-	config := pagination.GetConfig(c)
+	config, _ := pagination.Bind(c)
 
 	txs, total, err := r.addressService.GetTransactions(c.Param("hash"), strings.Join(getFilters(c), " "), true, config)
 	if err != nil {
@@ -217,7 +217,7 @@ func (r *LegacyResource) GetBlockGroups(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetBlocks(c *gin.Context) {
-	config := pagination.GetConfig(c)
+	config, _ := pagination.Bind(c)
 
 	blocks, total, err := r.blockService.GetBlocks(config)
 	if err != nil {
@@ -355,31 +355,6 @@ func (r *LegacyResource) GetCfundStats(c *gin.Context) {
 	c.JSON(200, cfundStats)
 }
 
-func (r *LegacyResource) GetProposals(c *gin.Context) {
-	config := pagination.GetConfig(c)
-
-	statusString := c.DefaultQuery("status", "")
-
-	if statusString != "" {
-		if valid := explorer.IsProposalStatusValid(statusString); valid == false {
-			handleError(c, errors.New(fmt.Sprintf("Invalid Status(%s)", statusString)), http.StatusBadRequest)
-			return
-		}
-	}
-
-	status := explorer.GetProposalStatusByStatus(statusString)
-	proposals, total, err := r.daoService.GetProposals(&status, config)
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	paginator := pagination.NewPaginator(len(proposals), total, config)
-	paginator.WriteHeader(c)
-
-	c.JSON(200, proposals)
-}
-
 func (r *LegacyResource) GetProposal(c *gin.Context) {
 	proposal, err := r.daoService.GetProposal(c.Param("hash"))
 	if err == repository.ErrProposalNotFound {
@@ -442,30 +417,6 @@ func (r *LegacyResource) GetPaymentRequestsForProposal(c *gin.Context) {
 		handleError(c, err, http.StatusInternalServerError)
 		return
 	}
-
-	c.JSON(200, paymentRequests)
-}
-
-func (r *LegacyResource) GetPaymentRequestsByState(c *gin.Context) {
-	config := pagination.GetConfig(c)
-
-	statusString := c.DefaultQuery("status", "")
-	if statusString != "" {
-		if valid := explorer.IsPaymentRequestStatusValid(statusString); valid == false {
-			handleError(c, errors.New(fmt.Sprintf("Invalid Status(%s)", statusString)), http.StatusBadRequest)
-			return
-		}
-	}
-
-	status := explorer.GetPaymentRequestStatusByStatus(statusString)
-	paymentRequests, total, err := r.daoService.GetPaymentRequests(&status, config)
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	paginator := pagination.NewPaginator(len(paymentRequests), total, config)
-	paginator.WriteHeader(c)
 
 	c.JSON(200, paymentRequests)
 }
