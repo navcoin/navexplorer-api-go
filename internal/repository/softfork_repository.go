@@ -16,7 +16,10 @@ func NewSoftForkRepository(elastic *elastic_cache.Index) *SoftForkRepository {
 }
 
 func (r *SoftForkRepository) SoftForks() ([]*explorer.SoftFork, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.SoftForkIndex.Get()).Size(9999).Do(context.Background())
+	results, err := r.elastic.Client.Search(elastic_cache.SoftForkIndex.Get()).
+		Size(9999).
+		Sort("signalBit", false).
+		Do(context.Background())
 	if err != nil || results.Hits.TotalHits.Value == 0 {
 		return nil, err
 	}
