@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao/entity"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
@@ -26,7 +27,11 @@ func NewDaoProposalRepository(elastic *elastic_cache.Index) *DaoProposalReposito
 func (r *DaoProposalRepository) Proposals(status *explorer.ProposalStatus, dir bool, size int, page int) ([]*explorer.Proposal, int64, error) {
 	query := elastic.NewBoolQuery()
 	if status != nil {
-		query = query.Must(elastic.NewTermQuery("state", status.State))
+		statusQuery := status.Status
+		if *status == explorer.ProposalAccepted {
+			statusQuery = fmt.Sprintf("%s %s", statusQuery, explorer.ProposalPendingVotingPreq.Status)
+		}
+		query = query.Must(elastic.NewMatchQuery("status", statusQuery))
 	}
 
 	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
