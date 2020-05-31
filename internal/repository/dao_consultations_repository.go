@@ -16,6 +16,7 @@ type DaoConsultationRepository struct {
 
 var (
 	ErrConsultationNotFound = errors.New("Consultation not found")
+	ErrAnswerNotFound       = errors.New("Answer not found")
 )
 
 func NewDaoConsultationRepository(elastic *elastic_cache.Index) *DaoConsultationRepository {

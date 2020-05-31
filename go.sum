@@ -4,6 +4,7 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/NavExplorer/navcoind-go v0.1.8-0.20200513131954-44d6cb62cf16/go.mod h1:SkiAvsIfYh0pWBox2yOOiDaPOucS/bayAVkMUNR0Sv0=
 github.com/NavExplorer/navcoind-go v0.1.8-0.20200516202154-f528c63e3a1d/go.mod h1:SkiAvsIfYh0pWBox2yOOiDaPOucS/bayAVkMUNR0Sv0=
 github.com/NavExplorer/navcoind-go v0.1.8-0.20200518235421-aef73039a473/go.mod h1:SkiAvsIfYh0pWBox2yOOiDaPOucS/bayAVkMUNR0Sv0=
+github.com/NavExplorer/navcoind-go v0.1.8-0.20200527214456-804845973a06/go.mod h1:SkiAvsIfYh0pWBox2yOOiDaPOucS/bayAVkMUNR0Sv0=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200513132948-2da7193dae99 h1:frqNMEphRwyfsWFINjeMVmWXeHv8CfwWpf0lcOiSmkQ=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200513132948-2da7193dae99/go.mod h1:57ARY0cfP1M3kBEcsqOGKrhfRS3Fo6vq2IRm6hWwPaM=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200518231923-1329821deb7e h1:wW7zHdzLpArQQGBIYfbsRIolBv3R14v8kdJro933RHk=
@@ -16,6 +17,10 @@ github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200522150658-919c964f50c9
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200522150658-919c964f50c9/go.mod h1:+GMBuVoQV1/Lfdl8/eFkx/oR7QR6+ALM6W9P5u5jIvQ=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200525192618-ed210b7fdbdd h1:FdJ2mDbe2tDxTdLY85AVhEwW1asxXlYCB7Y7DGejgKs=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200525192618-ed210b7fdbdd/go.mod h1:+GMBuVoQV1/Lfdl8/eFkx/oR7QR6+ALM6W9P5u5jIvQ=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200526004957-514840f47465 h1:0t0Uq6IKQ3ylg+jTZU29ZR3nIL1ywNFMUUNxpedPLuU=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200526004957-514840f47465/go.mod h1:+GMBuVoQV1/Lfdl8/eFkx/oR7QR6+ALM6W9P5u5jIvQ=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200531215233-a3474653be41 h1:DS2OCbJZOtw7xdxca3TosL7qDQuq5fTIwOpd1sk4lUk=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200531215233-a3474653be41/go.mod h1:eOcjkgLFcoZitBif2Q4HOYFX22wJDdLE/ZxFamhKoRc=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=

@@ -69,6 +69,7 @@ func main() {
 	daoGroup.GET("/consensus/parameters/:id", daoResource.GetConsensusParameter)
 	daoGroup.GET("/consultation", daoResource.GetConsultations)
 	daoGroup.GET("/consultation/:hash", daoResource.GetConsultation)
+	daoGroup.GET("/consultation/:hash/:answer/votes", daoResource.GetAnswerVotes)
 
 	cfundGroup := daoGroup.Group("/cfund")
 	cfundGroup.GET("/stats", daoResource.GetCfundStats)

@@ -140,8 +140,10 @@ func (s *Service) GetVotingCycles(element explorer.ChainHeight, count uint) ([]*
 		segments = uint(s.consensusService.GetParameter(consensus.PROPOSAL_MAX_VOTING_CYCLES).Value) + 2
 	case *explorer.PaymentRequest:
 		segments = uint(s.consensusService.GetParameter(consensus.PAYMENT_REQUEST_MAX_VOTING_CYCLES).Value) + 2
+	case *explorer.Consultation:
+		segments = uint(s.consensusService.GetParameter(consensus.CONSULTATION_MAX_VOTING_CYCLES).Value) + 2
 	default:
-		log.Fatalf("Unable get get Max voting cycles from %T", e)
+		log.Fatalf("Unable to get Max voting cycles from %T", e)
 	}
 
 	return entity.CreateVotingCycles(
@@ -307,6 +309,32 @@ func (s *Service) GetConsultations(parameters ConsultationParameters, config *pa
 
 func (s *Service) GetConsultation(hash string) (*explorer.Consultation, error) {
 	return s.consultationRepository.Consultation(hash)
+}
+
+func (s *Service) GetAnswerVotes(consultationHash string, hash string) ([]*entity.CfundVote, error) {
+	log.Debugf("GetAnswerVotes(hash:%s)", hash)
+
+	consultation, err := s.GetConsultation(consultationHash)
+	if err != nil {
+		return nil, err
+	}
+
+	var answer *explorer.Answer
+	for _, a := range consultation.Answers {
+		if a.Hash == hash {
+			answer = a
+		}
+	}
+	if answer == nil {
+
+	}
+
+	votingCycles, err := s.GetVotingCycles(consultation, uint(consultation.VotingCyclesFromCreation))
+	if err != nil {
+		return nil, err
+	}
+
+	return s.voteRepository.GetVotes(explorer.DaoVote, hash, votingCycles)
 }
 
 func (s *Service) GetConsensusConsultations(config *pagination.Config) ([]*explorer.Consultation, int64, error) {
