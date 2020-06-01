@@ -28,8 +28,8 @@ func (r *AddressTransactionRepository) TransactionsByHash(hash string, types str
 	query = query.Must(elastic.NewTermQuery("cold", cold))
 
 	if len(types) != 0 {
-		if strings.Contains(types, "staking") {
-			types += " cold_staking"
+		if strings.Contains(types, "stake") {
+			types += " cold_stake"
 		}
 		query = query.Must(elastic.NewMatchQuery("type", types))
 	}
