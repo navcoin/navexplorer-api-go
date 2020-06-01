@@ -311,6 +311,10 @@ func (s *Service) GetConsultation(hash string) (*explorer.Consultation, error) {
 	return s.consultationRepository.Consultation(hash)
 }
 
+func (s *Service) GetAnswer(hash string) (*explorer.Answer, error) {
+	return s.consultationRepository.Answer(hash)
+}
+
 func (s *Service) GetAnswerVotes(consultationHash string, hash string) ([]*entity.CfundVote, error) {
 	log.Debugf("GetAnswerVotes(hash:%s)", hash)
 

@@ -25,5 +25,6 @@ type DaoService interface {
 	GetConsultations(parameters dao.ConsultationParameters, config *pagination.Config) ([]*explorer.Consultation, int64, error)
 	GetConsultation(hash string) (*explorer.Consultation, error)
 	GetConsensusConsultations(config *pagination.Config) ([]*explorer.Consultation, int64, error)
+	GetAnswer(hash string) (*explorer.Answer, error)
 	GetAnswerVotes(consultationHash string, hash string) ([]*entity.CfundVote, error)
 }

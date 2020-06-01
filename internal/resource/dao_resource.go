@@ -276,6 +276,22 @@ func (r *DaoResource) GetConsultation(c *gin.Context) {
 	c.JSON(200, proposal)
 }
 
+func (r *DaoResource) GetAnswer(c *gin.Context) {
+	proposal, err := r.daoService.GetAnswer(c.Param("hash"))
+
+	if err == repository.ErrAnswerNotFound {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
+		return
+	}
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, proposal)
+}
+
 func (r *DaoResource) GetAnswerVotes(c *gin.Context) {
 	votes, err := r.daoService.GetAnswerVotes(c.Param("hash"), c.Param("answer"))
 	if err == repository.ErrAnswerNotFound {

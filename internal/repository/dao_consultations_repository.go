@@ -58,6 +58,29 @@ func (r *DaoConsultationRepository) Consultation(hash string) (*explorer.Consult
 	return r.findOne(results, err)
 }
 
+func (r *DaoConsultationRepository) Answer(hash string) (*explorer.Answer, error) {
+	query := elastic.NewTermQuery("answers.hash.keyword", hash)
+	nestedQuery := elastic.NewNestedQuery("answers", query)
+
+	results, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get()).
+		Query(nestedQuery).
+		Size(1).
+		Do(context.Background())
+
+	c, err := r.findOne(results, err)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, a := range c.Answers {
+		if a.Hash == hash {
+			return a, nil
+		}
+	}
+
+	return nil, ErrAnswerNotFound
+}
+
 func (r *DaoConsultationRepository) ConsensusConsultations(dir bool, size int, page int) ([]*explorer.Consultation, int64, error) {
 	result, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get()).
 		Query(elastic.NewTermQuery("consensusParameter", true)).
