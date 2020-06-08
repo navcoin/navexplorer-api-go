@@ -23,6 +23,8 @@ github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200531215233-a3474653be41
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200531215233-a3474653be41/go.mod h1:eOcjkgLFcoZitBif2Q4HOYFX22wJDdLE/ZxFamhKoRc=
 github.com/NavExplorer/subscriber v0.0.0-20200601205031-4135a91491af h1:KWrfS1eDXRPSpY6pyBMGYiqLSIJ08TargSgbFeUTaMA=
 github.com/NavExplorer/subscriber v0.0.0-20200601205031-4135a91491af/go.mod h1:b9UVwdUV1OVGDsOMqOJeu5Rk5SPyOgfHfvM0HH4fvdU=
+github.com/NavExplorer/subscriber v0.0.0-20200601212953-3a6c48dd3d5d h1:4tlsQCkBbil7rexH6A0CGyRh5I7z1QP/ftiFLWP7ADo=
+github.com/NavExplorer/subscriber v0.0.0-20200601212953-3a6c48dd3d5d/go.mod h1:b9UVwdUV1OVGDsOMqOJeu5Rk5SPyOgfHfvM0HH4fvdU=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
@@ -164,6 +166,8 @@ github.com/modern-go/reflect2 v1.0.1 h1:9f412s+6RmYXLWZSEzVVgPGK7C2PphHj5RJrvfx9
 github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
+github.com/olebedev/emitter v0.0.0-20190110104742-e8d1457e6aee h1:IquUs3fIykn10zWDIyddanhpTqBvAHMaPnFhQuyYw5U=
+github.com/olebedev/emitter v0.0.0-20190110104742-e8d1457e6aee/go.mod h1:eT2/Pcsim3XBjbvldGiJBvvgiqZkAFyiOJJsDKXs/ts=
 github.com/olivere/elastic/v7 v7.0.9 h1:+bTR1xJbfLYD8WnTBt9672mFlKxjfWRJpEQ1y8BMS3g=
 github.com/olivere/elastic/v7 v7.0.9/go.mod h1:2TeRd0vhLRTK9zqm5xP0uLiVeZ5yUoL7kZ+8SZA9r9Y=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
@@ -225,6 +229,8 @@ github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnIn
 github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/spf13/viper v1.3.2/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DMA2s=
 github.com/spf13/viper v1.4.0/go.mod h1:PTJ7Z/lr49W6bUbkmS1V3by4uWynFiR9p7+dSq/yZzE=
+github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71 h1:2MR0pKUzlP3SGgj5NYJe/zRYDwOu9ku6YHy+Iw7l5DM=
+github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71/go.mod h1:AZpEONHx3DKn8O/DFsRAY58/XVQiIPMTMB1SddzLXVw=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=

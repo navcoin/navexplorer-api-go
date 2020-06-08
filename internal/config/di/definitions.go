@@ -1,7 +1,9 @@
 package di
 
 import (
+	"github.com/NavExplorer/navexplorer-api-go/internal/config"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
+	"github.com/NavExplorer/navexplorer-api-go/internal/event"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
@@ -64,6 +66,23 @@ var Definitions = []dingo.Def{
 		Name: "block.service",
 		Build: func(blockRepository *repository.BlockRepository, blockTransactionRepository *repository.BlockTransactionRepository) (*block.Service, error) {
 			return block.NewBlockService(blockRepository, blockTransactionRepository), nil
+		},
+	},
+	{
+		Name: "event.consumer",
+		Build: func() (*event.Consumer, error) {
+			return event.NewConsumer(
+				config.Get().RabbitMq.User,
+				config.Get().RabbitMq.Password,
+				config.Get().RabbitMq.Host,
+				config.Get().RabbitMq.Port,
+			), nil
+		},
+	},
+	{
+		Name: "block.subscriber",
+		Build: func(consumer *event.Consumer) (*block.Subscriber, error) {
+			return block.NewBlockSubscriber([]string{"testnet", "mainnet"}, consumer), nil
 		},
 	},
 	{
