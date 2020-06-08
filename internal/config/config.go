@@ -34,6 +34,7 @@ type RabbitMqConfig struct {
 	Password string
 	Host     string
 	Port     int
+	Prefix   string
 }
 
 func Init() {
@@ -63,6 +64,7 @@ func Get() *Config {
 			Password: getString("RABBITMQ_PASSWORD", "user"),
 			Host:     getString("RABBITMQ_HOST", "localhost"),
 			Port:     getInt("RABBITMQ_PORT", 5672),
+			Prefix:   getString("RABBITMQ_PREFIX", os.Getenv("POD_NAME")),
 		},
 	}
 }

@@ -8,16 +8,19 @@ import (
 
 type Consumer struct {
 	address string
+	prefix  string
 }
 
-func NewConsumer(user string, password string, host string, port int) *Consumer {
+func NewConsumer(user string, password string, host string, port int, prefix string) *Consumer {
 	return &Consumer{
 		address: fmt.Sprintf("amqp://%s:%s@%s:%d", user, password, host, port),
+		prefix:  prefix,
 	}
 }
 
 func (c *Consumer) Consume(network string, name string, callback func(msg string)) {
 	xname := fmt.Sprintf("%s.%s", network, name)
+	qname := fmt.Sprintf("%s.%s", xname, c.prefix)
 
 	conn, err := amqp.Dial(c.address)
 	c.handleError(err, "Failed to connect to RabbitMQ")
@@ -30,7 +33,7 @@ func (c *Consumer) Consume(network string, name string, callback func(msg string
 	err = ch.ExchangeDeclare(xname, "fanout", true, false, false, false, nil)
 	c.handleError(err, "Failed to declare an exchange")
 
-	q, err := ch.QueueDeclare("", false, false, false, false, nil)
+	q, err := ch.QueueDeclare(qname, false, false, false, false, nil)
 	c.handleError(err, "Failed to declare a queue")
 
 	err = ch.QueueBind(q.Name, "", xname, false, nil)
