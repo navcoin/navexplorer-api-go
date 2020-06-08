@@ -3,7 +3,6 @@ package resource
 import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/internal/service"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
 	"github.com/gin-gonic/gin"
@@ -13,11 +12,11 @@ import (
 )
 
 type DaoResource struct {
-	daoService   service.DaoService
+	daoService   dao.Service
 	blockService block.Service
 }
 
-func NewDaoResource(daoService service.DaoService, blockService block.Service) *DaoResource {
+func NewDaoResource(daoService dao.Service, blockService block.Service) *DaoResource {
 	return &DaoResource{daoService, blockService}
 }
 

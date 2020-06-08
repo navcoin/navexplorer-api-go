@@ -10,10 +10,10 @@ import (
 )
 
 type AddressResource struct {
-	addressService *address.Service
+	addressService address.Service
 }
 
-func NewAddressResource(addressService *address.Service) *AddressResource {
+func NewAddressResource(addressService address.Service) *AddressResource {
 	return &AddressResource{addressService}
 }
 

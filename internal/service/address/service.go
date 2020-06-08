@@ -8,7 +8,22 @@ import (
 	"time"
 )
 
-type Service struct {
+type Service interface {
+	GetAddress(hash string) (*explorer.Address, error)
+	GetAddresses(config *pagination.Config) ([]*explorer.Address, int64, error)
+	GetTransactions(hash string, types string, cold bool, config *pagination.Config) ([]*explorer.AddressTransaction, int64, error)
+	GetBalanceChart(address string) (entity.Chart, error)
+	GetStakingChart(period string, address string) ([]*entity.StakingGroup, error)
+	GetStakingReport() (*entity.StakingReport, error)
+	GetStakingByBlockCount(blockCount int) (*entity.StakingBlocks, error)
+	GetTransactionsForAddresses(addresses []string, txType string, start *time.Time, end *time.Time) ([]*explorer.AddressTransaction, error)
+	GetAssociatedStakingAddresses(address string) ([]string, error)
+	GetBalancesForAddresses(addresses []string) ([]*entity.Balance, error)
+	GetStakingRewardsForAddresses(addresses []string) ([]*entity.StakingReward, error)
+	ValidateAddress(hash string) (bool, error)
+}
+
+type service struct {
 	addressRepository            *repository.AddressRepository
 	addressTransactionRepository *repository.AddressTransactionRepository
 	blockRepository              *repository.BlockRepository
@@ -20,8 +35,8 @@ func NewAddressService(
 	addressTransactionRepository *repository.AddressTransactionRepository,
 	blockRepository *repository.BlockRepository,
 	blockTransactionRepository *repository.BlockTransactionRepository,
-) *Service {
-	return &Service{
+) Service {
+	return &service{
 		addressRepository,
 		addressTransactionRepository,
 		blockRepository,
@@ -29,27 +44,27 @@ func NewAddressService(
 	}
 }
 
-func (s *Service) GetAddress(hash string) (*explorer.Address, error) {
+func (s *service) GetAddress(hash string) (*explorer.Address, error) {
 	return s.addressRepository.AddressByHash(hash)
 }
 
-func (s *Service) GetAddresses(config *pagination.Config) ([]*explorer.Address, int64, error) {
+func (s *service) GetAddresses(config *pagination.Config) ([]*explorer.Address, int64, error) {
 	return s.addressRepository.Addresses(config.Size, config.Page)
 }
 
-func (s *Service) GetTransactions(hash string, types string, cold bool, config *pagination.Config) ([]*explorer.AddressTransaction, int64, error) {
+func (s *service) GetTransactions(hash string, types string, cold bool, config *pagination.Config) ([]*explorer.AddressTransaction, int64, error) {
 	return s.addressTransactionRepository.TransactionsByHash(hash, types, cold, config.Ascending, config.Size, config.Page)
 }
 
-func (s *Service) GetBalanceChart(address string) (entity.Chart, error) {
+func (s *service) GetBalanceChart(address string) (entity.Chart, error) {
 	return s.addressTransactionRepository.BalanceChart(address)
 }
 
-func (s *Service) GetStakingChart(period string, address string) ([]*entity.StakingGroup, error) {
+func (s *service) GetStakingChart(period string, address string) ([]*entity.StakingGroup, error) {
 	return s.addressTransactionRepository.StakingChart(period, address)
 }
 
-func (s *Service) GetStakingReport() (*entity.StakingReport, error) {
+func (s *service) GetStakingReport() (*entity.StakingReport, error) {
 	report := new(entity.StakingReport)
 	report.To = time.Now().UTC().Truncate(time.Second)
 	report.From = report.To.AddDate(0, 0, -1)
@@ -66,7 +81,7 @@ func (s *Service) GetStakingReport() (*entity.StakingReport, error) {
 	return report, nil
 }
 
-func (s *Service) GetStakingByBlockCount(blockCount int) (*entity.StakingBlocks, error) {
+func (s *service) GetStakingByBlockCount(blockCount int) (*entity.StakingBlocks, error) {
 	bestBlock, err := s.blockRepository.BestBlock()
 	if err != nil {
 		return nil, err
@@ -89,22 +104,22 @@ func (s *Service) GetStakingByBlockCount(blockCount int) (*entity.StakingBlocks,
 	return stakingBlocks, err
 }
 
-func (s *Service) GetTransactionsForAddresses(addresses []string, txType string, start *time.Time, end *time.Time) ([]*explorer.AddressTransaction, error) {
+func (s *service) GetTransactionsForAddresses(addresses []string, txType string, start *time.Time, end *time.Time) ([]*explorer.AddressTransaction, error) {
 	return s.addressTransactionRepository.TransactionsForAddresses(addresses, txType, start, end)
 }
 
-func (s *Service) GetAssociatedStakingAddresses(address string) ([]string, error) {
+func (s *service) GetAssociatedStakingAddresses(address string) ([]string, error) {
 	return s.blockTransactionRepository.AssociatedStakingAddresses(address)
 }
 
-func (s *Service) GetBalancesForAddresses(addresses []string) ([]*entity.Balance, error) {
+func (s *service) GetBalancesForAddresses(addresses []string) ([]*entity.Balance, error) {
 	return s.addressRepository.BalancesForAddresses(addresses)
 }
 
-func (s *Service) GetStakingRewardsForAddresses(addresses []string) ([]*entity.StakingReward, error) {
+func (s *service) GetStakingRewardsForAddresses(addresses []string) ([]*entity.StakingReward, error) {
 	return s.addressTransactionRepository.StakingRewardsForAddresses(addresses)
 }
 
-func (s *Service) ValidateAddress(hash string) (bool, error) {
+func (s *service) ValidateAddress(hash string) (bool, error) {
 	return true, nil
 }

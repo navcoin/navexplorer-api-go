@@ -8,11 +8,11 @@ import (
 )
 
 type SoftForkResource struct {
-	softForkService    *softfork.Service
+	softForkService    softfork.Service
 	softForkRepository *repository.SoftForkRepository
 }
 
-func NewSoftForkResource(softForkService *softfork.Service, softForkRepository *repository.SoftForkRepository) *SoftForkResource {
+func NewSoftForkResource(softForkService softfork.Service, softForkRepository *repository.SoftForkRepository) *SoftForkResource {
 	return &SoftForkResource{softForkService, softForkRepository}
 }
 

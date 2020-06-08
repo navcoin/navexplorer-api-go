@@ -6,16 +6,21 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 )
 
-type Service struct {
+type Service interface {
+	GetCycle() (*entity.SoftForkCycle, error)
+	GetSoftForks() ([]*explorer.SoftFork, error)
+}
+
+type service struct {
 	blockRepo          *repository.BlockRepository
 	softForkRepository *repository.SoftForkRepository
 }
 
-func NewSoftForkService(blockRepo *repository.BlockRepository, softForkRepo *repository.SoftForkRepository) *Service {
-	return &Service{blockRepo, softForkRepo}
+func NewSoftForkService(blockRepo *repository.BlockRepository, softForkRepo *repository.SoftForkRepository) Service {
+	return &service{blockRepo, softForkRepo}
 }
 
-func (s *Service) GetCycle() (*entity.SoftForkCycle, error) {
+func (s *service) GetCycle() (*entity.SoftForkCycle, error) {
 	block, err := s.blockRepo.BestBlock()
 	if err != nil {
 		return nil, err
@@ -34,6 +39,6 @@ func (s *Service) GetCycle() (*entity.SoftForkCycle, error) {
 	return cycle, nil
 }
 
-func (s *Service) GetSoftForks() (softForks []*explorer.SoftFork, err error) {
+func (s *service) GetSoftForks() ([]*explorer.SoftFork, error) {
 	return s.softForkRepository.SoftForks()
 }

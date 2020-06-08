@@ -20,19 +20,19 @@ import (
 )
 
 type LegacyResource struct {
-	addressService  *address.Service
+	addressService  address.Service
 	blockService    block.Service
-	coinService     *coin.Service
-	daoService      *dao.Service
-	softForkService *softfork.Service
+	coinService     coin.Service
+	daoService      dao.Service
+	softForkService softfork.Service
 }
 
 func NewLegacyResource(
-	addressService *address.Service,
+	addressService address.Service,
 	blockService block.Service,
-	coinService *coin.Service,
-	daoService *dao.Service,
-	softForkService *softfork.Service,
+	coinService coin.Service,
+	daoService dao.Service,
+	softForkService softfork.Service,
 ) *LegacyResource {
 	return &LegacyResource{
 		addressService,

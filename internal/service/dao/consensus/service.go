@@ -8,15 +8,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Service struct {
+type Service interface {
+	GetParameters() (*explorer.ConsensusParameters, error)
+	GetParameter(parameter Parameter) *explorer.ConsensusParameter
+}
+
+type service struct {
 	consensusRepository *repository.DaoConsensusRepository
 }
 
-func NewConsensusService(consensusRepository *repository.DaoConsensusRepository) *Service {
-	return &Service{consensusRepository}
+func NewConsensusService(consensusRepository *repository.DaoConsensusRepository) Service {
+	return &service{consensusRepository}
 }
 
-func (s *Service) GetParameters() (*explorer.ConsensusParameters, error) {
+func (s *service) GetParameters() (*explorer.ConsensusParameters, error) {
 	network := fmt.Sprintf("%v", param.GetGlobalParam("network", nil))
 	if network == "" {
 		log.Fatal("No network specified to get consensus parameters")
@@ -31,7 +36,7 @@ func (s *Service) GetParameters() (*explorer.ConsensusParameters, error) {
 	return p, nil
 }
 
-func (s *Service) GetParameter(parameter Parameter) *explorer.ConsensusParameter {
+func (s *service) GetParameter(parameter Parameter) *explorer.ConsensusParameter {
 	parameters, _ := s.GetParameters()
 
 	return parameters.Get(int(parameter))

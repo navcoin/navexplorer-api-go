@@ -47,7 +47,7 @@ var Definitions = []dingo.Def{
 			addressTransactionRepository *repository.AddressTransactionRepository,
 			blockRepository *repository.BlockRepository,
 			blockTransactionRepository *repository.BlockTransactionRepository,
-		) (*address.Service, error) {
+		) (address.Service, error) {
 			return address.NewAddressService(addressRepository, addressTransactionRepository, blockRepository, blockTransactionRepository), nil
 		},
 	},
@@ -89,7 +89,7 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "coin.service",
-		Build: func(addressRepository *repository.AddressRepository) (*coin.Service, error) {
+		Build: func(addressRepository *repository.AddressRepository) (coin.Service, error) {
 			return coin.NewCoinService(addressRepository), nil
 		},
 	},
@@ -131,14 +131,14 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "softfork.service",
-		Build: func(blockRepository *repository.BlockRepository, softforkRepository *repository.SoftForkRepository) (*softfork.Service, error) {
+		Build: func(blockRepository *repository.BlockRepository, softforkRepository *repository.SoftForkRepository) (softfork.Service, error) {
 			return softfork.NewSoftForkService(blockRepository, softforkRepository), nil
 		},
 	},
 	{
 		Name: "dao.service",
 		Build: func(
-			consensusService *consensus.Service,
+			consensusService consensus.Service,
 			proposalRepo *repository.DaoProposalRepository,
 			paymentRequestRepo *repository.DaoPaymentRequestRepository,
 			consultationRepo *repository.DaoConsultationRepository,
@@ -146,15 +146,13 @@ var Definitions = []dingo.Def{
 			voteRepo *repository.DaoVoteRepository,
 			blockRepo *repository.BlockRepository,
 			blockTxRepo *repository.BlockTransactionRepository,
-		) (*dao.Service, error) {
+		) (dao.Service, error) {
 			return dao.NewDaoService(consensusService, proposalRepo, paymentRequestRepo, consultationRepo, consensusRepo, voteRepo, blockRepo, blockTxRepo), nil
 		},
 	},
 	{
 		Name: "dao.consensus.service",
-		Build: func(
-			consensusRepo *repository.DaoConsensusRepository,
-		) (*consensus.Service, error) {
+		Build: func(consensusRepo *repository.DaoConsensusRepository) (consensus.Service, error) {
 			return consensus.NewConsensusService(consensusRepo), nil
 		},
 	},
