@@ -3,7 +3,6 @@ package elastic_cache
 import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/config"
 	"github.com/olivere/elastic/v7"
-	"github.com/sirupsen/logrus"
 	"log"
 	"os"
 	"strings"
@@ -21,7 +20,6 @@ func New() (*Index, error) {
 	}
 
 	if config.Get().ElasticSearch.Username != "" {
-		logrus.Infof("Using ES Authentication: %s:%s", config.Get().ElasticSearch.Username, config.Get().ElasticSearch.Password)
 		opts = append(opts, elastic.SetBasicAuth(
 			config.Get().ElasticSearch.Username,
 			config.Get().ElasticSearch.Password,
