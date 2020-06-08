@@ -21,7 +21,7 @@ import (
 
 type LegacyResource struct {
 	addressService  *address.Service
-	blockService    *block.Service
+	blockService    block.Service
 	coinService     *coin.Service
 	daoService      *dao.Service
 	softForkService *softfork.Service
@@ -29,7 +29,7 @@ type LegacyResource struct {
 
 func NewLegacyResource(
 	addressService *address.Service,
-	blockService *block.Service,
+	blockService block.Service,
 	coinService *coin.Service,
 	daoService *dao.Service,
 	softForkService *softfork.Service,
