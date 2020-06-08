@@ -14,10 +14,10 @@ import (
 
 type DaoResource struct {
 	daoService   service.DaoService
-	blockService *block.Service
+	blockService block.Service
 }
 
-func NewDaoResource(daoService service.DaoService, blockService *block.Service) *DaoResource {
+func NewDaoResource(daoService service.DaoService, blockService block.Service) *DaoResource {
 	return &DaoResource{daoService, blockService}
 }
 

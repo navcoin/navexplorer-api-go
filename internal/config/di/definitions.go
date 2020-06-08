@@ -65,7 +65,7 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "block.service",
-		Build: func(blockRepository *repository.BlockRepository, blockTransactionRepository *repository.BlockTransactionRepository) (*block.Service, error) {
+		Build: func(blockRepository *repository.BlockRepository, blockTransactionRepository *repository.BlockTransactionRepository) (block.Service, error) {
 			return block.NewBlockService(blockRepository, blockTransactionRepository), nil
 		},
 	},

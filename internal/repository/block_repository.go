@@ -33,11 +33,11 @@ func (r *BlockRepository) BestBlock() (*explorer.Block, error) {
 	return r.findOne(results, err)
 }
 
-func (r *BlockRepository) GetBlockGroups(blockGroups []*entity.BlockGroup) error {
+func (r *BlockRepository) GetBlockGroups(blockGroups *entity.BlockGroups) error {
 	service := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).Size(0)
 
-	for i := range blockGroups {
-		agg := elastic.NewRangeAggregation().Field("time").AddRange(blockGroups[i].Start, blockGroups[i].End)
+	for i, item := range blockGroups.Items {
+		agg := elastic.NewRangeAggregation().Field("time").AddRange(item.Start, item.End)
 		agg.SubAggregation("stake", elastic.NewSumAggregation().Field("stake"))
 		agg.SubAggregation("fees", elastic.NewSumAggregation().Field("fees"))
 		agg.SubAggregation("spend", elastic.NewSumAggregation().Field("spend"))
@@ -52,28 +52,28 @@ func (r *BlockRepository) GetBlockGroups(blockGroups []*entity.BlockGroup) error
 		return err
 	}
 
-	for i := range blockGroups {
+	for i, item := range blockGroups.Items {
 		if agg, found := results.Aggregations.Range(string(i)); found {
 			bucket := agg.Buckets[0]
-			blockGroups[i].Blocks = bucket.DocCount
+			item.Blocks = bucket.DocCount
 			if stake, found := bucket.Aggregations.Sum("stake"); found {
-				blockGroups[i].Stake = int64(*stake.Value)
+				item.Stake = int64(*stake.Value)
 			}
 			if fees, found := bucket.Aggregations.Sum("fees"); found {
-				blockGroups[i].Fees = int64(*fees.Value)
+				item.Fees = int64(*fees.Value)
 			}
 
 			if spend, found := bucket.Aggregations.Sum("spend"); found {
-				blockGroups[i].Spend = int64(*spend.Value)
+				item.Spend = int64(*spend.Value)
 			}
 
 			if transactions, found := bucket.Aggregations.Sum("tx"); found {
-				blockGroups[i].Transactions = int64(*transactions.Value)
+				item.Transactions = int64(*transactions.Value)
 			}
 
 			if height, found := bucket.Aggregations.Max("height"); found {
 				if height.Value != nil {
-					blockGroups[i].Height = int64(*height.Value)
+					item.Height = int64(*height.Value)
 				}
 			}
 		}

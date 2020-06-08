@@ -8,7 +8,18 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 )
 
-type Service struct {
+type Service interface {
+	GetBestBlock() (*explorer.Block, error)
+	GetBlockGroups(period *group.Period, count int) (*entity.BlockGroups, error)
+	GetBlock(hash string) (*explorer.Block, error)
+	GetRawBlock(hash string) (*explorer.RawBlock, error)
+	GetBlocks(config *pagination.Config) ([]*explorer.Block, int64, error)
+	GetTransactions(blockHash string) ([]*explorer.BlockTransaction, error)
+	GetTransactionByHash(hash string) (*explorer.BlockTransaction, error)
+	GetRawTransactionByHash(hash string) (*explorer.RawBlockTransaction, error)
+}
+
+type service struct {
 	blockRepo       *repository.BlockRepository
 	transactionRepo *repository.BlockTransactionRepository
 }
@@ -16,24 +27,24 @@ type Service struct {
 func NewBlockService(
 	blockRepo *repository.BlockRepository,
 	transactionRepo *repository.BlockTransactionRepository,
-) *Service {
-	return &Service{blockRepo, transactionRepo}
+) Service {
+	return &service{blockRepo, transactionRepo}
 }
 
-func (s *Service) GetBestBlock() (*explorer.Block, error) {
+func (s *service) GetBestBlock() (*explorer.Block, error) {
 	return s.blockRepo.BestBlock()
 }
 
-func (s *Service) GetBlockGroups(period *group.Period, count int) ([]*entity.BlockGroup, error) {
+func (s *service) GetBlockGroups(period *group.Period, count int) (*entity.BlockGroups, error) {
 	timeGroups := group.CreateTimeGroup(period, count)
 
-	blockGroups := make([]*entity.BlockGroup, 0)
+	blockGroups := new(entity.BlockGroups)
 	for i := range timeGroups {
 		blockGroup := &entity.BlockGroup{
 			TimeGroup: *timeGroups[i],
 			Period:    *period,
 		}
-		blockGroups = append(blockGroups, blockGroup)
+		blockGroups.Items = append(blockGroups.Items, blockGroup)
 	}
 
 	err := s.blockRepo.GetBlockGroups(blockGroups)
@@ -41,19 +52,19 @@ func (s *Service) GetBlockGroups(period *group.Period, count int) ([]*entity.Blo
 	return blockGroups, err
 }
 
-func (s *Service) GetBlock(hash string) (*explorer.Block, error) {
+func (s *service) GetBlock(hash string) (*explorer.Block, error) {
 	return s.blockRepo.BlockByHashOrHeight(hash)
 }
 
-func (s *Service) GetRawBlock(hash string) (*explorer.RawBlock, error) {
+func (s *service) GetRawBlock(hash string) (*explorer.RawBlock, error) {
 	return s.blockRepo.RawBlockByHashOrHeight(hash)
 }
 
-func (s *Service) GetBlocks(config *pagination.Config) ([]*explorer.Block, int64, error) {
+func (s *service) GetBlocks(config *pagination.Config) ([]*explorer.Block, int64, error) {
 	return s.blockRepo.Blocks(config.Ascending, config.Size, config.Page)
 }
 
-func (s *Service) GetTransactions(blockHash string) ([]*explorer.BlockTransaction, error) {
+func (s *service) GetTransactions(blockHash string) ([]*explorer.BlockTransaction, error) {
 	block, err := s.blockRepo.BlockByHashOrHeight(blockHash)
 	if err != nil {
 		return nil, err
@@ -62,10 +73,10 @@ func (s *Service) GetTransactions(blockHash string) ([]*explorer.BlockTransactio
 	return s.transactionRepo.TransactionsByBlock(block)
 }
 
-func (s *Service) GetTransactionByHash(hash string) (*explorer.BlockTransaction, error) {
+func (s *service) GetTransactionByHash(hash string) (*explorer.BlockTransaction, error) {
 	return s.transactionRepo.TransactionByHash(hash)
 }
 
-func (s *Service) GetRawTransactionByHash(hash string) (*explorer.RawBlockTransaction, error) {
+func (s *service) GetRawTransactionByHash(hash string) (*explorer.RawBlockTransaction, error) {
 	return s.transactionRepo.RawTransactionByHash(hash)
 }

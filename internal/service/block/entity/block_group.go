@@ -4,6 +4,10 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 )
 
+type BlockGroups struct {
+	Items []*BlockGroup `json:"items"`
+}
+
 type BlockGroup struct {
 	group.TimeGroup
 	Period       group.Period `json:"period"`
