@@ -28,8 +28,11 @@ func (r *AddressTransactionRepository) TransactionsByHash(hash string, types str
 	query = query.Must(elastic.NewTermQuery("cold", cold))
 
 	if len(types) != 0 {
-		if strings.Contains(types, "stake") {
-			types += " cold_stake"
+		if strings.Contains(types, string(explorer.TransferStake)) {
+			types += fmt.Sprintf(" %s", explorer.TransferColdStake)
+		}
+		if strings.Contains(types, string(explorer.TransferReceive)) {
+			types += fmt.Sprintf(" %s", explorer.TransferCommunityFundPayout)
 		}
 		query = query.Must(elastic.NewMatchQuery("type", types))
 	}
@@ -222,56 +225,59 @@ func (r *AddressTransactionRepository) GetStakingReport(report *entity.StakingRe
 	return nil
 }
 
-func (r *AddressTransactionRepository) GetStakingHigherThan(height int) (*entity.StakingBlocks, error) {
+func (r *AddressTransactionRepository) GetStakingHigherThan(height uint64, count int) (*entity.StakingBlocks, error) {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewRangeQuery("height").Gt(height))
-	query = query.Must(elastic.NewTermQuery("type.keyword", "STAKING"))
-	query = query.Must(elastic.NewTermQuery("standard", true))
+
+	hashAgg := elastic.NewTermsAggregation().Field("hash.keyword")
+	hashAgg.SubAggregation("balance", elastic.NewMaxAggregation().Field("balance"))
+
+	stakeAgg := elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("type.keyword", explorer.TransferStake))
+	stakeAgg.SubAggregation("hash", hashAgg)
+
+	coldStakeAgg := elastic.NewFilterAggregation().Filter(
+		elastic.NewBoolQuery().
+			Must(elastic.NewTermQuery("type.keyword", explorer.TransferColdStake)).
+			Must(elastic.NewTermQuery("cold", true)),
+	).SubAggregation("hash", hashAgg)
 
 	results, err := r.elastic.Client.Search(elastic_cache.AddressTransactionIndex.Get()).
 		Query(query).
-		Size(height).
-		Sort("height", false).
-		Collapse(elastic.NewCollapseBuilder("address.keyword")).
+		Aggregation("stake", stakeAgg).
+		Aggregation("coldStake", coldStakeAgg).
+		Size(0).
 		Do(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	stakingBlocks := &entity.StakingBlocks{}
-	for _, hit := range results.Hits.Hits {
-		transaction := &explorer.AddressTransaction{}
-		err := json.Unmarshal(hit.Source, &transaction)
-		if err == nil {
-			stakingBlocks.Staking += float64(transaction.Balance) / 100000000
+	stakeBalance := float64(0)
+	if stake, found := results.Aggregations.Filter("stake"); found {
+		if hash, found := stake.Aggregations.Terms("hash"); found {
+			for _, bucket := range hash.Buckets {
+				if balance, found := bucket.Aggregations.Max("balance"); found {
+					stakeBalance += *balance.Value
+				}
+			}
 		}
 	}
 
-	query = elastic.NewBoolQuery()
-	query = query.Must(elastic.NewRangeQuery("height").Gt(height))
-	query = query.Must(elastic.NewTermQuery("type.keyword", "COLD_STAKING"))
-	query = query.Must(elastic.NewTermQuery("standard", true))
-
-	results, err = r.elastic.Client.Search(elastic_cache.AddressTransactionIndex.Get()).
-		Query(query).
-		Size(height).
-		Sort("height", false).
-		Collapse(elastic.NewCollapseBuilder("address.keyword")).
-		Do(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	for _, hit := range results.Hits.Hits {
-		transaction := &explorer.AddressTransaction{}
-		err := json.Unmarshal(hit.Source, &transaction)
-		if err == nil {
-			stakingBlocks.ColdStaking += float64(transaction.Balance) / 100000000
+	coldStakeBalance := float64(0)
+	if stake, found := results.Aggregations.Filter("coldStake"); found {
+		if hash, found := stake.Aggregations.Terms("hash"); found {
+			for _, bucket := range hash.Buckets {
+				if balance, found := bucket.Aggregations.Max("balance"); found {
+					coldStakeBalance += *balance.Value
+				}
+			}
 		}
 	}
-	stakingBlocks.BlockCount = height
 
-	return stakingBlocks, nil
+	return &entity.StakingBlocks{
+		Staking:     stakeBalance / 100000000,
+		ColdStaking: coldStakeBalance / 100000000,
+		BlockCount:  count,
+	}, nil
 }
 
 func (r *AddressTransactionRepository) StakingRewardsForAddresses(addresses []string) ([]*entity.StakingReward, error) {
