@@ -91,7 +91,7 @@ func (s *service) GetStakingByBlockCount(blockCount int) (*entity.StakingBlocks,
 		blockCount = int(bestBlock.Height)
 	}
 
-	stakingBlocks, err := s.addressTransactionRepository.GetStakingHigherThan(blockCount)
+	stakingBlocks, err := s.addressTransactionRepository.GetStakingHigherThan(bestBlock.Height, blockCount)
 	if err != nil {
 		return nil, err
 	}
