@@ -13,6 +13,7 @@ type Config struct {
 	ElasticSearch ElasticSearchConfig
 	Server        ServerConfig
 	Legacy        bool
+	Subscribe     bool
 	RabbitMq      RabbitMqConfig
 }
 
@@ -58,11 +59,12 @@ func Get() *Config {
 		Server: ServerConfig{
 			Port: getInt("PORT", 8080),
 		},
-		Legacy: getBool("LEGACY", true),
+		Legacy:    getBool("LEGACY", true),
+		Subscribe: getBool("SUBSCRIBE", false),
 		RabbitMq: RabbitMqConfig{
 			User:     getString("RABBITMQ_USER", "user"),
 			Password: getString("RABBITMQ_PASSWORD", "user"),
-			Host:     getString("RABBITMQ_HOST", "localhost"),
+			Host:     getString("RABBITMQ_HOST", ""),
 			Port:     getInt("RABBITMQ_PORT", 5672),
 			Prefix:   getString("RABBITMQ_PREFIX", os.Getenv("POD_NAME")),
 		},

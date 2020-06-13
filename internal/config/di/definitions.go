@@ -1,7 +1,6 @@
 package di
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/internal/cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/config"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/event"
@@ -154,12 +153,6 @@ var Definitions = []dingo.Def{
 		Name: "dao.consensus.service",
 		Build: func(consensusRepo *repository.DaoConsensusRepository) (consensus.Service, error) {
 			return consensus.NewConsensusService(consensusRepo), nil
-		},
-	},
-	{
-		Name: "cache.service",
-		Build: func() (*cache.Service, error) {
-			return cache.NewCacheService(), nil
 		},
 	},
 }
