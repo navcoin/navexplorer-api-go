@@ -36,6 +36,7 @@ type Service interface {
 
 type service struct {
 	consensusService           consensus.Service
+	cfundRepository            *repository.DaoCfundRepository
 	proposalRepository         *repository.DaoProposalRepository
 	paymentRequestRepository   *repository.DaoPaymentRequestRepository
 	consultationRepository     *repository.DaoConsultationRepository
@@ -65,6 +66,7 @@ type PaymentRequestParameters struct {
 
 func NewDaoService(
 	consensusService consensus.Service,
+	cfundRepository *repository.DaoCfundRepository,
 	proposalRepository *repository.DaoProposalRepository,
 	paymentRequestRepository *repository.DaoPaymentRequestRepository,
 	consultationRepository *repository.DaoConsultationRepository,
@@ -75,6 +77,7 @@ func NewDaoService(
 ) Service {
 	return &service{
 		consensusService,
+		cfundRepository,
 		proposalRepository,
 		paymentRequestRepository,
 		consultationRepository,
@@ -120,19 +123,15 @@ func (s *service) GetConsensus() (*explorer.ConsensusParameters, error) {
 func (s *service) GetCfundStats() (*entity.CfundStats, error) {
 	cfundStats := new(entity.CfundStats)
 
-	if contributed, err := s.blockTransactionRepository.TotalAmountByOutputType(explorer.VoutCfundContribution); err == nil {
-		cfundStats.Contributed = *contributed
-	}
-
-	if locked, err := s.proposalRepository.ValueLocked(); err == nil {
-		cfundStats.Locked = *locked
+	cfund, err := s.cfundRepository.GetStats()
+	if err == nil {
+		cfundStats.Available = cfund.Available
+		cfundStats.Locked = cfund.Locked
 	}
 
 	if paid, err := s.paymentRequestRepository.ValuePaid(); err == nil {
 		cfundStats.Paid = *paid
 	}
-
-	cfundStats.Available = cfundStats.Contributed - cfundStats.Paid - cfundStats.Locked
 
 	return cfundStats, nil
 }

@@ -13,6 +13,7 @@ var (
 	BlockIndex              Indices = "block"
 	BlockTransactionIndex   Indices = "blocktransaction"
 	ConsensusIndex          Indices = "consensus"
+	CfundIndex              Indices = "cfund"
 	ProposalIndex           Indices = "proposal"
 	DaoVoteIndex            Indices = "daovote"
 	DaoConsultationIndex    Indices = "consultation"
@@ -32,6 +33,7 @@ func All() []Indices {
 		AddressTransactionIndex,
 		BlockIndex,
 		BlockTransactionIndex,
+		CfundIndex,
 		ConsensusIndex,
 		ProposalIndex,
 		PaymentRequestIndex,
