@@ -23,7 +23,9 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	go container.GetBlockSubscriber().Subscribe()
+	if config.Get().Subscribe {
+		go container.GetBlockSubscriber().Subscribe()
+	}
 
 	framework.SetReleaseMode(config.Get().Debug)
 
