@@ -1,141 +1,157 @@
 package main
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/config"
-	"github.com/NavExplorer/navexplorer-api-go/service/address"
-	"github.com/NavExplorer/navexplorer-api-go/service/block"
-	"github.com/NavExplorer/navexplorer-api-go/service/coin"
-	"github.com/NavExplorer/navexplorer-api-go/service/communityFund"
-	"github.com/NavExplorer/navexplorer-api-go/service/network"
-	"github.com/NavExplorer/navexplorer-api-go/service/search"
-	"github.com/NavExplorer/navexplorer-api-go/service/softFork"
-	"github.com/NavExplorer/navexplorer-api-go/service/staking"
-	"github.com/gin-contrib/cors"
+	"fmt"
+	"github.com/NavExplorer/navexplorer-api-go/generated/dic"
+	"github.com/NavExplorer/navexplorer-api-go/internal/config"
+	"github.com/NavExplorer/navexplorer-api-go/internal/framework"
+	"github.com/NavExplorer/navexplorer-api-go/internal/resource"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
-	"log"
+	"github.com/sarulabs/dingo/v3"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 
+var container *dic.Container
+
 func main() {
-	if config.Get().Debug == false {
-		gin.SetMode(gin.ReleaseMode)
+	config.Init()
+	container, _ = dic.NewContainer(dingo.App)
+
+	if config.Get().Debug {
+		log.SetLevel(log.DebugLevel)
 	}
 
-	r := setupRouter()
+	if config.Get().Subscribe {
+		go container.GetBlockSubscriber().Subscribe()
+	}
 
-	r.Run(":" + config.Get().Server.Port)
-}
+	framework.SetReleaseMode(config.Get().Debug)
 
-func setupRouter() *gin.Engine {
 	r := gin.New()
-
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
-	r.Use(cors.Default())
-	r.Use(networkSelect)
-	r.Use(Options)
-	r.Use(errorHandler)
+	r.Use(framework.Cors())
+	r.Use(framework.NetworkSelect)
+	r.Use(framework.Options)
+	r.Use(framework.ErrorHandler)
 
 	r.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "Welcome to NavExplorer API!")
 	})
 
-	api := r.Group("/api")
+	addressResource := resource.NewAddressResource(container.GetAddressService())
+	r.GET("/address", addressResource.GetAddresses)
+	r.GET("/address/:hash", addressResource.GetAddress)
+	r.GET("/address/:hash/tx", addressResource.GetTransactions)
+	r.GET("/address/:hash/tx/cold", addressResource.GetColdTransactions)
+	r.GET("/address/:hash/validate", addressResource.ValidateAddress)
+	r.GET("/address/:hash/staking", addressResource.GetStakingChart)
+	r.GET("/address/:hash/assoc/staking", addressResource.GetAssociatedStakingAddresses)
 
-	addressController := new(address.Controller)
-	api.GET("/address", addressController.GetAddresses)
-	api.GET("/address/:hash", addressController.GetAddress)
-	api.GET("/address/:hash/validate", addressController.ValidateAddress)
-	api.GET("/address/:hash/tx", addressController.GetTransactions)
-	api.GET("/address/:hash/coldtx", addressController.GetColdTransactions)
-	api.GET("/address/:hash/chart/balance", addressController.GetBalanceChart)
-	api.GET("/address/:hash/chart/staking", addressController.GetStakingChart)
-	api.GET("/address/:hash/assoc/staking", addressController.GetAssociatedStakingAddresses)
+	blockResource := resource.NewBlockResource(container.GetBlockService(), container.GetDaoService())
+	r.GET("/bestblock", blockResource.GetBestBlock)
+	r.GET("/blockcycle", blockResource.GetBestBlockCycle)
+	r.GET("/blockgroup", blockResource.GetBlockGroups)
+	r.GET("/block", blockResource.GetBlocks)
+	r.GET("/block/:hash", blockResource.GetBlock)
+	r.GET("/block/:hash/cycle", blockResource.GetBlockCycle)
+	r.GET("/block/:hash/raw", blockResource.GetRawBlock)
+	r.GET("/block/:hash/tx", blockResource.GetTransactionsByBlock)
+	r.GET("/tx/:hash", blockResource.GetTransactionByHash)
+	r.GET("/tx/:hash/raw", blockResource.GetRawTransactionByHash)
 
-	api.GET("/transactions/:type", addressController.GetTransactionsForAddresses)
-	api.GET("/balance", addressController.GetBalancesForAddresses)
+	softForkResource := resource.NewSoftForkResource(container.GetSoftforkService(), container.GetSoftforkRepo())
+	r.GET("/softfork", softForkResource.GetSoftForks)
+	r.GET("/softfork/cycle", softForkResource.GetSoftForkCycle)
 
-	blockController := new(block.Controller)
-	api.GET("/bestblock", blockController.GetBestBlock)
-	api.GET("/blockgroup", blockController.GetBlockGroups)
-	api.GET("/block", blockController.GetBlocks)
-	api.GET("/block/:hash", blockController.GetBlock)
-	api.GET("/block/:hash/tx", blockController.GetBlockTransactions)
-	api.GET("/block/:hash/raw", blockController.GetRawBlock)
-	api.GET("/tx/:hash", blockController.GetTransaction)
-	api.GET("/tx/:hash/raw", blockController.GetRawTransaction)
+	daoGroup := r.Group("/dao")
+	daoResource := resource.NewDaoResource(container.GetDaoService(), container.GetBlockService())
+	daoGroup.GET("/consensus/parameters", daoResource.GetConsensusParameters)
+	daoGroup.GET("/consensus/parameters/:id", daoResource.GetConsensusParameter)
+	daoGroup.GET("/consultation", daoResource.GetConsultations)
+	daoGroup.GET("/consultation/:hash", daoResource.GetConsultation)
+	daoGroup.GET("/answer/:hash", daoResource.GetAnswer)
+	daoGroup.GET("/consultation/:hash/:answer/votes", daoResource.GetAnswerVotes)
 
-	coinController := new(coin.Controller)
-	api.GET("/coin/wealth", coinController.GetWealthDistribution)
+	cfundGroup := daoGroup.Group("/cfund")
+	cfundGroup.GET("/stats", daoResource.GetCfundStats)
+	cfundGroup.GET("/proposal", daoResource.GetProposals)
+	cfundGroup.GET("/proposal/:hash", daoResource.GetProposal)
+	cfundGroup.GET("/proposal/:hash/votes", daoResource.GetProposalVotes)
+	cfundGroup.GET("/proposal/:hash/trend", daoResource.GetProposalTrend)
+	cfundGroup.GET("/proposal/:hash/payment-request", daoResource.GetPaymentRequestsForProposal)
+	cfundGroup.GET("/payment-request", daoResource.GetPaymentRequests)
+	cfundGroup.GET("/payment-request/:hash", daoResource.GetPaymentRequest)
+	cfundGroup.GET("/payment-request/:hash/votes", daoResource.GetPaymentRequestVotes)
+	cfundGroup.GET("/payment-request/:hash/trend", daoResource.GetPaymentRequestTrend)
 
-	communityFundController := new(communityFund.Controller)
-	api.GET("/community-fund/block-cycle", communityFundController.GetBlockCycle)
-	api.GET("/community-fund/stats", communityFundController.GetStats)
-	api.GET("/community-fund/proposal", communityFundController.GetProposals)
-	api.GET("/community-fund/proposal/:hash", communityFundController.GetProposal)
-	api.GET("/community-fund/proposal/:hash/trend", communityFundController.GetProposalVotingTrend)
-	api.GET("/community-fund/proposal/:hash/vote/:vote", communityFundController.GetProposalVotes)
-	api.GET("/community-fund/proposal/:hash/payment-request", communityFundController.GetProposalPaymentRequests)
-	api.GET("/community-fund/payment-request", communityFundController.GetPaymentRequestsByState)
-	api.GET("/community-fund/payment-request/:hash", communityFundController.GetPaymentRequestByHash)
-	api.GET("/community-fund/payment-request/:hash/trend", communityFundController.GetPaymentRequestVotingTrend)
-	api.GET("/community-fund/payment-request/:hash/vote/:vote", communityFundController.GetPaymentRequestVotes)
+	searchResource := resource.NewSearchResource(container.GetAddressService(), container.GetBlockService(), container.GetDaoService())
+	r.GET("/search", searchResource.Search)
 
-	searchController := new(search.Controller)
-	api.GET("/search", searchController.Search)
-
-	softForkController := new(softFork.Controller)
-	api.GET("/soft-fork", softForkController.GetSoftForks)
-
-	stakingController := new(staking.Controller)
-	api.GET("/staking/report", stakingController.GetStakingReport)
-	api.GET("/staking/blocks", stakingController.GetStakingByBlockCount)
-	api.GET("/staking/rewards", stakingController.GetStakingRewardsForAddresses)
-
-	networkController := new(network.Controller)
-	api.GET("/network/nodes", networkController.GetNodes)
+	if config.Get().Legacy == true {
+		includeLegacyApiEndpoints(r)
+	}
 
 	r.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Resource Not Found"})
+		c.JSON(404, gin.H{"code": 404, "message": "Resource not found"})
 	})
 
-	return r
+	_ = r.Run(fmt.Sprintf(":%d", config.Get().Server.Port))
 }
 
-func networkSelect(c *gin.Context) {
-	switch network := c.GetHeader("Network"); network {
-	case "testnet":
-		config.SelectNetwork(network)
-		break
-	case "mainnet":
-		config.SelectNetwork(network)
-		break
-	default:
-		config.SelectNetwork("mainnet")
-	}
+func includeLegacyApiEndpoints(r *gin.Engine) {
+	log.Info("Including Legacy endpoints")
+	api := r.Group("/api")
 
-	c.Header("X-Network", config.Get().SelectedNetwork)
-	log.Printf("Using Network %s", config.Get().SelectedNetwork)
-}
+	legacyResource := resource.NewLegacyResource(
+		container.GetAddressService(),
+		container.GetBlockService(),
+		container.GetCoinService(),
+		container.GetDaoService(),
+		container.GetSoftforkService(),
+	)
 
-func errorHandler(c *gin.Context) {
-	c.Next()
+	api.GET("/address", legacyResource.GetAddresses)
+	api.GET("/address/:hash", legacyResource.GetAddress)
+	//api.GET("/address/:hash/validate", legacyResource.ValidateAddress)
+	api.GET("/address/:hash/tx", legacyResource.GetTransactions)
+	api.GET("/address/:hash/coldtx", legacyResource.GetColdTransactions)
+	api.GET("/address/:hash/chart/balance", legacyResource.GetBalanceChart)
+	api.GET("/address/:hash/chart/staking", legacyResource.GetStakingChart)
+	api.GET("/address/:hash/assoc/staking", legacyResource.GetAssociatedStakingAddresses)
 
-	if len(c.Errors) == 0 {
-		return
-	}
+	api.GET("/transactions/:type", legacyResource.GetTransactionsForAddresses)
+	api.GET("/balance", legacyResource.GetBalancesForAddresses)
 
-	c.AbortWithStatusJSON(http.StatusBadRequest, c.Errors)
-}
+	api.GET("/bestblock", legacyResource.GetBestBlock)
+	api.GET("/blockgroup", legacyResource.GetBlockGroups)
+	api.GET("/block", legacyResource.GetBlocks)
+	api.GET("/block/:hash", legacyResource.GetBlock)
+	api.GET("/block/:hash/tx", legacyResource.GetBlockTransactions)
+	api.GET("/block/:hash/raw", legacyResource.GetRawBlock)
+	api.GET("/tx/:hash", legacyResource.GetTransaction)
+	api.GET("/tx/:hash/raw", legacyResource.GetRawTransaction)
 
-func Options(c *gin.Context) {
-	if c.Request.Method != "OPTIONS" {
-		c.Next()
-	} else {
-		c.Header("Allow", "HEAD,GET,POST,PUT,PATCH,DELETE,OPTIONS")
-		c.Header("Content-Type", "application/json")
-		c.AbortWithStatus(http.StatusOK)
-	}
+	api.GET("/coin/wealth", legacyResource.GetWealthDistribution)
+
+	api.GET("/community-fund/block-cycle", legacyResource.GetBlockCycle)
+	api.GET("/community-fund/stats", legacyResource.GetCfundStats)
+	api.GET("/community-fund/proposal/:hash", legacyResource.GetProposal)
+	api.GET("/community-fund/proposal/:hash/trend", legacyResource.GetProposalVotingTrend)
+	api.GET("/community-fund/proposal/:hash/vote/:vote", legacyResource.GetProposalVotes)
+	api.GET("/community-fund/proposal/:hash/payment-request", legacyResource.GetPaymentRequestsForProposal)
+	api.GET("/community-fund/payment-request/:hash", legacyResource.GetPaymentRequestByHash)
+	api.GET("/community-fund/payment-request/:hash/trend", legacyResource.GetPaymentRequestVotingTrend)
+	api.GET("/community-fund/payment-request/:hash/vote/:vote", legacyResource.GetPaymentRequestVotes)
+
+	api.GET("/search", legacyResource.Search)
+
+	api.GET("/soft-fork", legacyResource.GetSoftForks)
+
+	api.GET("/staking/report", legacyResource.GetStakingReport)
+	api.GET("/staking/blocks", legacyResource.GetStakingByBlockCount)
+	api.GET("/staking/rewards", legacyResource.GetStakingRewardsForAddresses)
 }
