@@ -88,6 +88,9 @@ func main() {
 	cfundGroup.GET("/payment-request/:hash/votes", daoResource.GetPaymentRequestVotes)
 	cfundGroup.GET("/payment-request/:hash/trend", daoResource.GetPaymentRequestTrend)
 
+	searchResource := resource.NewSearchResource(container.GetAddressService(), container.GetBlockService(), container.GetDaoService())
+	r.GET("/search", searchResource.Search)
+
 	if config.Get().Legacy == true {
 		includeLegacyApiEndpoints(r)
 	}

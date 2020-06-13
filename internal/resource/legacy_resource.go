@@ -580,11 +580,6 @@ type Votes struct {
 	Votes   int64  `json:"votes"`
 }
 
-type Result struct {
-	Type  string `json:"type"`
-	Value string `json:"value"`
-}
-
 func handleError(c *gin.Context, err error, status int) {
 	c.AbortWithStatusJSON(status, gin.H{
 		"status":  status,
