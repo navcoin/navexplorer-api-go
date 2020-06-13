@@ -86,7 +86,6 @@ func (r *DaoProposalRepository) Proposal(hash string) (*explorer.Proposal, error
 func (r *DaoProposalRepository) ValueLocked() (*float64, error) {
 
 	query := elastic.NewBoolQuery()
-	//query = query.Must(elastic.NewMatchQuery("status", explorer.ProposalAccepted))
 	query = query.Should(elastic.NewMatchQuery("state", explorer.ProposalAccepted.State))
 	query = query.Should(elastic.NewMatchQuery("state", explorer.ProposalPendingVotingPreq.State))
 
