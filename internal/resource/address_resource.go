@@ -112,3 +112,20 @@ func (r *AddressResource) GetAssociatedStakingAddresses(c *gin.Context) {
 
 	c.JSON(200, addresses)
 }
+
+func (r *AddressResource) GetBalancesForAddresses(c *gin.Context) {
+	_ = c.Request.ParseForm()
+
+	addresses := make([]string, 0)
+	if addressesParam := c.Request.Form.Get("addresses"); addressesParam != "" {
+		addresses = strings.Split(addressesParam, ",")
+	}
+
+	balances, err := r.addressService.GetBalancesForAddresses(addresses)
+	if err != nil {
+		handleError(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(200, balances)
+}
