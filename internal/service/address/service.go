@@ -15,7 +15,7 @@ type Service interface {
 	GetBalanceChart(address string) (entity.Chart, error)
 	GetStakingChart(period string, address string) ([]*entity.StakingGroup, error)
 	GetStakingReport() (*entity.StakingReport, error)
-	GetStakingByBlockCount(blockCount int) (*entity.StakingBlocks, error)
+	GetStakingByBlockCount(blockCount int, extended bool) (*entity.StakingBlocks, error)
 	GetTransactionsForAddresses(addresses []string, txType string, start *time.Time, end *time.Time) ([]*explorer.AddressTransaction, error)
 	GetAssociatedStakingAddresses(address string) ([]string, error)
 	GetBalancesForAddresses(addresses []string) ([]*entity.Balance, error)
@@ -81,17 +81,18 @@ func (s *service) GetStakingReport() (*entity.StakingReport, error) {
 	return report, nil
 }
 
-func (s *service) GetStakingByBlockCount(blockCount int) (*entity.StakingBlocks, error) {
+func (s *service) GetStakingByBlockCount(blockCount int, extended bool) (*entity.StakingBlocks, error) {
 	bestBlock, err := s.blockRepository.BestBlock()
 	if err != nil {
 		return nil, err
 	}
 
-	if blockCount > int(bestBlock.Height) {
-		blockCount = int(bestBlock.Height)
+	height := uint64(0)
+	if blockCount < int(bestBlock.Height) {
+		height = bestBlock.Height - uint64(blockCount)
 	}
 
-	stakingBlocks, err := s.addressTransactionRepository.GetStakingHigherThan(bestBlock.Height, blockCount)
+	stakingBlocks, err := s.addressTransactionRepository.GetStakingRange(height, bestBlock.Height)
 	if err != nil {
 		return nil, err
 	}
@@ -100,6 +101,8 @@ func (s *service) GetStakingByBlockCount(blockCount int) (*entity.StakingBlocks,
 	if err == nil {
 		stakingBlocks.Fees = fees
 	}
+
+	stakingBlocks.BlockCount = blockCount
 
 	return stakingBlocks, err
 }

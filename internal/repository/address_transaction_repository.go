@@ -225,9 +225,9 @@ func (r *AddressTransactionRepository) GetStakingReport(report *entity.StakingRe
 	return nil
 }
 
-func (r *AddressTransactionRepository) GetStakingHigherThan(height uint64, count int) (*entity.StakingBlocks, error) {
+func (r *AddressTransactionRepository) GetStakingRange(from uint64, to uint64) (*entity.StakingBlocks, error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewRangeQuery("height").Gt(height))
+	query = query.Must(elastic.NewRangeQuery("height").Gt(from).Lte(to))
 
 	hashAgg := elastic.NewTermsAggregation().Field("hash.keyword")
 	hashAgg.SubAggregation("balance", elastic.NewMaxAggregation().Field("balance"))
@@ -276,18 +276,19 @@ func (r *AddressTransactionRepository) GetStakingHigherThan(height uint64, count
 	return &entity.StakingBlocks{
 		Staking:     stakeBalance / 100000000,
 		ColdStaking: coldStakeBalance / 100000000,
-		BlockCount:  count,
+		From:        from,
+		To:          to,
 	}, nil
 }
 
 func (r *AddressTransactionRepository) StakingRewardsForAddresses(addresses []string) ([]*entity.StakingReward, error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("address", strings.Join(addresses, " ")))
-	query = query.Must(elastic.NewMatchQuery("type", "STAKING COLD_STAKING"))
+	query = query.Must(elastic.NewMatchQuery("hash", strings.Join(addresses, " ")))
+	query = query.Must(elastic.NewMatchQuery("type", "stake cold_stake"))
 
 	now := time.Now().UTC().Truncate(time.Second)
 
-	agg := elastic.NewTermsAggregation().Field("address.keyword")
+	agg := elastic.NewTermsAggregation().Field("hash.keyword")
 	agg.SubAggregation("last24Hours", dateGroupAgg(now.Add(-(time.Hour*24)), now))
 	agg.SubAggregation("last7Days", dateGroupAgg(now.Add(-(time.Hour*24*7)), now))
 	agg.SubAggregation("last30Days", dateGroupAgg(now.Add(-(time.Hour*24*30)), now))
@@ -296,6 +297,7 @@ func (r *AddressTransactionRepository) StakingRewardsForAddresses(addresses []st
 
 	service := r.elastic.Client.Search(elastic_cache.AddressTransactionIndex.Get())
 	service.Query(query)
+	service.Size(0)
 	service.Aggregation("groups", agg)
 
 	results, err := service.Do(context.Background())
@@ -314,8 +316,6 @@ func (r *AddressTransactionRepository) StakingRewardsForAddresses(addresses []st
 			reward.Periods = append(reward.Periods, stakingPeriodResults(bucket, "lastYear"))
 			reward.Periods = append(reward.Periods, stakingPeriodResults(bucket, "all"))
 
-			rewardJson, _ := json.Marshal(reward)
-			log.Println(string(rewardJson))
 			rewards = append(rewards, reward)
 		}
 	}
@@ -325,11 +325,7 @@ func (r *AddressTransactionRepository) StakingRewardsForAddresses(addresses []st
 
 func dateGroupAgg(from time.Time, to time.Time) (aggregation *elastic.RangeAggregation) {
 	aggregation = elastic.NewRangeAggregation().Field("time").AddRange(from, to)
-	aggregation.SubAggregation("sent", elastic.NewSumAggregation().Field("sent"))
-	aggregation.SubAggregation("received", elastic.NewSumAggregation().Field("received"))
-	aggregation.SubAggregation("coldStakingSent", elastic.NewSumAggregation().Field("coldStakingSent"))
-	aggregation.SubAggregation("coldStakingReceived", elastic.NewSumAggregation().Field("coldStakingReceived"))
-	aggregation.SubAggregation("delegateStake", elastic.NewSumAggregation().Field("delegateStake"))
+	aggregation.SubAggregation("staked", elastic.NewSumAggregation().Field("total"))
 
 	return
 }
@@ -340,26 +336,13 @@ func stakingPeriodResults(bucket *elastic.AggregationBucketKeyItem, periodName s
 	if period, found := bucket.Aggregations.Range(rewardPeriod.Period); found {
 		aggBucket := period.Buckets[0]
 
-		sent := int64(0)
-		received := int64(0)
-		if sentValue, found := aggBucket.Aggregations.Sum("sent"); found {
-			sent = sent + int64(*sentValue.Value)
-		}
-		if coldStakingSentValue, found := aggBucket.Aggregations.Sum("coldStakingSent"); found {
-			sent = sent + int64(*coldStakingSentValue.Value)
-		}
-		if receivedValue, found := aggBucket.Aggregations.Sum("received"); found {
-			received = received + int64(*receivedValue.Value)
-		}
-		if coldStakingReceivedValue, found := aggBucket.Aggregations.Sum("coldStakingReceived"); found {
-			received = received + int64(*coldStakingReceivedValue.Value)
-		}
-		if delegateStakeValue, found := aggBucket.Aggregations.Sum("delegateStake"); found {
-			received = received + int64(*delegateStakeValue.Value)
+		balance := int64(0)
+		if stakedValue, found := aggBucket.Aggregations.Sum("staked"); found {
+			balance += int64(*stakedValue.Value)
 		}
 
 		rewardPeriod.Stakes = aggBucket.DocCount
-		rewardPeriod.Balance = received - sent
+		rewardPeriod.Balance = balance
 	}
 
 	return rewardPeriod

@@ -29,6 +29,8 @@ type StakingBlocks struct {
 	Staking     float64 `json:"staking"`
 	ColdStaking float64 `json:"coldStaking"`
 	Fees        float64 `json:"fees"`
+	From        uint64  `json:"from,omitempty"`
+	To          uint64  `json:"to,omitempty"`
 }
 
 type StakingReward struct {
