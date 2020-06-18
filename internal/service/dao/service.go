@@ -123,13 +123,12 @@ func (s *service) GetConsensus() (*explorer.ConsensusParameters, error) {
 func (s *service) GetCfundStats() (*entity.CfundStats, error) {
 	cfundStats := new(entity.CfundStats)
 
-	cfund, err := s.cfundRepository.GetStats()
-	if err == nil {
-		cfundStats.Available = cfund.Available
-		cfundStats.Locked = cfund.Locked
+	if block, _ := s.blockRepository.BestBlock(); block != nil {
+		cfundStats.Available = block.Cfund.Available
+		cfundStats.Locked = block.Cfund.Locked
 	}
 
-	if paid, err := s.paymentRequestRepository.ValuePaid(); err == nil {
+	if paid, _ := s.paymentRequestRepository.ValuePaid(); paid != nil {
 		cfundStats.Paid = *paid
 	}
 

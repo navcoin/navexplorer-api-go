@@ -23,6 +23,10 @@ github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200531215233-a3474653be41
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200531215233-a3474653be41/go.mod h1:eOcjkgLFcoZitBif2Q4HOYFX22wJDdLE/ZxFamhKoRc=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200613201716-eec9925ee377 h1:6DbVWXtG1sIxgMhyoSrdTH/cSx/hojscjz0QHrDQ9P8=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200613201716-eec9925ee377/go.mod h1:C1tKZJs0Ms55A+in7/IQADhwTOQHFnrT3Huzqadr2ZY=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200616213205-738f14fedf10 h1:GKvZc97uv/LXIGweLl5EBbBOQuY8907bEdpyDIodx54=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200616213205-738f14fedf10/go.mod h1:C1tKZJs0Ms55A+in7/IQADhwTOQHFnrT3Huzqadr2ZY=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200617184203-b83d8c3a7a90 h1:EGR1+wqONAd0p/ReKNlWtVX9NQeIZmKp/ahjHPhFyjE=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200617184203-b83d8c3a7a90/go.mod h1:C1tKZJs0Ms55A+in7/IQADhwTOQHFnrT3Huzqadr2ZY=
 github.com/NavExplorer/subscriber v0.0.0-20200601205031-4135a91491af h1:KWrfS1eDXRPSpY6pyBMGYiqLSIJ08TargSgbFeUTaMA=
 github.com/NavExplorer/subscriber v0.0.0-20200601205031-4135a91491af/go.mod h1:b9UVwdUV1OVGDsOMqOJeu5Rk5SPyOgfHfvM0HH4fvdU=
 github.com/NavExplorer/subscriber v0.0.0-20200601212953-3a6c48dd3d5d h1:4tlsQCkBbil7rexH6A0CGyRh5I7z1QP/ftiFLWP7ADo=
