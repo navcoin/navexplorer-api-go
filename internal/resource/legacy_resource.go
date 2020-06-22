@@ -550,7 +550,7 @@ func (r *LegacyResource) GetStakingByBlockCount(c *gin.Context) {
 		blockCount = 50000000
 	}
 
-	staking, err := r.addressService.GetStakingByBlockCount(blockCount)
+	staking, err := r.addressService.GetStakingByBlockCount(blockCount, false)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return

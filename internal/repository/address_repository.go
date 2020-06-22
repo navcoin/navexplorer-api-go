@@ -61,8 +61,8 @@ func (r *AddressRepository) BalancesForAddresses(addresses []string) ([]*entity.
 		if err == nil {
 			balance := &entity.Balance{
 				Address:           address.Hash,
-				Balance:           float64(address.Balance) / 100000000,
-				ColdStakedBalance: float64(address.ColdBalance) / 100000000,
+				Balance:           address.Balance,
+				ColdStakedBalance: address.ColdBalance,
 			}
 			balances = append(balances, balance)
 		}

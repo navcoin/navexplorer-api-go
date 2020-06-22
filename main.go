@@ -50,6 +50,7 @@ func main() {
 	r.GET("/address/:hash/validate", addressResource.ValidateAddress)
 	r.GET("/address/:hash/staking", addressResource.GetStakingChart)
 	r.GET("/address/:hash/assoc/staking", addressResource.GetAssociatedStakingAddresses)
+	r.GET("/balance", addressResource.GetBalancesForAddresses)
 
 	blockResource := resource.NewBlockResource(container.GetBlockService(), container.GetDaoService())
 	r.GET("/bestblock", blockResource.GetBestBlock)
@@ -62,6 +63,10 @@ func main() {
 	r.GET("/block/:hash/tx", blockResource.GetTransactionsByBlock)
 	r.GET("/tx/:hash", blockResource.GetTransactionByHash)
 	r.GET("/tx/:hash/raw", blockResource.GetRawTransactionByHash)
+
+	stakingResource := resource.NewStakingResource(container.GetAddressService())
+	r.GET("/staking/blocks", stakingResource.GetBlocks)
+	r.GET("/staking/rewards", stakingResource.GetStakingRewardsForAddresses)
 
 	softForkResource := resource.NewSoftForkResource(container.GetSoftforkService(), container.GetSoftforkRepo())
 	r.GET("/softfork", softForkResource.GetSoftForks)
