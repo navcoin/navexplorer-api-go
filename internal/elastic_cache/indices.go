@@ -2,6 +2,7 @@ package elastic_cache
 
 import (
 	"fmt"
+	"github.com/NavExplorer/navexplorer-api-go/internal/config"
 	"github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
 )
 
@@ -13,7 +14,6 @@ var (
 	BlockIndex              Indices = "block"
 	BlockTransactionIndex   Indices = "blocktransaction"
 	ConsensusIndex          Indices = "consensus"
-	CfundIndex              Indices = "cfund"
 	ProposalIndex           Indices = "proposal"
 	DaoVoteIndex            Indices = "daovote"
 	DaoConsultationIndex    Indices = "consultation"
@@ -22,9 +22,15 @@ var (
 	SoftForkIndex           Indices = "softfork"
 )
 
-// Sets the network and returns the full string
 func (i *Indices) Get() string {
-	return fmt.Sprintf("%s.%s", param.GetGlobalParam("network", "mainnet"), string(*i))
+	network := param.GetGlobalParam("network", "mainnet").(string)
+	index := config.Get().Index[network]
+
+	if network == "mainnet" && string(*i) == "softfork" {
+		return fmt.Sprintf("%s.%s", network, string(*i))
+	}
+
+	return fmt.Sprintf("%s.%s.%s", network, index, string(*i))
 }
 
 func All() []Indices {
@@ -33,7 +39,6 @@ func All() []Indices {
 		AddressTransactionIndex,
 		BlockIndex,
 		BlockTransactionIndex,
-		CfundIndex,
 		ConsensusIndex,
 		ProposalIndex,
 		PaymentRequestIndex,

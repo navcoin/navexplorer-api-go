@@ -36,7 +36,6 @@ type Service interface {
 
 type service struct {
 	consensusService           consensus.Service
-	cfundRepository            *repository.DaoCfundRepository
 	proposalRepository         *repository.DaoProposalRepository
 	paymentRequestRepository   *repository.DaoPaymentRequestRepository
 	consultationRepository     *repository.DaoConsultationRepository
@@ -66,7 +65,6 @@ type PaymentRequestParameters struct {
 
 func NewDaoService(
 	consensusService consensus.Service,
-	cfundRepository *repository.DaoCfundRepository,
 	proposalRepository *repository.DaoProposalRepository,
 	paymentRequestRepository *repository.DaoPaymentRequestRepository,
 	consultationRepository *repository.DaoConsultationRepository,
@@ -77,7 +75,6 @@ func NewDaoService(
 ) Service {
 	return &service{
 		consensusService,
-		cfundRepository,
 		proposalRepository,
 		paymentRequestRepository,
 		consultationRepository,
