@@ -11,6 +11,7 @@ import (
 type Config struct {
 	Debug         bool
 	ElasticSearch ElasticSearchConfig
+	Index         map[string]string
 	Server        ServerConfig
 	Legacy        bool
 	Subscribe     bool
@@ -55,6 +56,11 @@ func Get() *Config {
 			Debug:       getBool("ELASTIC_SEARCH_DEBUG", false),
 			Username:    getString("ELASTIC_SEARCH_USERNAME", ""),
 			Password:    getString("ELASTIC_SEARCH_PASSWORD", ""),
+		},
+		Index: map[string]string{
+			"devnet":  getString("INDEX_DEVNET", "v2"),
+			"testnet": getString("INDEX_TESTNET", "v1"),
+			"mainnet": getString("INDEX_MAINNET", "v2"),
 		},
 		Server: ServerConfig{
 			Port: getInt("PORT", 8080),
