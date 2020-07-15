@@ -24,7 +24,6 @@ func NewDaoConsultationRepository(elastic *elastic_cache.Index) *DaoConsultation
 }
 
 func (r *DaoConsultationRepository) Consultations(status *explorer.ConsultationStatus, consensus *bool, min *uint, asc bool, size int, page int) ([]*explorer.Consultation, int64, error) {
-	log.Info(status)
 	query := elastic.NewBoolQuery()
 	if status != nil {
 		query = query.Must(elastic.NewTermQuery("state", status.State))
