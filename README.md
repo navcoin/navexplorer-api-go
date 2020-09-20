@@ -11,28 +11,52 @@ go run main.go
 ## Available endpoints
 
 ```
-GET    /api/address?size=100
-GET    /api/address/:hash
-GET    /api/address/:hash/tx?filters=staking,send,receive&size=10&page=1
-GET    /api/address/:hash/assoc/staking
-GET    /api/bestblock
-GET    /api/blockgroup?period=[hourly|daily|monthly]&count=10
-GET    /api/block?dir=[ASC,DESC]&page=1&size=10
-GET    /api/block/:hash
-GET    /api/block/:hash/tx
-GET    /api/tx/:hash
-GET    /api/community-fund/block-cycle
-GET    /api/community-fund/proposal?dir=[ASC,DESC]&size=10&page=1&state=[PENDING,ACCEPTED,EXPIRED,...]
-GET    /api/community-fund/proposal/:hash
-GET    /api/community-fund/proposal/:hash/vote/:vote
-GET    /api/community-fund/proposal/:hash/payment-request
-GET    /api/community-fund/payment-request?state=[PENDING,ACCEPTED,EXPIRED,...]
-GET    /api/community-fund/payment-request/:hash
-GET    /api/community-fund/payment-request/:hash/vote/:vote
-GET    /api/search?query=[block#,blockHash,txHash,proposalHash,paymentRequestHash]
-GET    /api/soft-fork
-GET    /api/network/nodes
+GET    /address?size=100
+GET    /address/:hash
+GET    /address/:hash/summary
+GET    /address/:hash/history
+GET    /address/:hash/staking
 
+GET    /address/:hash/assoc/staking
+GET    /balance
+GET    /bestblock
+GET    /blockcycle
+GET    /blockgroup
+
+GET    /block
+GET    /block/:hash
+GET    /block/:hash/cycle
+GET    /block/:hash/raw
+GET    /block/:hash/tx
+
+GET    /tx/:hash
+GET    /tx/:hash/raw
+
+GET    /staking/blocks
+GET    /staking/rewards
+
+GET    /softfork
+GET    /softfork/cycle
+
+GET    /dao/consensus/parameters
+GET    /dao/consensus/parameters/:id
+GET    /dao/consultation
+GET    /dao/consultation/:hash
+GET    /dao/consultation/:hash/:answer/votes
+GET    /dao/answer/:hash
+
+GET    /dao/cfund/stats
+GET    /dao/cfund/proposal
+GET    /dao/cfund/proposal/:hash
+GET    /dao/cfund/proposal/:hash/votes
+GET    /dao/cfund/proposal/:hash/trend
+GET    /dao/cfund/proposal/:hash/payment-request
+GET    /dao/cfund/payment-request
+GET    /dao/cfund/payment-request/:hash
+GET    /dao/cfund/payment-request/:hash/votes
+GET    /dao/cfund/payment-request/:hash/trend
+
+GET    /search
 ```
 
 ## Network Header

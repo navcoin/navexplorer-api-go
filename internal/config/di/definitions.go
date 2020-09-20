@@ -34,6 +34,12 @@ var Definitions = []dingo.Def{
 		},
 	},
 	{
+		Name: "address.history.repo",
+		Build: func(elastic *elastic_cache.Index) (*repository.AddressHistoryRepository, error) {
+			return repository.NewAddressHistoryRepository(elastic), nil
+		},
+	},
+	{
 		Name: "address.transaction.repo",
 		Build: func(elastic *elastic_cache.Index) (*repository.AddressTransactionRepository, error) {
 			return repository.NewAddressTransactionRepository(elastic), nil
@@ -43,11 +49,12 @@ var Definitions = []dingo.Def{
 		Name: "address.service",
 		Build: func(
 			addressRepository *repository.AddressRepository,
+			addressHistoryRepository *repository.AddressHistoryRepository,
 			addressTransactionRepository *repository.AddressTransactionRepository,
 			blockRepository *repository.BlockRepository,
 			blockTransactionRepository *repository.BlockTransactionRepository,
 		) (address.Service, error) {
-			return address.NewAddressService(addressRepository, addressTransactionRepository, blockRepository, blockTransactionRepository), nil
+			return address.NewAddressService(addressRepository, addressHistoryRepository, addressTransactionRepository, blockRepository, blockTransactionRepository), nil
 		},
 	},
 	{

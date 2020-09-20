@@ -22,42 +22,15 @@ func NewAddressTransactionRepository(elastic *elastic_cache.Index) *AddressTrans
 	return &AddressTransactionRepository{elastic}
 }
 
-func (r *AddressTransactionRepository) TransactionsByHash(hash string, types string, cold bool, dir bool, size int, page int) ([]*explorer.AddressTransaction, int64, error) {
-	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
-	query = query.Must(elastic.NewTermQuery("cold", cold))
-
-	if len(types) != 0 {
-		if strings.Contains(types, string(explorer.TransferStake)) {
-			types += fmt.Sprintf(" %s", explorer.TransferColdStake)
-		}
-		if strings.Contains(types, string(explorer.TransferReceive)) {
-			types += fmt.Sprintf(" %s", explorer.TransferCommunityFundPayout)
-		}
-		query = query.Must(elastic.NewMatchQuery("type", types))
-	}
-
-	results, err := r.elastic.Client.Search(elastic_cache.AddressTransactionIndex.Get()).
-		Query(query).
-		Sort("height", dir).
-		Sort("index", dir).
-		From((page * size) - size).
-		Size(size).
-		TrackTotalHits(true).
-		Do(context.Background())
-
-	return r.findMany(results, err)
-}
-
 func (r *AddressTransactionRepository) BalanceChart(address string) (chart entity.Chart, err error) {
 	now := time.Now().UTC().Truncate(time.Second)
 	from := time.Date(now.Year(), now.Month(), now.Day()-30, 0, 0, 0, 0, now.Location())
 
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("address", address))
+	query = query.Must(elastic.NewMatchQuery("hash", address))
 	query = query.Must(elastic.NewRangeQuery("time").Gte(from))
 
-	results, err := r.elastic.Client.Search(elastic_cache.AddressTransactionIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
 		Query(query).
 		Sort("height", false).
 		Size(10000).
@@ -69,12 +42,12 @@ func (r *AddressTransactionRepository) BalanceChart(address string) (chart entit
 	}
 
 	for _, hit := range results.Hits.Hits {
-		var tx explorer.AddressTransaction
-		err := json.Unmarshal(hit.Source, &tx)
+		var history explorer.AddressHistory
+		err := json.Unmarshal(hit.Source, &history)
 		if err == nil {
 			chartPoint := &entity.ChartPoint{
-				Time:  tx.Time,
-				Value: float64(tx.Balance) / 100000000,
+				Time:  history.Time,
+				Value: float64(history.Balance.Spending) / 100000000,
 			}
 			chart.Points = append(chart.Points, chartPoint)
 		}
@@ -89,7 +62,7 @@ func (r *AddressTransactionRepository) StakingChart(period string, hash string) 
 
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewMatchQuery("hash", hash))
-	query = query.Must(elastic.NewMatchQuery("type", "stake cold_stake"))
+	query = query.Must(elastic.NewMatchQuery("is_stake", true))
 
 	agg := elastic.NewFilterAggregation().Filter(query)
 
@@ -130,15 +103,20 @@ func (r *AddressTransactionRepository) StakingChart(period string, hash string) 
 			}
 		}
 
+		changesAgg := elastic.NewNestedAggregation().Path("changes")
+		changesAgg.SubAggregation("staking", elastic.NewSumAggregation().Field("changes.staking"))
+		changesAgg.SubAggregation("spending", elastic.NewSumAggregation().Field("changes.spending"))
+		changesAgg.SubAggregation("voting", elastic.NewSumAggregation().Field("changes.voting"))
+
 		timeAgg := elastic.NewRangeAggregation().Field("time").AddRange(group.Start, group.End)
-		timeAgg.SubAggregation("total", elastic.NewSumAggregation().Field("total"))
+		timeAgg.SubAggregation("changes", changesAgg)
 
 		agg.SubAggregation(fmt.Sprintf("group-%d", i), timeAgg)
 
 		groups = append(groups, group)
 	}
 
-	results, err := r.elastic.Client.Search(elastic_cache.AddressTransactionIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
 		Aggregation("groups", agg).
 		Size(0).
 		Do(context.Background())
@@ -150,8 +128,16 @@ func (r *AddressTransactionRepository) StakingChart(period string, hash string) 
 					bucket := groupAgg.Buckets[0]
 					groups[i].Stakes = bucket.DocCount
 
-					if totalValue, found := bucket.Aggregations.Sum("total"); found {
-						groups[i].Amount = int64(*totalValue.Value)
+					if nested, found := bucket.Aggregations.Nested("changes"); found {
+						if stakingValue, found := nested.Aggregations.Sum("staking"); found {
+							groups[i].Staking = int64(*stakingValue.Value)
+						}
+						if spendingValue, found := nested.Aggregations.Sum("spending"); found {
+							groups[i].Spending = int64(*spendingValue.Value)
+						}
+						if votingValue, found := nested.Aggregations.Sum("voting"); found {
+							groups[i].Voting = int64(*votingValue.Value)
+						}
 					}
 					i++
 				} else {
@@ -164,59 +150,31 @@ func (r *AddressTransactionRepository) StakingChart(period string, hash string) 
 	return groups, err
 }
 
-func (r *AddressTransactionRepository) TransactionsForAddresses(addresses []string, txType string, start *time.Time, end *time.Time) ([]*explorer.AddressTransaction, error) {
-	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("address", strings.Join(addresses, " ")))
-	query = query.Must(elastic.NewMatchQuery("type", txType))
-	query = query.Must(elastic.NewRangeQuery("time").Gt(&start).Lte(&end))
-
-	results, err := r.elastic.Client.Search(elastic_cache.AddressTransactionIndex.Get()).
-		Query(query).
-		Size(5000).
-		Sort("time", false).
-		Do(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	txs := make([]*explorer.AddressTransaction, 0)
-	for _, hit := range results.Hits.Hits {
-		tx := new(explorer.AddressTransaction)
-		err := json.Unmarshal(hit.Source, &tx)
-		if err == nil {
-			txs = append(txs, tx)
-		}
-	}
-
-	return txs, nil
-}
-
 func (r *AddressTransactionRepository) GetStakingReport(report *entity.StakingReport) error {
 
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewRangeQuery("time").Gte(report.From))
-	query = query.Must(elastic.NewTermsQuery("type.keyword", "COLD_STAKING", "STAKING"))
-	query = query.Must(elastic.NewTermQuery("standard", true))
+	query = query.Must(elastic.NewTermsQuery("is_stake", true))
 
-	results, err := r.elastic.Client.Search(elastic_cache.AddressTransactionIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
 		Query(query).
 		Size(10000).
 		Sort("height", false).
-		Collapse(elastic.NewCollapseBuilder("address.keyword")).
+		Collapse(elastic.NewCollapseBuilder("hash.keyword")).
 		Do(context.Background())
 	if err != nil {
 		return err
 	}
 
 	for _, hit := range results.Hits.Hits {
-		transaction := &explorer.AddressTransaction{}
-		err := json.Unmarshal(hit.Source, &transaction)
+		history := &explorer.AddressHistory{}
+		err := json.Unmarshal(hit.Source, &history)
 		if err != nil {
 			return err
 		}
 		var reporter entity.Reporter
-		reporter.Address = transaction.Hash
-		reporter.Balance = float64(transaction.Balance) / 100000000
+		reporter.Address = history.Hash
+		reporter.Balance = float64(history.Balance.Staking) / 100000000
 		report.Addresses = append(report.Addresses, reporter)
 
 		report.Staking += reporter.Balance
@@ -230,18 +188,22 @@ func (r *AddressTransactionRepository) GetStakingRange(from uint64, to uint64) (
 	query = query.Must(elastic.NewRangeQuery("height").Gt(from).Lte(to))
 
 	hashAgg := elastic.NewTermsAggregation().Field("hash.keyword")
-	hashAgg.SubAggregation("balance", elastic.NewMaxAggregation().Field("balance"))
+	hashAgg.SubAggregation("balance.staking", elastic.NewMaxAggregation().Field("balance.staking"))
 
-	stakeAgg := elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("type.keyword", explorer.TransferStake))
+	stakeAgg := elastic.NewFilterAggregation().Filter(
+		elastic.NewBoolQuery().
+			Must(elastic.NewTermQuery("is_stake", true)).
+			MustNot(elastic.NewTermQuery("changes.spending", 0)),
+	)
 	stakeAgg.SubAggregation("hash", hashAgg)
 
 	coldStakeAgg := elastic.NewFilterAggregation().Filter(
 		elastic.NewBoolQuery().
-			Must(elastic.NewTermQuery("type.keyword", explorer.TransferColdStake)).
-			Must(elastic.NewTermQuery("cold", true)),
+			Must(elastic.NewTermQuery("is_stake", true)).
+			Must(elastic.NewTermQuery("changes.spending", 0)),
 	).SubAggregation("hash", hashAgg)
 
-	results, err := r.elastic.Client.Search(elastic_cache.AddressTransactionIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
 		Query(query).
 		Aggregation("stake", stakeAgg).
 		Aggregation("coldStake", coldStakeAgg).
@@ -284,7 +246,7 @@ func (r *AddressTransactionRepository) GetStakingRange(from uint64, to uint64) (
 func (r *AddressTransactionRepository) StakingRewardsForAddresses(addresses []string) ([]*entity.StakingReward, error) {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewMatchQuery("hash", strings.Join(addresses, " ")))
-	query = query.Must(elastic.NewMatchQuery("type", "stake cold_stake"))
+	query = query.Must(elastic.NewMatchQuery("is_stake", true))
 
 	now := time.Now().UTC().Truncate(time.Second)
 
@@ -295,7 +257,7 @@ func (r *AddressTransactionRepository) StakingRewardsForAddresses(addresses []st
 	agg.SubAggregation("lastYear", dateGroupAgg(now.Add(-(time.Hour*24*365)), now))
 	agg.SubAggregation("all", dateGroupAgg(now.AddDate(-100, 0, 0), now))
 
-	service := r.elastic.Client.Search(elastic_cache.AddressTransactionIndex.Get())
+	service := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get())
 	service.Query(query)
 	service.Size(0)
 	service.Aggregation("groups", agg)

@@ -16,7 +16,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type LegacyResource struct {
@@ -75,36 +74,6 @@ func (r *LegacyResource) GetAddresses(c *gin.Context) {
 	c.JSON(200, a)
 }
 
-func (r *LegacyResource) GetTransactions(c *gin.Context) {
-	config, _ := pagination.Bind(c)
-
-	txs, total, err := r.addressService.GetTransactions(c.Param("hash"), strings.Join(getFilters(c), " "), false, config)
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	paginator := pagination.NewPaginator(len(txs), total, config)
-	paginator.WriteHeader(c)
-
-	c.JSON(200, txs)
-}
-
-func (r *LegacyResource) GetColdTransactions(c *gin.Context) {
-	config, _ := pagination.Bind(c)
-
-	txs, total, err := r.addressService.GetTransactions(c.Param("hash"), strings.Join(getFilters(c), " "), true, config)
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	paginator := pagination.NewPaginator(len(txs), total, config)
-	paginator.WriteHeader(c)
-
-	c.JSON(200, txs)
-}
-
 func (r *LegacyResource) GetBalanceChart(c *gin.Context) {
 	chart, err := r.addressService.GetBalanceChart(c.Param("hash"))
 	if err != nil {
@@ -137,34 +106,6 @@ func (r *LegacyResource) GetAssociatedStakingAddresses(c *gin.Context) {
 	c.JSON(200, addresses)
 }
 
-func (r *LegacyResource) GetTransactionsForAddresses(c *gin.Context) {
-	addresses := strings.Split(c.Query("addresses"), ",")
-	if len(addresses) == 0 {
-		handleError(c, errors.New("No addresses provided"), http.StatusBadRequest)
-		return
-	}
-
-	endTimestamp, err := strconv.ParseInt(c.Query("end"), 10, 64)
-	endTime := time.Now()
-	if err != nil && endTimestamp != 0 {
-		endTime = time.Unix(endTimestamp, 0)
-	}
-
-	startTimestamp, err := strconv.ParseInt(c.Query("start"), 10, 64)
-	startTime := time.Now().Add(-(time.Hour * 24))
-	if err != nil && startTimestamp != 0 {
-		startTime = time.Unix(startTimestamp, 0)
-	}
-
-	transactions, err := r.addressService.GetTransactionsForAddresses(addresses, urlDecodeType(c.Param("type")), &startTime, &endTime)
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(200, transactions)
-}
-
 func (r *LegacyResource) GetBalancesForAddresses(c *gin.Context) {
 	_ = c.Request.ParseForm()
 
@@ -173,7 +114,7 @@ func (r *LegacyResource) GetBalancesForAddresses(c *gin.Context) {
 		addresses = strings.Split(addressesParam, ",")
 	}
 
-	balances, err := r.addressService.GetBalancesForAddresses(addresses)
+	balances, err := r.addressService.GetNamedAddresses(addresses)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return

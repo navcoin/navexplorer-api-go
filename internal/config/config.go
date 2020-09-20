@@ -9,13 +9,14 @@ import (
 )
 
 type Config struct {
-	Debug         bool
-	ElasticSearch ElasticSearchConfig
-	Index         map[string]string
-	Server        ServerConfig
-	Legacy        bool
-	Subscribe     bool
-	RabbitMq      RabbitMqConfig
+	Debug          bool
+	ElasticSearch  ElasticSearchConfig
+	Index          map[string]string
+	Server         ServerConfig
+	Legacy         bool
+	Subscribe      bool
+	RabbitMq       RabbitMqConfig
+	DefaultNetwork string
 }
 
 type ElasticSearchConfig struct {
@@ -74,6 +75,7 @@ func Get() *Config {
 			Port:     getInt("RABBITMQ_PORT", 5672),
 			Prefix:   getString("RABBITMQ_PREFIX", os.Getenv("POD_NAME")),
 		},
+		DefaultNetwork: getString("DEFAULT_NETWORK", "mainnet"),
 	}
 }
 

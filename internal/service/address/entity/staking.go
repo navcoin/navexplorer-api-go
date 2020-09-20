@@ -5,10 +5,12 @@ import (
 )
 
 type StakingGroup struct {
-	Start  time.Time `json:"start"`
-	End    time.Time `json:"end"`
-	Stakes int64     `json:"stakes"`
-	Amount int64     `json:"amount"`
+	Start    time.Time `json:"start"`
+	End      time.Time `json:"end"`
+	Stakes   int64     `json:"stakes"`
+	Staking  int64     `json:"staking"`
+	Spending int64     `json:"spending"`
+	Voting   int64     `json:"voting"`
 }
 
 type StakingReport struct {

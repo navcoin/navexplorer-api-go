@@ -5,13 +5,15 @@ go 1.13
 replace github.com/ugorji/go v1.1.4 => github.com/ugorji/go/codec v0.0.0-20190204201341-e444a5086c43
 
 require (
-	github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200617184203-b83d8c3a7a90
+	github.com/NavExplorer/navcoind-go v0.1.8-0.20200709223613-3322962ba291 // indirect
+	github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200915193853-aaa5d6e98584
 	github.com/getsentry/raven-go v0.2.0
 	github.com/gin-contrib/cache v1.1.0 // indirect
 	github.com/gin-contrib/cors v1.3.0
 	github.com/gin-contrib/gzip v0.0.1
 	github.com/gin-gonic/gin v1.5.0
 	github.com/joho/godotenv v1.3.0
+	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/olivere/elastic/v7 v7.0.9
 	github.com/sarulabs/dingo/v3 v3.1.0
 	github.com/sirupsen/logrus v1.6.0

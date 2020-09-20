@@ -11,20 +11,21 @@ import (
 type Service interface {
 	GetAddress(hash string) (*explorer.Address, error)
 	GetAddresses(config *pagination.Config) ([]*explorer.Address, int64, error)
-	GetTransactions(hash string, types string, cold bool, config *pagination.Config) ([]*explorer.AddressTransaction, int64, error)
+	GetAddressSummary(hash string) (*entity.AddressSummary, error)
+	GetHistory(hash string, txType string, config *pagination.Config) ([]*explorer.AddressHistory, int64, error)
 	GetBalanceChart(address string) (entity.Chart, error)
 	GetStakingChart(period string, address string) ([]*entity.StakingGroup, error)
 	GetStakingReport() (*entity.StakingReport, error)
 	GetStakingByBlockCount(blockCount int, extended bool) (*entity.StakingBlocks, error)
-	GetTransactionsForAddresses(addresses []string, txType string, start *time.Time, end *time.Time) ([]*explorer.AddressTransaction, error)
 	GetAssociatedStakingAddresses(address string) ([]string, error)
-	GetBalancesForAddresses(addresses []string) ([]*entity.Balance, error)
+	GetNamedAddresses(addresses []string) ([]*explorer.Address, error)
 	GetStakingRewardsForAddresses(addresses []string) ([]*entity.StakingReward, error)
 	ValidateAddress(hash string) (bool, error)
 }
 
 type service struct {
 	addressRepository            *repository.AddressRepository
+	addressHistoryRepository     *repository.AddressHistoryRepository
 	addressTransactionRepository *repository.AddressTransactionRepository
 	blockRepository              *repository.BlockRepository
 	blockTransactionRepository   *repository.BlockTransactionRepository
@@ -32,12 +33,14 @@ type service struct {
 
 func NewAddressService(
 	addressRepository *repository.AddressRepository,
+	addressHistoryRepository *repository.AddressHistoryRepository,
 	addressTransactionRepository *repository.AddressTransactionRepository,
 	blockRepository *repository.BlockRepository,
 	blockTransactionRepository *repository.BlockTransactionRepository,
 ) Service {
 	return &service{
 		addressRepository,
+		addressHistoryRepository,
 		addressTransactionRepository,
 		blockRepository,
 		blockTransactionRepository,
@@ -52,8 +55,43 @@ func (s *service) GetAddresses(config *pagination.Config) ([]*explorer.Address, 
 	return s.addressRepository.Addresses(config.Size, config.Page)
 }
 
-func (s *service) GetTransactions(hash string, types string, cold bool, config *pagination.Config) ([]*explorer.AddressTransaction, int64, error) {
-	return s.addressTransactionRepository.TransactionsByHash(hash, types, cold, config.Ascending, config.Size, config.Page)
+func (s *service) GetHistory(hash string, txType string, config *pagination.Config) ([]*explorer.AddressHistory, int64, error) {
+	return s.addressHistoryRepository.HistoryByHash(hash, txType, config.Ascending, config.Size, config.Page)
+}
+
+func (s *service) GetAddressSummary(hash string) (*entity.AddressSummary, error) {
+	h, err := s.addressRepository.AddressByHash(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	summary := &entity.AddressSummary{Height: h.Height, Hash: h.Hash}
+
+	spendingSent, spendingReceive, _, _, err := s.addressHistoryRepository.SpendSummary(hash)
+
+	summary.Sent = &entity.AddressBalance{
+		Balance:  uint64(h.Spending),
+		Spending: spendingSent,
+	}
+
+	summary.Received = &entity.AddressBalance{
+		Balance:  uint64(h.Voting),
+		Spending: spendingReceive,
+	}
+
+	_, stakeStaking, stakeSpending, stakeVoting, err := s.addressHistoryRepository.StakingSummary(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	summary.Staked = &entity.AddressBalance{
+		Balance:  uint64(h.Staking),
+		Staking:  stakeStaking,
+		Spending: stakeSpending,
+		Voting:   stakeVoting,
+	}
+
+	return summary, nil
 }
 
 func (s *service) GetBalanceChart(address string) (entity.Chart, error) {
@@ -107,15 +145,11 @@ func (s *service) GetStakingByBlockCount(blockCount int, extended bool) (*entity
 	return stakingBlocks, err
 }
 
-func (s *service) GetTransactionsForAddresses(addresses []string, txType string, start *time.Time, end *time.Time) ([]*explorer.AddressTransaction, error) {
-	return s.addressTransactionRepository.TransactionsForAddresses(addresses, txType, start, end)
-}
-
 func (s *service) GetAssociatedStakingAddresses(address string) ([]string, error) {
 	return s.blockTransactionRepository.AssociatedStakingAddresses(address)
 }
 
-func (s *service) GetBalancesForAddresses(addresses []string) ([]*entity.Balance, error) {
+func (s *service) GetNamedAddresses(addresses []string) ([]*explorer.Address, error) {
 	return s.addressRepository.BalancesForAddresses(addresses)
 }
 
