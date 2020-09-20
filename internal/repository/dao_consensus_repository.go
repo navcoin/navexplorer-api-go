@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/getsentry/raven-go"
@@ -22,8 +21,8 @@ func NewDaoConsensusRepository(elastic *elastic_cache.Index) *DaoConsensusReposi
 	return &DaoConsensusRepository{elastic}
 }
 
-func (r *DaoConsensusRepository) GetConsensusParameters(network string) (*explorer.ConsensusParameters, error) {
-	results, err := r.elastic.Client.Search(fmt.Sprintf("%s.%s", network, elastic_cache.ConsensusIndex)).
+func (r *DaoConsensusRepository) GetConsensusParameters() (*explorer.ConsensusParameters, error) {
+	results, err := r.elastic.Client.Search(elastic_cache.ConsensusIndex.Get()).
 		Size(1000).
 		Sort("id", true).
 		Do(context.Background())

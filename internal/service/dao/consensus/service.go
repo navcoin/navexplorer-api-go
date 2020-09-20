@@ -1,8 +1,6 @@
 package consensus
 
 import (
-	"fmt"
-	"github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	log "github.com/sirupsen/logrus"
@@ -22,12 +20,7 @@ func NewConsensusService(consensusRepository *repository.DaoConsensusRepository)
 }
 
 func (s *service) GetParameters() (*explorer.ConsensusParameters, error) {
-	network := fmt.Sprintf("%v", param.GetGlobalParam("network", nil))
-	if network == "" {
-		log.Fatal("No network specified to get consensus parameters")
-	}
-
-	p, err := s.consensusRepository.GetConsensusParameters(network)
+	p, err := s.consensusRepository.GetConsensusParameters()
 	if err != nil {
 		log.WithError(err).Error("Failed to get consensus parameters")
 		return nil, err

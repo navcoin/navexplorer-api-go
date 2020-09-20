@@ -4,12 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
-	"github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/getsentry/raven-go"
-	"log"
 )
 
 type DaoCfundRepository struct {
@@ -25,12 +22,7 @@ var (
 )
 
 func (r *DaoCfundRepository) GetStats() (*explorer.Cfund, error) {
-	network := fmt.Sprintf("%v", param.GetGlobalParam("network", nil))
-	if network == "" {
-		log.Fatal("No network specified to get consensus parameters")
-	}
-
-	results, err := r.elastic.Client.Search(fmt.Sprintf("%s.%s", network, elastic_cache.CfundIndex)).
+	results, err := r.elastic.Client.Search(elastic_cache.CfundIndex.Get()).
 		Size(1).
 		Do(context.Background())
 	if err != nil || results == nil {
