@@ -21,7 +21,7 @@ func NewDaoConsensusRepository(elastic *elastic_cache.Index) *DaoConsensusReposi
 	return &DaoConsensusRepository{elastic}
 }
 
-func (r *DaoConsensusRepository) GetConsensusParameters(network string) (*explorer.ConsensusParameters, error) {
+func (r *DaoConsensusRepository) GetConsensusParameters() (*explorer.ConsensusParameters, error) {
 	results, err := r.elastic.Client.Search(elastic_cache.ConsensusIndex.Get()).
 		Size(1000).
 		Sort("id", true).
