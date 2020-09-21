@@ -20,6 +20,7 @@ func NewBlockTransactionRepository(elastic *elastic_cache.Index) *BlockTransacti
 func (r *BlockTransactionRepository) TransactionsByBlock(block *explorer.Block) ([]*explorer.BlockTransaction, error) {
 	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get()).
 		Query(elastic.NewMatchPhraseQuery("blockhash", block.Hash)).
+		Sort("index", true).
 		Size(10000).
 		Do(context.Background())
 
