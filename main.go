@@ -52,6 +52,9 @@ func main() {
 	r.GET("/address/:hash/assoc/staking", addressResource.GetAssociatedStakingAddresses)
 	r.GET("/balance", addressResource.GetBalancesForAddresses)
 
+	distributionResource := resource.NewDistributionResource(container.GetDistributionService())
+	r.GET("/distribution/total-supply", distributionResource.GetTotalSupply)
+
 	blockResource := resource.NewBlockResource(container.GetBlockService(), container.GetDaoService())
 	r.GET("/bestblock", blockResource.GetBestBlock)
 	r.GET("/blockcycle", blockResource.GetBestBlockCycle)
@@ -61,6 +64,7 @@ func main() {
 	r.GET("/block/:hash/cycle", blockResource.GetBlockCycle)
 	r.GET("/block/:hash/raw", blockResource.GetRawBlock)
 	r.GET("/block/:hash/tx", blockResource.GetTransactionsByBlock)
+	r.GET("/tx", blockResource.GetTransactions)
 	r.GET("/tx/:hash", blockResource.GetTransactionByHash)
 	r.GET("/tx/:hash/raw", blockResource.GetRawTransactionByHash)
 
@@ -132,7 +136,6 @@ func includeLegacyApiEndpoints(r *gin.Engine) {
 	api.GET("/blockgroup", legacyResource.GetBlockGroups)
 	api.GET("/block", legacyResource.GetBlocks)
 	api.GET("/block/:hash", legacyResource.GetBlock)
-	api.GET("/block/:hash/tx", legacyResource.GetBlockTransactions)
 	api.GET("/block/:hash/raw", legacyResource.GetRawBlock)
 	api.GET("/tx/:hash", legacyResource.GetTransaction)
 	api.GET("/tx/:hash/raw", legacyResource.GetRawTransaction)

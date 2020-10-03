@@ -7,7 +7,6 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -35,7 +34,37 @@ func (r *AddressHistoryRepository) LatestByHash(hash string) (*explorer.AddressH
 	return r.findOne(results, err)
 }
 
-func (r *AddressHistoryRepository) StakingSummary(hash string) (count, staking, spending, voting uint64, err error) {
+func (r *AddressHistoryRepository) FirstByHash(hash string) (*explorer.AddressHistory, error) {
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
+
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
+		Query(query).
+		Sort("height", true).
+		Size(1).
+		Do(context.Background())
+
+	return r.findOne(results, err)
+}
+
+func (r *AddressHistoryRepository) CountByHash(hash string) (int64, error) {
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
+
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
+		Query(query).
+		TrackTotalHits(true).
+		Size(0).
+		Do(context.Background())
+
+	if err != nil {
+		return 0, err
+	}
+
+	return results.TotalHits(), nil
+}
+
+func (r *AddressHistoryRepository) StakingSummary(hash string) (count, staking, spending, voting int64, err error) {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
@@ -56,16 +85,16 @@ func (r *AddressHistoryRepository) StakingSummary(hash string) (count, staking, 
 
 	if err == nil && results != nil {
 		if agg, found := results.Aggregations.Filter("stake"); found {
-			count = uint64(agg.DocCount)
+			count = agg.DocCount
 			if changes, found := agg.Nested("changes"); found {
 				if stakingValue, found := changes.Sum("staking"); found {
-					staking = uint64(*stakingValue.Value)
+					staking = int64(*stakingValue.Value)
 				}
 				if spendingValue, found := changes.Sum("spending"); found {
-					spending = uint64(*spendingValue.Value)
+					spending = int64(*spendingValue.Value)
 				}
 				if votingValue, found := changes.Sum("voting"); found {
-					voting = uint64(*votingValue.Value)
+					voting = int64(*votingValue.Value)
 				}
 			}
 		}
@@ -74,7 +103,7 @@ func (r *AddressHistoryRepository) StakingSummary(hash string) (count, staking, 
 	return
 }
 
-func (r *AddressHistoryRepository) SpendSummary(hash string) (spendingSent, spendingReceive, spending, voting uint64, err error) {
+func (r *AddressHistoryRepository) SpendSummary(hash string) (spendingReceive, spendingSent, stakingReceive, stakingSent, votingReceive, votingSent int64, err error) {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 	query = query.Must(elastic.NewTermQuery("is_stake", false))
@@ -85,17 +114,17 @@ func (r *AddressHistoryRepository) SpendSummary(hash string) (spendingSent, spen
 	spendingSentAgg := elastic.NewRangeAggregation().Field("changes.spending").Lt(0)
 	spendingSentAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.spending"))
 
-	stakingSentAgg := elastic.NewRangeAggregation().Field("changes.staking").Lt(0)
-	stakingSentAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.staking"))
-
-	votingSentAgg := elastic.NewRangeAggregation().Field("changes.voting").Lt(0)
-	votingSentAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.voting"))
-
 	stakingReceiveAgg := elastic.NewRangeAggregation().Field("changes.staking").Gt(0)
 	stakingReceiveAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.staking"))
 
+	stakingSentAgg := elastic.NewRangeAggregation().Field("changes.staking").Lt(0)
+	stakingSentAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.staking"))
+
 	votingReceiveAgg := elastic.NewRangeAggregation().Field("changes.voting").Gt(0)
 	votingReceiveAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.voting"))
+
+	votingSentAgg := elastic.NewRangeAggregation().Field("changes.voting").Lt(0)
+	votingSentAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.voting"))
 
 	changeAgg := elastic.NewNestedAggregation().Path("changes")
 	changeAgg.SubAggregation("spendingReceive", spendingReceiveAgg)
@@ -115,19 +144,40 @@ func (r *AddressHistoryRepository) SpendSummary(hash string) (spendingSent, spen
 
 	if err == nil && results != nil {
 		if changes, found := results.Aggregations.Nested("changes"); found {
-			spendingReceiveResult, _ := changes.Sum("spendingReceive")
-			spendingReceiveSum, _ := spendingReceiveResult.Aggregations.Sum("sum")
-			spendingReceive = uint64(*spendingReceiveSum.Value)
-
-			spendingSentResult, _ := changes.Sum("spendingSent")
-			spendingSentSum, _ := spendingSentResult.Aggregations.Sum("sum")
-			spendingSent = uint64(*spendingSentSum.Value)
-
-			if spendingValue, found := changes.Sum("spending"); found {
-				spending = uint64(*spendingValue.Value)
+			if spendingReceiveResult, found := changes.Range("spendingReceive"); found {
+				if spendingReceiveSum, found := spendingReceiveResult.Buckets[0].Sum("sum"); found {
+					spendingReceive = int64(*spendingReceiveSum.Value)
+				}
 			}
-			if votingValue, found := changes.Sum("voting"); found {
-				voting = uint64(*votingValue.Value)
+
+			if spendingSentResult, found := changes.Range("spendingSent"); found {
+				if spendingSentSum, found := spendingSentResult.Buckets[0].Sum("sum"); found {
+					spendingSent = int64(*spendingSentSum.Value)
+				}
+			}
+
+			if stakingReceiveResult, found := changes.Range("stakingReceive"); found {
+				if stakingReceiveSum, found := stakingReceiveResult.Buckets[0].Sum("sum"); found {
+					stakingReceive = int64(*stakingReceiveSum.Value)
+				}
+			}
+
+			if stakingSentResult, found := changes.Range("stakingSent"); found {
+				if stakingSentSum, found := stakingSentResult.Buckets[0].Sum("sum"); found {
+					stakingSent = int64(*stakingSentSum.Value)
+				}
+			}
+
+			if votingReceiveResult, found := changes.Range("votingReceive"); found {
+				if votingReceiveSum, found := votingReceiveResult.Buckets[0].Sum("sum"); found {
+					votingReceive = int64(*votingReceiveSum.Value)
+				}
+			}
+
+			if votingSentResult, found := changes.Range("votingSent"); found {
+				if votingSentSum, found := votingSentResult.Buckets[0].Sum("sum"); found {
+					votingSent = int64(*votingSentSum.Value)
+				}
 			}
 		}
 	}
@@ -136,7 +186,6 @@ func (r *AddressHistoryRepository) SpendSummary(hash string) (spendingSent, spen
 }
 
 func (r *AddressHistoryRepository) HistoryByHash(hash string, txType string, dir bool, size int, page int) ([]*explorer.AddressHistory, int64, error) {
-	log.Info(txType)
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 

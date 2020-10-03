@@ -6,7 +6,7 @@ replace github.com/ugorji/go v1.1.4 => github.com/ugorji/go/codec v0.0.0-2019020
 
 require (
 	github.com/NavExplorer/navcoind-go v0.1.8-0.20200709223613-3322962ba291 // indirect
-	github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200915193853-aaa5d6e98584
+	github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200928210854-e3d5938c7636
 	github.com/getsentry/raven-go v0.2.0
 	github.com/gin-contrib/cache v1.1.0 // indirect
 	github.com/gin-contrib/cors v1.3.0

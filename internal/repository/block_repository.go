@@ -83,17 +83,22 @@ func (r *BlockRepository) GetBlockGroups(blockGroups *entity.BlockGroups) error 
 }
 
 func (r *BlockRepository) Blocks(asc bool, size int, page int) ([]*explorer.Block, int64, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).
-		Sort("height", asc).
-		From((page * size) - size).
-		Size(size).
-		TrackTotalHits(true).
-		Do(context.Background())
+	bestBlock, err := r.BestBlock()
 	if err != nil {
 		return nil, 0, err
 	}
 
-	bestBlock, err := r.BestBlock()
+	from := int(bestBlock.Height+1) - ((page - 1) * size)
+	if from <= 0 {
+		from = size
+	}
+
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).
+		Sort("height", asc).
+		SearchAfter(from).
+		Size(size).
+		TrackTotalHits(true).
+		Do(context.Background())
 	if err != nil {
 		return nil, 0, err
 	}

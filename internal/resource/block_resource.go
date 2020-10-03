@@ -52,7 +52,7 @@ func (r *BlockResource) GetBlockGroups(c *gin.Context) {
 	}
 
 	count, err := strconv.Atoi(c.DefaultQuery("count", "10"))
-	if err != nil || count < 10 {
+	if err != nil || count > 10 {
 		count = 10
 	}
 
@@ -129,7 +129,7 @@ func (r *BlockResource) GetRawBlock(c *gin.Context) {
 }
 
 func (r *BlockResource) GetTransactionsByBlock(c *gin.Context) {
-	tx, err := r.blockService.GetTransactions(c.Param("hash"))
+	tx, err := r.blockService.GetTransactionsByBlockHash(c.Param("hash"))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -164,4 +164,19 @@ func (r *BlockResource) GetRawTransactionByHash(c *gin.Context) {
 	}
 
 	c.JSON(200, tx)
+}
+
+func (r *BlockResource) GetTransactions(c *gin.Context) {
+	config, _ := pagination.Bind(c)
+
+	txs, total, err := r.blockService.GetTransactions(config, true, true)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	paginator := pagination.NewPaginator(len(txs), total, config)
+	paginator.WriteHeader(c)
+
+	c.JSON(200, txs)
 }

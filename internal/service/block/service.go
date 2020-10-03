@@ -14,7 +14,8 @@ type Service interface {
 	GetBlock(hash string) (*explorer.Block, error)
 	GetRawBlock(hash string) (*explorer.RawBlock, error)
 	GetBlocks(config *pagination.Config) ([]*explorer.Block, int64, error)
-	GetTransactions(blockHash string) ([]*explorer.BlockTransaction, error)
+	GetTransactions(config *pagination.Config, ignoreCoinbase, ignoreStaking bool) ([]*explorer.BlockTransaction, int64, error)
+	GetTransactionsByBlockHash(blockHash string) ([]*explorer.BlockTransaction, error)
 	GetTransactionByHash(hash string) (*explorer.BlockTransaction, error)
 	GetRawTransactionByHash(hash string) (*explorer.RawBlockTransaction, error)
 }
@@ -64,7 +65,11 @@ func (s *service) GetBlocks(config *pagination.Config) ([]*explorer.Block, int64
 	return s.blockRepo.Blocks(config.Ascending, config.Size, config.Page)
 }
 
-func (s *service) GetTransactions(blockHash string) ([]*explorer.BlockTransaction, error) {
+func (s *service) GetTransactions(config *pagination.Config, ignoreCoinbase, ignoreStaking bool) ([]*explorer.BlockTransaction, int64, error) {
+	return s.transactionRepo.Transactions(config.Ascending, config.Size, config.Page, ignoreCoinbase, ignoreStaking)
+}
+
+func (s *service) GetTransactionsByBlockHash(blockHash string) ([]*explorer.BlockTransaction, error) {
 	block, err := s.blockRepo.BlockByHashOrHeight(blockHash)
 	if err != nil {
 		return nil, err

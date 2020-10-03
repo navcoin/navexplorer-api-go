@@ -5,6 +5,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address/entity"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -48,7 +49,14 @@ func NewAddressService(
 }
 
 func (s *service) GetAddress(hash string) (*explorer.Address, error) {
-	return s.addressRepository.AddressByHash(hash)
+	address, err := s.addressRepository.AddressByHash(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	s.UpdateCreatedAt(address)
+
+	return address, err
 }
 
 func (s *service) GetAddresses(config *pagination.Config) ([]*explorer.Address, int64, error) {
@@ -67,16 +75,9 @@ func (s *service) GetAddressSummary(hash string) (*entity.AddressSummary, error)
 
 	summary := &entity.AddressSummary{Height: h.Height, Hash: h.Hash}
 
-	spendingSent, spendingReceive, _, _, err := s.addressHistoryRepository.SpendSummary(hash)
-
-	summary.Sent = &entity.AddressBalance{
-		Balance:  uint64(h.Spending),
-		Spending: spendingSent,
-	}
-
-	summary.Received = &entity.AddressBalance{
-		Balance:  uint64(h.Voting),
-		Spending: spendingReceive,
+	txs, err := s.addressHistoryRepository.CountByHash(h.Hash)
+	if err == nil {
+		summary.Txs = txs
 	}
 
 	_, stakeStaking, stakeSpending, stakeVoting, err := s.addressHistoryRepository.StakingSummary(hash)
@@ -84,11 +85,27 @@ func (s *service) GetAddressSummary(hash string) (*entity.AddressSummary, error)
 		return nil, err
 	}
 
-	summary.Staked = &entity.AddressBalance{
-		Balance:  uint64(h.Staking),
-		Staking:  stakeStaking,
-		Spending: stakeSpending,
-		Voting:   stakeVoting,
+	spendingReceive, spendingSent, stakingReceive, stakingSent, votingReceive, votingSent, err := s.addressHistoryRepository.SpendSummary(hash)
+
+	summary.Spending = &entity.AddressBalance{
+		Balance:  h.Spending,
+		Sent:     spendingSent,
+		Received: spendingReceive,
+		Staked:   stakeSpending,
+	}
+
+	summary.Staking = &entity.AddressBalance{
+		Balance:  h.Staking,
+		Received: stakingReceive,
+		Sent:     stakingSent,
+		Staked:   stakeStaking,
+	}
+
+	summary.Voting = &entity.AddressBalance{
+		Balance:  h.Voting,
+		Received: votingReceive,
+		Sent:     votingSent,
+		Staked:   stakeVoting,
 	}
 
 	return summary, nil
@@ -159,4 +176,25 @@ func (s *service) GetStakingRewardsForAddresses(addresses []string) ([]*entity.S
 
 func (s *service) ValidateAddress(hash string) (bool, error) {
 	return true, nil
+}
+
+func (s *service) UpdateCreatedAt(address *explorer.Address) {
+	if address.CreatedBlock != 0 {
+		return
+	}
+
+	history, err := s.addressHistoryRepository.FirstByHash(address.Hash)
+	if err != nil {
+		return
+	}
+
+	address.CreatedBlock = history.Height
+	address.CreatedTime = history.Time
+
+	err = s.addressRepository.UpdateAddress(address)
+	if err != nil {
+		log.WithField("hash", address.Hash).Error("Failed to update address created fields")
+	} else {
+		log.WithField("hash", address.Hash).Info("Updated address created fields")
+	}
 }

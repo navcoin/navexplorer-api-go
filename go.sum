@@ -47,10 +47,19 @@ github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200823200511-1314fa5bf1c2
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200823200511-1314fa5bf1c2/go.mod h1:AXI6nRDDU6ZNrvz/x+6BJbn/AzKRf+qCjM1zHkb2tSI=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200915193853-aaa5d6e98584 h1:MD120ae7eeSCNCOBvDpg7LTEDFk54BuyXueIonZG7Co=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200915193853-aaa5d6e98584/go.mod h1:AXI6nRDDU6ZNrvz/x+6BJbn/AzKRf+qCjM1zHkb2tSI=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200927090411-14c5d77dd9ed h1:vfRDh3zGgQdVhnTxpFNNODeKEsBv0ODrkNAJWC2WG8Y=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200927090411-14c5d77dd9ed/go.mod h1:oK/hf93fbi8IZIMI7iA7wHpkI5y8pmvsqr/M+gQeL5U=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200927132742-3caa34c0c096 h1:5rJvFlzdjJMyX0gEEvEf/kg4d5vyAXN/FbT94m5aO+w=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200927132742-3caa34c0c096/go.mod h1:oK/hf93fbi8IZIMI7iA7wHpkI5y8pmvsqr/M+gQeL5U=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200927143108-2251aabb7536 h1:YoySKRekbxfiFBIoHPpKhumGXSMwKN+cfSWahIbzkOw=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200927143108-2251aabb7536/go.mod h1:oK/hf93fbi8IZIMI7iA7wHpkI5y8pmvsqr/M+gQeL5U=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200928210854-e3d5938c7636 h1:fWzOOD9fp7EXH/OGW9+28H7lrOr1/rmKt/W7/qFoiLk=
+github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200928210854-e3d5938c7636/go.mod h1:oK/hf93fbi8IZIMI7iA7wHpkI5y8pmvsqr/M+gQeL5U=
 github.com/NavExplorer/subscriber v0.0.0-20200601205031-4135a91491af h1:KWrfS1eDXRPSpY6pyBMGYiqLSIJ08TargSgbFeUTaMA=
 github.com/NavExplorer/subscriber v0.0.0-20200601205031-4135a91491af/go.mod h1:b9UVwdUV1OVGDsOMqOJeu5Rk5SPyOgfHfvM0HH4fvdU=
 github.com/NavExplorer/subscriber v0.0.0-20200601212953-3a6c48dd3d5d h1:4tlsQCkBbil7rexH6A0CGyRh5I7z1QP/ftiFLWP7ADo=
 github.com/NavExplorer/subscriber v0.0.0-20200601212953-3a6c48dd3d5d/go.mod h1:b9UVwdUV1OVGDsOMqOJeu5Rk5SPyOgfHfvM0HH4fvdU=
+github.com/NavExplorer/subscriber v0.0.0-20200923000930-1321b56838fc/go.mod h1:2j06trBo93OSjGJk9CrU1v+k9DSNebc/AA3tFQ1/BqE=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
@@ -227,6 +236,7 @@ github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTK
 github.com/pebbe/zmq4 v1.0.0/go.mod h1:7N4y5R18zBiu3l0vajMUWQgZyjv464prE8RCyBcmnZM=
 github.com/pebbe/zmq4 v1.2.1 h1:jrXQW3mD8Si2mcSY/8VBs2nNkK/sKCOEM0rHAfxyc8c=
 github.com/pebbe/zmq4 v1.2.1/go.mod h1:7N4y5R18zBiu3l0vajMUWQgZyjv464prE8RCyBcmnZM=
+github.com/pebbe/zmq4 v1.2.2-0.20200907174415-614833b9a108/go.mod h1:7N4y5R18zBiu3l0vajMUWQgZyjv464prE8RCyBcmnZM=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pierrec/lz4 v2.0.5+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

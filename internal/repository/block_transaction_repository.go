@@ -17,6 +17,37 @@ func NewBlockTransactionRepository(elastic *elastic_cache.Index) *BlockTransacti
 	return &BlockTransactionRepository{elastic}
 }
 
+func (r *BlockTransactionRepository) Transactions(asc bool, size, page int, ignoreCoinbase, ignoreStaking bool) ([]*explorer.BlockTransaction, int64, error) {
+	query := elastic.NewBoolQuery()
+	if ignoreCoinbase {
+		query = query.MustNot(elastic.NewTermQuery("type", "coinbase"))
+	}
+	if ignoreStaking {
+		query = query.MustNot(elastic.NewTermsQuery("type", "staking", "cold_staking"))
+	}
+
+	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get()).
+		Query(query).
+		Sort("height", asc).
+		From((page * size) - size).
+		Size(size).
+		TrackTotalHits(true).
+		Do(context.Background())
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var txs = make([]*explorer.BlockTransaction, 0)
+	for _, hit := range results.Hits.Hits {
+		var tx *explorer.BlockTransaction
+		if err := json.Unmarshal(hit.Source, &tx); err == nil {
+			txs = append(txs, tx)
+		}
+	}
+
+	return txs, results.TotalHits(), err
+}
+
 func (r *BlockTransactionRepository) TransactionsByBlock(block *explorer.Block) ([]*explorer.BlockTransaction, error) {
 	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get()).
 		Query(elastic.NewMatchPhraseQuery("blockhash", block.Hash)).

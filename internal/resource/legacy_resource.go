@@ -11,7 +11,6 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/softfork"
-	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -184,25 +183,6 @@ func (r *LegacyResource) GetBlock(c *gin.Context) {
 	}
 
 	c.JSON(200, b)
-}
-
-func (r *LegacyResource) GetBlockTransactions(c *gin.Context) {
-	b, err := r.blockService.GetBlock(c.Param("hash"))
-	txs, err := r.blockService.GetTransactions(b.Hash)
-	if err == repository.ErrBlockNotFound {
-		handleError(c, err, http.StatusNotFound)
-		return
-	}
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	if txs == nil {
-		txs = make([]*explorer.BlockTransaction, 0)
-	}
-
-	c.JSON(200, txs)
 }
 
 func (r *LegacyResource) GetRawBlock(c *gin.Context) {

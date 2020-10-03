@@ -34,7 +34,9 @@ func (r *AddressRepository) Addresses(size int, page int) ([]*explorer.Address, 
 
 	addresses, total, err := r.findMany(results, err)
 	for idx := range addresses {
-		addresses[idx].Position = uint64(idx + 1 + (page * size) - size)
+		addresses[idx].RichList = explorer.RichList{
+			Spending: uint64(idx + 1 + (page * size) - size),
+		}
 	}
 
 	return addresses, total, err
@@ -116,16 +118,49 @@ func (r *AddressRepository) GetTotalSupply() (totalSupply float64, err error) {
 	return
 }
 
-func (r *AddressRepository) getRichListPosition(balance int64) (uint64, error) {
-	position, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get()).
-		Query(elastic.NewRangeQuery("spending").Gt(balance)).
+func (r *AddressRepository) UpdateAddress(address *explorer.Address) error {
+	_, err := r.elastic.Client.
+		Index().
+		Index(elastic_cache.AddressIndex.Get()).
+		Id(address.Slug()).
+		BodyJson(address).
 		Do(context.Background())
 
+	return err
+}
+
+func (r *AddressRepository) populateRichListPosition(address *explorer.Address) error {
+	spending, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get()).
+		Query(elastic.NewRangeQuery("spending").Gt(address.Spending)).
+		Do(context.Background())
 	if err != nil {
-		log.WithError(err).Infof("Failed to get rich list position")
+		log.WithError(err).Error("Failed to get rich list position")
+		return err
 	}
 
-	return uint64(position + 1), err
+	staking, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get()).
+		Query(elastic.NewRangeQuery("staking").Gt(address.Staking)).
+		Do(context.Background())
+	if err != nil {
+		log.WithError(err).Error("Failed to get rich list position")
+		return err
+	}
+
+	voting, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get()).
+		Query(elastic.NewRangeQuery("spending").Gt(address.Voting)).
+		Do(context.Background())
+	if err != nil {
+		log.WithError(err).Error("Failed to get rich list position")
+		return err
+	}
+
+	address.RichList = explorer.RichList{
+		Spending: uint64(spending) + 1,
+		Staking:  uint64(staking) + 1,
+		Voting:   uint64(voting) + 1,
+	}
+
+	return nil
 }
 
 func (r *AddressRepository) findOne(results *elastic.SearchResult, err error) (*explorer.Address, error) {
@@ -141,7 +176,7 @@ func (r *AddressRepository) findOne(results *elastic.SearchResult, err error) (*
 		return nil, err
 	}
 
-	address.Position, err = r.getRichListPosition(address.Spending)
+	err = r.populateRichListPosition(address)
 	if err != nil {
 		return nil, err
 	}
@@ -155,10 +190,9 @@ func (r *AddressRepository) findMany(results *elastic.SearchResult, err error) (
 	}
 
 	addresses := make([]*explorer.Address, 0)
-	for index, hit := range results.Hits.Hits {
+	for _, hit := range results.Hits.Hits {
 		var address *explorer.Address
 		if err := json.Unmarshal(hit.Source, &address); err == nil {
-			address.Position = uint64(index + 1)
 			addresses = append(addresses, address)
 		}
 	}
