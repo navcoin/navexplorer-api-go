@@ -1,13 +1,16 @@
 package resource
 
 import (
+	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/resource/dto"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -94,6 +97,30 @@ func (r *AddressResource) ValidateAddress(c *gin.Context) {
 	}
 
 	c.JSON(200, validateAddress)
+}
+
+func (r *AddressResource) GetAddressGroups(c *gin.Context) {
+	period := group.GetPeriod(c.DefaultQuery("period", "daily"))
+	if period == nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": fmt.Sprintf("Invalid period `%s`", c.Query("period")),
+			"status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	count, err := strconv.Atoi(c.DefaultQuery("count", "10"))
+	if err != nil || count > 10 {
+		count = 10
+	}
+
+	groups, err := r.addressService.GetAddressGroups(period, count)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, groups.Items)
 }
 
 func (r *AddressResource) GetStakingChart(c *gin.Context) {

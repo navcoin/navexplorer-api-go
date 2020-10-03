@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/address/entity"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 )
@@ -254,6 +255,40 @@ func (r *AddressHistoryRepository) HistoryByHash(hash string, txType string, dir
 		Do(context.Background())
 
 	return r.findMany(results, err)
+}
+
+func (r *AddressHistoryRepository) GetAddressGroups(addressGroups *entity.AddressGroups) error {
+	service := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).Size(0)
+
+	//fsc := elastic.NewFetchSourceContext(true).Include("hash")
+
+	for i, item := range addressGroups.Items {
+		agg := elastic.NewRangeAggregation().Field("time").AddRange(item.Start, item.End)
+		agg.SubAggregation("is_stake", elastic.NewTermsAggregation().Field("is_stake"))
+
+		service.Aggregation(string(i), agg)
+	}
+
+	results, err := service.Do(context.Background())
+	if err != nil {
+		return err
+	}
+
+	for i, item := range addressGroups.Items {
+		if agg, found := results.Aggregations.Range(string(rune(i))); found {
+			bucket := agg.Buckets[0]
+			item.Addresses = bucket.DocCount
+			if isStake, found := bucket.Aggregations.Terms("is_stake"); found {
+				for _, b := range isStake.Buckets {
+					if *b.KeyAsString == "false" {
+						item.Spend = b.DocCount
+					}
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 func (r *AddressHistoryRepository) findOne(results *elastic.SearchResult, err error) (*explorer.AddressHistory, error) {

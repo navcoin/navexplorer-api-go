@@ -51,6 +51,7 @@ func main() {
 	r.GET("/address/:hash/staking", addressResource.GetStakingChart)
 	r.GET("/address/:hash/assoc/staking", addressResource.GetAssociatedStakingAddresses)
 	r.GET("/balance", addressResource.GetBalancesForAddresses)
+	r.GET("/addressgroup", addressResource.GetAddressGroups)
 
 	distributionResource := resource.NewDistributionResource(container.GetDistributionService())
 	r.GET("/distribution/total-supply", distributionResource.GetTotalSupply)

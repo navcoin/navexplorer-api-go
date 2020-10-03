@@ -47,7 +47,7 @@ func CreateTimeGroup(period *Period, size int) []*TimeGroup {
 			}
 			break
 		case &PeriodWeekly:
-			log.Fatal("TimeGroup for weekly period not implemented")
+			log.Error("TimeGroup for weekly period not implemented")
 			break
 		case &PeriodMonthly:
 			if i == 0 {

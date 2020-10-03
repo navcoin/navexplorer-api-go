@@ -4,6 +4,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address/entity"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -13,6 +14,7 @@ type Service interface {
 	GetAddress(hash string) (*explorer.Address, error)
 	GetAddresses(config *pagination.Config) ([]*explorer.Address, int64, error)
 	GetAddressSummary(hash string) (*entity.AddressSummary, error)
+	GetAddressGroups(period *group.Period, count int) (*entity.AddressGroups, error)
 	GetHistory(hash string, txType string, config *pagination.Config) ([]*explorer.AddressHistory, int64, error)
 	GetBalanceChart(address string) (entity.Chart, error)
 	GetStakingChart(period string, address string) ([]*entity.StakingGroup, error)
@@ -109,6 +111,23 @@ func (s *service) GetAddressSummary(hash string) (*entity.AddressSummary, error)
 	}
 
 	return summary, nil
+}
+
+func (s *service) GetAddressGroups(period *group.Period, count int) (*entity.AddressGroups, error) {
+	timeGroups := group.CreateTimeGroup(period, count)
+
+	addressGroups := new(entity.AddressGroups)
+	for i := range timeGroups {
+		blockGroup := &entity.AddressGroup{
+			TimeGroup: *timeGroups[i],
+			Period:    *period,
+		}
+		addressGroups.Items = append(addressGroups.Items, blockGroup)
+	}
+
+	err := s.addressHistoryRepository.GetAddressGroups(addressGroups)
+
+	return addressGroups, err
 }
 
 func (s *service) GetBalanceChart(address string) (entity.Chart, error) {
