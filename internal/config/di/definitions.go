@@ -1,6 +1,7 @@
 package di
 
 import (
+	"github.com/NavExplorer/navexplorer-api-go/internal/cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/config"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/event"
@@ -14,6 +15,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/softfork"
 	"github.com/sarulabs/dingo/v3"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 var Definitions = []dingo.Def{
@@ -90,8 +92,8 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "block.subscriber",
-		Build: func(consumer *event.Consumer) (*block.Subscriber, error) {
-			return block.NewBlockSubscriber([]string{"testnet", "mainnet"}, consumer), nil
+		Build: func(consumer *event.Consumer, cache2 *cache.Cache) (*block.Subscriber, error) {
+			return block.NewBlockSubscriber([]string{"testnet.v2", "devnet.v2"}, consumer, cache2), nil
 		},
 	},
 	{
@@ -167,6 +169,12 @@ var Definitions = []dingo.Def{
 		Name: "distribution.service",
 		Build: func(addressRepo *repository.AddressRepository) (distribution.Service, error) {
 			return distribution.NewDistributionService(addressRepo), nil
+		},
+	},
+	{
+		Name: "cache",
+		Build: func() (*cache.Cache, error) {
+			return cache.New(5*time.Minute, 10*time.Minute), nil
 		},
 	},
 }

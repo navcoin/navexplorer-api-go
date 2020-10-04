@@ -2,6 +2,7 @@ package resource
 
 import (
 	"fmt"
+	"github.com/NavExplorer/navexplorer-api-go/internal/cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/resource/dto"
@@ -16,10 +17,11 @@ import (
 
 type AddressResource struct {
 	addressService address.Service
+	cache          *cache.Cache
 }
 
-func NewAddressResource(addressService address.Service) *AddressResource {
-	return &AddressResource{addressService}
+func NewAddressResource(addressService address.Service, cache *cache.Cache) *AddressResource {
+	return &AddressResource{addressService, cache}
 }
 
 func (r *AddressResource) GetAddress(c *gin.Context) {
@@ -114,13 +116,21 @@ func (r *AddressResource) GetAddressGroups(c *gin.Context) {
 		count = 10
 	}
 
-	groups, err := r.addressService.GetAddressGroups(period, count)
+	callback := func() (interface{}, error) {
+		groups, err := r.addressService.GetAddressGroups(period, count)
+		if err != nil {
+			return nil, err
+		}
+		return groups.Items, nil
+	}
+
+	items, err := r.cache.Get(fmt.Sprintf("address.groups.%s.%d", string(*period), count), callback, cache.RefreshingExpiration)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
 	}
 
-	c.JSON(200, groups.Items)
+	c.JSON(200, items)
 }
 
 func (r *AddressResource) GetStakingChart(c *gin.Context) {

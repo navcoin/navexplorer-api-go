@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/config"
 	"github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
-	log "github.com/sirupsen/logrus"
 )
 
 type Indices string
@@ -32,7 +31,6 @@ func (i *Indices) Get() string {
 	}
 
 	indexName := fmt.Sprintf("%s.%s.%s", network, index, string(*i))
-	log.Info("Using index ", indexName)
 
 	return indexName
 }

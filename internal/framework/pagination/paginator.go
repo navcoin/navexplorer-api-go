@@ -2,6 +2,7 @@ package pagination
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"math"
@@ -21,6 +22,15 @@ type Config struct {
 	Ascending bool `form:"ascending,default=false"`
 	Size      int  `form:"size,default=10"`
 	Page      int  `form:"page,default=1"`
+}
+
+func (c *Config) ToString() string {
+	return fmt.Sprintf("asc[%t]size[%d]page[%d]", c.Ascending, c.Size, c.Page)
+}
+
+type Paginated struct {
+	Elements []interface{}
+	Total    int64
 }
 
 func Bind(c *gin.Context) (*Config, error) {

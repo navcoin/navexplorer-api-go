@@ -42,7 +42,7 @@ func main() {
 		c.String(http.StatusOK, "Welcome to NavExplorer API!")
 	})
 
-	addressResource := resource.NewAddressResource(container.GetAddressService())
+	addressResource := resource.NewAddressResource(container.GetAddressService(), container.GetCache())
 	r.GET("/address", addressResource.GetAddresses)
 	r.GET("/address/:hash", addressResource.GetAddress)
 	r.GET("/address/:hash/summary", addressResource.GetSummary)
@@ -56,7 +56,7 @@ func main() {
 	distributionResource := resource.NewDistributionResource(container.GetDistributionService())
 	r.GET("/distribution/total-supply", distributionResource.GetTotalSupply)
 
-	blockResource := resource.NewBlockResource(container.GetBlockService(), container.GetDaoService())
+	blockResource := resource.NewBlockResource(container.GetBlockService(), container.GetDaoService(), container.GetCache())
 	r.GET("/bestblock", blockResource.GetBestBlock)
 	r.GET("/blockcycle", blockResource.GetBestBlockCycle)
 	r.GET("/blockgroup", blockResource.GetBlockGroups)
