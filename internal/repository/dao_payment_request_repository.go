@@ -12,6 +12,7 @@ import (
 
 type DaoPaymentRequestRepository struct {
 	elastic *elastic_cache.Index
+	network string
 }
 
 var (
@@ -19,7 +20,13 @@ var (
 )
 
 func NewDaoPaymentRequestRepository(elastic *elastic_cache.Index) *DaoPaymentRequestRepository {
-	return &DaoPaymentRequestRepository{elastic}
+	return &DaoPaymentRequestRepository{elastic: elastic}
+}
+
+func (r *DaoPaymentRequestRepository) Network(network string) *DaoPaymentRequestRepository {
+	r.network = network
+
+	return r
 }
 
 func (r *DaoPaymentRequestRepository) PaymentRequests(proposalHash string, status *explorer.PaymentRequestStatus, dir bool, size int, page int) ([]*explorer.PaymentRequest, int64, error) {
@@ -31,7 +38,7 @@ func (r *DaoPaymentRequestRepository) PaymentRequests(proposalHash string, statu
 		query = query.Must(elastic.NewTermQuery("status.keyword", status.Status))
 	}
 
-	results, err := r.elastic.Client.Search(elastic_cache.PaymentRequestIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.PaymentRequestIndex.Get(r.network)).
 		Query(query).
 		Sort("height", dir).
 		From((page * size) - size).
@@ -45,7 +52,7 @@ func (r *DaoPaymentRequestRepository) PaymentRequests(proposalHash string, statu
 }
 
 func (r *DaoPaymentRequestRepository) PaymentRequestsForProposal(proposal *explorer.Proposal) ([]*explorer.PaymentRequest, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.PaymentRequestIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.PaymentRequestIndex.Get(r.network)).
 		Query(elastic.NewTermQuery("proposalHash.keyword", proposal.Hash)).
 		Size(999).
 		Do(context.Background())
@@ -59,7 +66,7 @@ func (r *DaoPaymentRequestRepository) PaymentRequestsForProposal(proposal *explo
 }
 
 func (r *DaoPaymentRequestRepository) PaymentRequest(hash string) (*explorer.PaymentRequest, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.PaymentRequestIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.PaymentRequestIndex.Get(r.network)).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
 		Do(context.Background())
@@ -71,7 +78,7 @@ func (r *DaoPaymentRequestRepository) ValuePaid() (*float64, error) {
 	paidAgg := elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("state", explorer.PaymentRequestPaid.State))
 	paidAgg.SubAggregation("requestedAmount", elastic.NewSumAggregation().Field("requestedAmount"))
 
-	results, err := r.elastic.Client.Search(elastic_cache.PaymentRequestIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.PaymentRequestIndex.Get(r.network)).
 		Aggregation("paid", paidAgg).
 		Size(0).
 		Do(context.Background())

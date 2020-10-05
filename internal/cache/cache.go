@@ -86,6 +86,7 @@ func (c *cache) Set(k string, x interface{}, d time.Duration) {
 }
 
 func (c *cache) set(k string, x interface{}, d time.Duration) {
+
 	var e int64
 
 	if d == DefaultExpiration {
@@ -98,6 +99,8 @@ func (c *cache) set(k string, x interface{}, d time.Duration) {
 		Object:     x,
 		Expiration: e,
 	}
+
+	log.WithField("object", x).Infof("Cache set (%s)", k)
 }
 
 // Add an item to the cache, replacing any existing item, using the default
@@ -180,10 +183,12 @@ func (c *Cache) Refresh(network string) {
 		x, err := r.Callback()
 		if err != nil {
 			log.WithError(err).Errorf("Cache: Failed to refresh (%s)", k)
+			c.cache.Delete(k)
+			continue
 		}
-		log.Infof("Cache refresh (%s)", k)
 
 		c.set(k, x, RefreshingExpiration)
+		log.Infof("Cache refresh (%s)", k)
 	}
 }
 

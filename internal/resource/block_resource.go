@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
+	"github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
@@ -24,27 +25,17 @@ func NewBlockResource(blockService block.Service, daoService dao.Service, cache 
 }
 
 func (r *BlockResource) GetBestBlock(c *gin.Context) {
-	callback := func() (interface{}, error) {
-		b, err := r.blockService.GetBestBlock()
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
-			return nil, err
-		}
-
-		return b.Height, nil
-	}
-
-	height, err := r.cache.Get("block.bestblock", callback, cache.RefreshingExpiration)
+	b, err := r.blockService.GetBestBlock(param.GetNetwork())
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
 	}
 
-	c.JSON(200, height)
+	c.JSON(200, b.Height)
 }
 
 func (r *BlockResource) GetBestBlockCycle(c *gin.Context) {
-	b, err := r.blockService.GetBestBlock()
+	b, err := r.blockService.GetBestBlock(param.GetNetwork())
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -68,7 +59,7 @@ func (r *BlockResource) GetBlockGroups(c *gin.Context) {
 		count = 10
 	}
 
-	groups, err := r.blockService.GetBlockGroups(period, count)
+	groups, err := r.blockService.GetBlockGroups(param.GetNetwork(), period, count)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -79,11 +70,7 @@ func (r *BlockResource) GetBlockGroups(c *gin.Context) {
 
 func (r *BlockResource) GetBlock(c *gin.Context) {
 	hash := c.Param("hash")
-	callback := func() (interface{}, error) {
-		return r.blockService.GetBlock(hash)
-	}
-
-	b, err := r.cache.Get(fmt.Sprintf("block.%s", hash), callback, cache.RefreshingExpiration)
+	b, err := r.blockService.GetBlock(param.GetNetwork(), hash)
 	if err == repository.ErrBlockNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
@@ -97,7 +84,7 @@ func (r *BlockResource) GetBlock(c *gin.Context) {
 }
 
 func (r *BlockResource) GetBlockCycle(c *gin.Context) {
-	b, err := r.blockService.GetBlock(c.Param("hash"))
+	b, err := r.blockService.GetBlock(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrBlockNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
@@ -107,7 +94,7 @@ func (r *BlockResource) GetBlockCycle(c *gin.Context) {
 		return
 	}
 
-	bc, err := r.daoService.GetBlockCycleByBlock(b)
+	bc, err := r.daoService.GetBlockCycleByBlock(param.GetNetwork(), b)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -119,32 +106,20 @@ func (r *BlockResource) GetBlockCycle(c *gin.Context) {
 func (r *BlockResource) GetBlocks(c *gin.Context) {
 	config, _ := pagination.Bind(c)
 
-	callback := func() (interface{}, error) {
-		blocks, total, err := r.blockService.GetBlocks(config)
-		e := make([]interface{}, len(blocks))
-		for i, v := range blocks {
-			e[i] = v
-		}
-		return pagination.Paginated{
-			Elements: e,
-			Total:    total,
-		}, err
-	}
-
-	paginated, err := r.cache.Get(fmt.Sprintf("blocks.%s", config.ToString()), callback, cache.RefreshingExpiration)
+	blocks, total, err := r.blockService.GetBlocks(param.GetNetwork(), config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
 	}
 
-	paginator := pagination.NewPaginator(len(paginated.(pagination.Paginated).Elements), paginated.(pagination.Paginated).Total, config)
+	paginator := pagination.NewPaginator(len(blocks), total, config)
 	paginator.WriteHeader(c)
 
-	c.JSON(200, paginated.(pagination.Paginated).Elements)
+	c.JSON(200, blocks)
 }
 
 func (r *BlockResource) GetRawBlock(c *gin.Context) {
-	b, err := r.blockService.GetRawBlock(c.Param("hash"))
+	b, err := r.blockService.GetRawBlock(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrBlockNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
@@ -158,7 +133,7 @@ func (r *BlockResource) GetRawBlock(c *gin.Context) {
 }
 
 func (r *BlockResource) GetTransactionsByBlock(c *gin.Context) {
-	tx, err := r.blockService.GetTransactionsByBlockHash(c.Param("hash"))
+	tx, err := r.blockService.GetTransactionsByBlockHash(param.GetNetwork(), c.Param("hash"))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -168,7 +143,7 @@ func (r *BlockResource) GetTransactionsByBlock(c *gin.Context) {
 }
 
 func (r *BlockResource) GetTransactionByHash(c *gin.Context) {
-	tx, err := r.blockService.GetTransactionByHash(c.Param("hash"))
+	tx, err := r.blockService.GetTransactionByHash(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrBlockNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
@@ -182,7 +157,7 @@ func (r *BlockResource) GetTransactionByHash(c *gin.Context) {
 }
 
 func (r *BlockResource) GetRawTransactionByHash(c *gin.Context) {
-	tx, err := r.blockService.GetRawTransactionByHash(c.Param("hash"))
+	tx, err := r.blockService.GetRawTransactionByHash(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrBlockNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
@@ -199,7 +174,7 @@ func (r *BlockResource) GetTransactions(c *gin.Context) {
 	config, _ := pagination.Bind(c)
 
 	callback := func() (interface{}, error) {
-		txs, total, err := r.blockService.GetTransactions(config, true, true)
+		txs, total, err := r.blockService.GetTransactions(param.GetNetwork(), config, true, true)
 		e := make([]interface{}, len(txs))
 		for i, v := range txs {
 			e[i] = v

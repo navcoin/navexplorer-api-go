@@ -3,7 +3,6 @@ package elastic_cache
 import (
 	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/config"
-	"github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
 )
 
 type Indices string
@@ -22,8 +21,7 @@ var (
 	SoftForkIndex         Indices = "softfork"
 )
 
-func (i *Indices) Get() string {
-	network := param.GetGlobalParam("network", config.Get().DefaultNetwork).(string)
+func (i *Indices) Get(network string) string {
 	index := config.Get().Index[network]
 
 	if network == "mainnet" && string(*i) == "softfork" {

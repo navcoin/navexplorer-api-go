@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/distribution"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -15,7 +16,7 @@ func NewDistributionResource(distributionService distribution.Service) *Distribu
 }
 
 func (r *DistributionResource) GetTotalSupply(c *gin.Context) {
-	totalSupply, err := r.distributionService.GetTotalSupply()
+	totalSupply, err := r.distributionService.GetTotalSupply(param.GetNetwork())
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return

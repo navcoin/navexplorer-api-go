@@ -4,29 +4,39 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address/entity"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
+	"time"
 )
 
 var (
 	ErrAddressHistoryNotFound = errors.New("Address history not found")
 )
 
-type AddressHistoryRepository struct {
+type addressHistoryRepository struct {
 	elastic *elastic_cache.Index
+	network string
 }
 
-func NewAddressHistoryRepository(elastic *elastic_cache.Index) *AddressHistoryRepository {
-	return &AddressHistoryRepository{elastic}
+func NewAddressHistoryRepository(elastic *elastic_cache.Index) AddressHistoryRepository {
+	return &addressHistoryRepository{elastic: elastic}
 }
 
-func (r *AddressHistoryRepository) LatestByHash(hash string) (*explorer.AddressHistory, error) {
+func (r *addressHistoryRepository) Network(network string) AddressHistoryRepository {
+	r.network = network
+
+	return r
+}
+
+func (r *addressHistoryRepository) LatestByHash(hash string) (*explorer.AddressHistory, error) {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
-	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(r.network)).
 		Query(query).
 		Sort("height", false).
 		Size(1).
@@ -35,11 +45,11 @@ func (r *AddressHistoryRepository) LatestByHash(hash string) (*explorer.AddressH
 	return r.findOne(results, err)
 }
 
-func (r *AddressHistoryRepository) FirstByHash(hash string) (*explorer.AddressHistory, error) {
+func (r *addressHistoryRepository) FirstByHash(hash string) (*explorer.AddressHistory, error) {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
-	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(r.network)).
 		Query(query).
 		Sort("height", true).
 		Size(1).
@@ -48,11 +58,11 @@ func (r *AddressHistoryRepository) FirstByHash(hash string) (*explorer.AddressHi
 	return r.findOne(results, err)
 }
 
-func (r *AddressHistoryRepository) CountByHash(hash string) (int64, error) {
+func (r *addressHistoryRepository) CountByHash(hash string) (int64, error) {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
-	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(r.network)).
 		Query(query).
 		TrackTotalHits(true).
 		Size(0).
@@ -65,7 +75,7 @@ func (r *AddressHistoryRepository) CountByHash(hash string) (int64, error) {
 	return results.TotalHits(), nil
 }
 
-func (r *AddressHistoryRepository) StakingSummary(hash string) (count, staking, spending, voting int64, err error) {
+func (r *addressHistoryRepository) StakingSummary(hash string) (count, staking, spending, voting int64, err error) {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
@@ -77,7 +87,7 @@ func (r *AddressHistoryRepository) StakingSummary(hash string) (count, staking, 
 	stakeAgg := elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("is_stake", true))
 	stakeAgg.SubAggregation("changes", changeAgg)
 
-	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(r.network)).
 		Query(query).
 		Aggregation("stake", stakeAgg).
 		Sort("height", false).
@@ -104,7 +114,7 @@ func (r *AddressHistoryRepository) StakingSummary(hash string) (count, staking, 
 	return
 }
 
-func (r *AddressHistoryRepository) SpendSummary(hash string) (spendingReceive, spendingSent, stakingReceive, stakingSent, votingReceive, votingSent int64, err error) {
+func (r *addressHistoryRepository) SpendSummary(hash string) (spendingReceive, spendingSent, stakingReceive, stakingSent, votingReceive, votingSent int64, err error) {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 	query = query.Must(elastic.NewTermQuery("is_stake", false))
@@ -136,7 +146,7 @@ func (r *AddressHistoryRepository) SpendSummary(hash string) (spendingReceive, s
 	changeAgg.SubAggregation("stakingReceive", stakingReceiveAgg)
 	changeAgg.SubAggregation("votingReceive", votingReceiveAgg)
 
-	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(r.network)).
 		Query(query).
 		Aggregation("changes", changeAgg).
 		Sort("height", false).
@@ -186,7 +196,7 @@ func (r *AddressHistoryRepository) SpendSummary(hash string) (spendingReceive, s
 	return
 }
 
-func (r *AddressHistoryRepository) HistoryByHash(hash string, txType string, dir bool, size int, page int) ([]*explorer.AddressHistory, int64, error) {
+func (r *addressHistoryRepository) HistoryByHash(hash, txType string, dir bool, size, page int) ([]*explorer.AddressHistory, int64, error) {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
@@ -217,36 +227,7 @@ func (r *AddressHistoryRepository) HistoryByHash(hash string, txType string, dir
 		}
 	}
 
-	//if len(txTypes) != 0 {
-	//	sendQuery := elastic.NewBoolQuery().
-	//		Must(elastic.NewTermQuery("is_stake", false)).
-	//		Must(elastic.NewBoolQuery().Filter(elastic.NewNestedQuery("changes", elastic.NewBoolQuery().
-	//			Must(elastic.NewRangeQuery("changes.spending").Lt(0))),
-	//		))
-	//	if hasType("send", txTypes) {
-	//		query.Must(sendQuery)
-	//	} else {
-	//		query.MustNot(sendQuery)
-	//	}
-	//
-	//	receiveQuery := elastic.NewBoolQuery().
-	//		Must(elastic.NewTermQuery("is_stake", false)).
-	//		Filter(elastic.NewNestedQuery("changes", elastic.NewBoolQuery().Must(elastic.NewRangeQuery("changes.spending").Gt(0))))
-	//	if hasType("receive", txTypes) {
-	//		query.Should(receiveQuery)
-	//	} else {
-	//		query.MustNot(receiveQuery)
-	//	}
-	//
-	//	stakeQuery := elastic.NewTermQuery("is_stake", true)
-	//	if hasType("stake", txTypes) {
-	//		query.Should(stakeQuery)
-	//	} else {
-	//		query.MustNot(stakeQuery)
-	//	}
-	//}
-
-	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(r.network)).
 		Query(query).
 		Sort("height", dir).
 		From((page * size) - size).
@@ -257,41 +238,161 @@ func (r *AddressHistoryRepository) HistoryByHash(hash string, txType string, dir
 	return r.findMany(results, err)
 }
 
-func (r *AddressHistoryRepository) GetAddressGroups(addressGroups *entity.AddressGroups) error {
-	service := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get()).Size(0)
+func (r *addressHistoryRepository) GetAddressGroups(period *group.Period, count int) ([]entity.AddressGroup, error) {
+	timeGroups := group.CreateTimeGroup(period, count)
 
-	//fsc := elastic.NewFetchSourceContext(true).Include("hash")
+	addressGroups := make([]entity.AddressGroup, 0)
+	for i := range timeGroups {
+		blockGroup := entity.AddressGroup{
+			TimeGroup: *timeGroups[i],
+			Period:    *period,
+		}
+		addressGroups = append(addressGroups, blockGroup)
+	}
 
-	for i, item := range addressGroups.Items {
+	service := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(r.network)).Size(0)
+
+	for i, item := range addressGroups {
+		hashAgg := elastic.NewCardinalityAggregation().Field("hash.keyword")
+
+		spendAgg := elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("is_stake", false))
+		spendAgg.SubAggregation("hash", elastic.NewCardinalityAggregation().Field("hash.keyword"))
+
+		stakeAgg := elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("is_stake", true))
+		stakeAgg.SubAggregation("hash", elastic.NewCardinalityAggregation().Field("hash.keyword"))
+
 		agg := elastic.NewRangeAggregation().Field("time").AddRange(item.Start, item.End)
-		agg.SubAggregation("is_stake", elastic.NewTermsAggregation().Field("is_stake"))
+		agg.SubAggregation("hash", hashAgg)
+		agg.SubAggregation("spend", spendAgg)
+		agg.SubAggregation("stake", stakeAgg)
 
-		service.Aggregation(string(i), agg)
+		service.Aggregation(string(rune(i)), agg)
 	}
 
 	results, err := service.Do(context.Background())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for i, item := range addressGroups.Items {
+	for i := range addressGroups {
 		if agg, found := results.Aggregations.Range(string(rune(i))); found {
-			bucket := agg.Buckets[0]
-			item.Addresses = bucket.DocCount
-			if isStake, found := bucket.Aggregations.Terms("is_stake"); found {
-				for _, b := range isStake.Buckets {
-					if *b.KeyAsString == "false" {
-						item.Spend = b.DocCount
-					}
+
+			if hash, found := agg.Buckets[0].Cardinality("hash"); found {
+				addressGroups[i].Addresses = int64(*hash.Value)
+			}
+
+			if spend, found := agg.Buckets[0].Filter("spend"); found {
+				if hash, found := spend.Cardinality("hash"); found {
+					addressGroups[i].Spend = int64(*hash.Value)
+				}
+			}
+
+			if spend, found := agg.Buckets[0].Filter("stake"); found {
+				if hash, found := spend.Cardinality("hash"); found {
+					addressGroups[i].Stake = int64(*hash.Value)
 				}
 			}
 		}
 	}
 
-	return nil
+	return addressGroups, nil
 }
 
-func (r *AddressHistoryRepository) findOne(results *elastic.SearchResult, err error) (*explorer.AddressHistory, error) {
+func (r *addressHistoryRepository) StakingChart(period string, hash string) (groups []*entity.StakingGroup, err error) {
+	count := 12
+	now := time.Now().UTC().Truncate(time.Second)
+
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewMatchQuery("hash", hash))
+	query = query.Must(elastic.NewMatchQuery("is_stake", true))
+
+	agg := elastic.NewFilterAggregation().Filter(query)
+
+	for i := 0; i < count; i++ {
+		group := &entity.StakingGroup{End: now}
+
+		switch period {
+		case "hourly":
+			{
+				if i == 0 {
+					group.Start = now.Truncate(time.Hour)
+				} else {
+					group.End = groups[i-1].Start
+					group.Start = group.End.Add(-time.Hour)
+				}
+				break
+			}
+		case "daily":
+			{
+				if i == 0 {
+					group.Start = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+				} else {
+					group.End = groups[i-1].Start
+					group.Start = group.End.AddDate(0, 0, -1)
+				}
+				break
+			}
+		case "monthly":
+			{
+				if i == 0 {
+					group.Start = time.Date(now.Year(), now.Month(), 0, 0, 0, 0, 0, now.Location())
+					group.Start = group.Start.AddDate(0, 0, 1)
+				} else {
+					group.End = groups[i-1].Start
+					group.Start = group.End.AddDate(0, -1, 0)
+				}
+				break
+			}
+		}
+
+		changesAgg := elastic.NewNestedAggregation().Path("changes")
+		changesAgg.SubAggregation("staking", elastic.NewSumAggregation().Field("changes.staking"))
+		changesAgg.SubAggregation("spending", elastic.NewSumAggregation().Field("changes.spending"))
+		changesAgg.SubAggregation("voting", elastic.NewSumAggregation().Field("changes.voting"))
+
+		timeAgg := elastic.NewRangeAggregation().Field("time").AddRange(group.Start, group.End)
+		timeAgg.SubAggregation("changes", changesAgg)
+
+		agg.SubAggregation(fmt.Sprintf("group-%d", i), timeAgg)
+
+		groups = append(groups, group)
+	}
+
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(r.network)).
+		Aggregation("groups", agg).
+		Size(0).
+		Do(context.Background())
+	if results != nil {
+		i := 0
+		for {
+			if agg, found := results.Aggregations.Filter("groups"); found {
+				if groupAgg, found := agg.Aggregations.Range(fmt.Sprintf("group-%d", i)); found {
+					bucket := groupAgg.Buckets[0]
+					groups[i].Stakes = bucket.DocCount
+
+					if nested, found := bucket.Aggregations.Nested("changes"); found {
+						if stakingValue, found := nested.Aggregations.Sum("staking"); found {
+							groups[i].Staking = int64(*stakingValue.Value)
+						}
+						if spendingValue, found := nested.Aggregations.Sum("spending"); found {
+							groups[i].Spending = int64(*spendingValue.Value)
+						}
+						if votingValue, found := nested.Aggregations.Sum("voting"); found {
+							groups[i].Voting = int64(*votingValue.Value)
+						}
+					}
+					i++
+				} else {
+					break
+				}
+			}
+		}
+	}
+
+	return groups, err
+}
+
+func (r *addressHistoryRepository) findOne(results *elastic.SearchResult, err error) (*explorer.AddressHistory, error) {
 	if err != nil || results.TotalHits() == 0 {
 		err = ErrAddressHistoryNotFound
 		return nil, err
@@ -307,7 +408,7 @@ func (r *AddressHistoryRepository) findOne(results *elastic.SearchResult, err er
 	return history, err
 }
 
-func (r *AddressHistoryRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.AddressHistory, int64, error) {
+func (r *addressHistoryRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.AddressHistory, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
@@ -321,13 +422,4 @@ func (r *AddressHistoryRepository) findMany(results *elastic.SearchResult, err e
 	}
 
 	return historys, results.TotalHits(), err
-}
-
-func hasType(txType string, txTypes []string) bool {
-	for _, t := range txTypes {
-		if t == txType {
-			return true
-		}
-	}
-	return false
 }

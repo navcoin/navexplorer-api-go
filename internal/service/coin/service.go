@@ -6,7 +6,7 @@ import (
 )
 
 type Service interface {
-	GetWealthDistribution(groups []int) ([]*entity.Wealth, error)
+	GetWealthDistribution(network string, groups []int) ([]*entity.Wealth, error)
 }
 
 type service struct {
@@ -17,6 +17,6 @@ func NewCoinService(addressRepo *repository.AddressRepository) Service {
 	return &service{addressRepo}
 }
 
-func (s *service) GetWealthDistribution(groups []int) ([]*entity.Wealth, error) {
-	return s.addressRepo.WealthDistribution(groups)
+func (s *service) GetWealthDistribution(network string, groups []int) ([]*entity.Wealth, error) {
+	return s.addressRepo.Network(network).WealthDistribution(groups)
 }

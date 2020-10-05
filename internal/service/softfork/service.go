@@ -7,8 +7,8 @@ import (
 )
 
 type Service interface {
-	GetCycle() (*entity.SoftForkCycle, error)
-	GetSoftForks() ([]*explorer.SoftFork, error)
+	GetCycle(network string) (*entity.SoftForkCycle, error)
+	GetSoftForks(network string) ([]*explorer.SoftFork, error)
 }
 
 type service struct {
@@ -20,8 +20,8 @@ func NewSoftForkService(blockRepo *repository.BlockRepository, softForkRepo *rep
 	return &service{blockRepo, softForkRepo}
 }
 
-func (s *service) GetCycle() (*entity.SoftForkCycle, error) {
-	block, err := s.blockRepo.BestBlock()
+func (s *service) GetCycle(network string) (*entity.SoftForkCycle, error) {
+	block, err := s.blockRepo.Network(network).BestBlock()
 	if err != nil {
 		return nil, err
 	}
@@ -39,6 +39,6 @@ func (s *service) GetCycle() (*entity.SoftForkCycle, error) {
 	return cycle, nil
 }
 
-func (s *service) GetSoftForks() ([]*explorer.SoftFork, error) {
-	return s.softForkRepository.SoftForks()
+func (s *service) GetSoftForks(network string) ([]*explorer.SoftFork, error) {
+	return s.softForkRepository.Network(network).SoftForks()
 }

@@ -5,7 +5,7 @@ import (
 )
 
 type Service interface {
-	GetTotalSupply() (float64, error)
+	GetTotalSupply(network string) (float64, error)
 }
 
 type service struct {
@@ -16,6 +16,6 @@ func NewDistributionService(addressRepository *repository.AddressRepository) Ser
 	return &service{addressRepository}
 }
 
-func (s *service) GetTotalSupply() (float64, error) {
-	return s.addressRepository.GetTotalSupply()
+func (s *service) GetTotalSupply(network string) (float64, error) {
+	return s.addressRepository.Network(network).GetTotalSupply()
 }

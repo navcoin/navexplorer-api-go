@@ -14,6 +14,7 @@ import (
 
 type DaoProposalRepository struct {
 	elastic *elastic_cache.Index
+	network string
 }
 
 var (
@@ -21,7 +22,13 @@ var (
 )
 
 func NewDaoProposalRepository(elastic *elastic_cache.Index) *DaoProposalRepository {
-	return &DaoProposalRepository{elastic}
+	return &DaoProposalRepository{elastic: elastic}
+}
+
+func (r *DaoProposalRepository) Network(network string) *DaoProposalRepository {
+	r.network = network
+
+	return r
 }
 
 func (r *DaoProposalRepository) Proposals(status *explorer.ProposalStatus, dir bool, size int, page int) ([]*explorer.Proposal, int64, error) {
@@ -34,7 +41,7 @@ func (r *DaoProposalRepository) Proposals(status *explorer.ProposalStatus, dir b
 		query = query.Must(elastic.NewMatchQuery("status", statusQuery))
 	}
 
-	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get(r.network)).
 		Query(query).
 		Sort("height", dir).
 		From((page * size) - size).
@@ -53,7 +60,7 @@ func (r *DaoProposalRepository) LegacyProposals(status *explorer.ProposalStatus,
 		query = query.Must(elastic.NewTermQuery("status.keyword", status))
 	}
 
-	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get(r.network)).
 		Query(query).
 		Sort("height", dir).
 		From((page * size) - size).
@@ -75,7 +82,7 @@ func (r *DaoProposalRepository) LegacyProposals(status *explorer.ProposalStatus,
 }
 
 func (r *DaoProposalRepository) Proposal(hash string) (*explorer.Proposal, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get(r.network)).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
 		Do(context.Background())
@@ -92,7 +99,7 @@ func (r *DaoProposalRepository) ValueLocked() (*float64, error) {
 	lockedAgg := elastic.NewFilterAggregation().Filter(query)
 	lockedAgg.SubAggregation("notPaidYet", elastic.NewSumAggregation().Field("notPaidYet"))
 
-	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get(r.network)).
 		Aggregation("locked", lockedAgg).
 		Size(0).
 		Do(context.Background())

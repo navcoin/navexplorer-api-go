@@ -11,6 +11,7 @@ import (
 
 type DaoConsensusRepository struct {
 	elastic *elastic_cache.Index
+	network string
 }
 
 var (
@@ -18,11 +19,17 @@ var (
 )
 
 func NewDaoConsensusRepository(elastic *elastic_cache.Index) *DaoConsensusRepository {
-	return &DaoConsensusRepository{elastic}
+	return &DaoConsensusRepository{elastic: elastic}
+}
+
+func (r *DaoConsensusRepository) Network(network string) *DaoConsensusRepository {
+	r.network = network
+
+	return r
 }
 
 func (r *DaoConsensusRepository) GetConsensusParameters() (*explorer.ConsensusParameters, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.ConsensusIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.ConsensusIndex.Get(r.network)).
 		Size(1000).
 		Sort("id", true).
 		Do(context.Background())

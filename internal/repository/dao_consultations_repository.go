@@ -11,6 +11,7 @@ import (
 
 type DaoConsultationRepository struct {
 	elastic *elastic_cache.Index
+	network string
 }
 
 var (
@@ -19,7 +20,13 @@ var (
 )
 
 func NewDaoConsultationRepository(elastic *elastic_cache.Index) *DaoConsultationRepository {
-	return &DaoConsultationRepository{elastic}
+	return &DaoConsultationRepository{elastic: elastic}
+}
+
+func (r *DaoConsultationRepository) Network(network string) *DaoConsultationRepository {
+	r.network = network
+
+	return r
 }
 
 func (r *DaoConsultationRepository) Consultations(status *explorer.ConsultationStatus, consensus *bool, min *uint, asc bool, size int, page int) ([]*explorer.Consultation, int64, error) {
@@ -34,7 +41,7 @@ func (r *DaoConsultationRepository) Consultations(status *explorer.ConsultationS
 		query = query.Must(elastic.NewTermQuery("consensusParameter", consensus))
 	}
 
-	result, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get()).
+	result, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get(r.network)).
 		Query(query).
 		Sort("height", asc).
 		From((page * size) - size).
@@ -48,7 +55,7 @@ func (r *DaoConsultationRepository) Consultations(status *explorer.ConsultationS
 }
 
 func (r *DaoConsultationRepository) Consultation(hash string) (*explorer.Consultation, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get(r.network)).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
 		Do(context.Background())
@@ -60,7 +67,7 @@ func (r *DaoConsultationRepository) Answer(hash string) (*explorer.Answer, error
 	query := elastic.NewTermQuery("answers.hash.keyword", hash)
 	nestedQuery := elastic.NewNestedQuery("answers", query)
 
-	results, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get(r.network)).
 		Query(nestedQuery).
 		Size(1).
 		Do(context.Background())
@@ -80,7 +87,7 @@ func (r *DaoConsultationRepository) Answer(hash string) (*explorer.Answer, error
 }
 
 func (r *DaoConsultationRepository) ConsensusConsultations(dir bool, size int, page int) ([]*explorer.Consultation, int64, error) {
-	result, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get()).
+	result, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get(r.network)).
 		Query(elastic.NewTermQuery("consensusParameter", true)).
 		Sort("height", dir).
 		From((page * size) - size).

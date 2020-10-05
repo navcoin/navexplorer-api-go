@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
+	"github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
@@ -21,13 +22,13 @@ func NewDaoResource(daoService dao.Service, blockService block.Service) *DaoReso
 }
 
 func (r *DaoResource) GetBlockCycle(c *gin.Context) {
-	b, err := r.blockService.GetBestBlock()
+	b, err := r.blockService.GetBestBlock(param.GetNetwork())
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
 	}
 
-	blockCycle, err := r.daoService.GetBlockCycleByBlock(b)
+	blockCycle, err := r.daoService.GetBlockCycleByBlock(param.GetNetwork(), b)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -37,7 +38,7 @@ func (r *DaoResource) GetBlockCycle(c *gin.Context) {
 }
 
 func (r *DaoResource) GetConsensusParameters(c *gin.Context) {
-	consensus, err := r.daoService.GetConsensus()
+	consensus, err := r.daoService.GetConsensus(param.GetNetwork())
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -56,7 +57,7 @@ func (r *DaoResource) GetConsensusParameter(c *gin.Context) {
 		return
 	}
 
-	consensus, err := r.daoService.GetConsensus()
+	consensus, err := r.daoService.GetConsensus(param.GetNetwork())
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -74,7 +75,7 @@ func (r *DaoResource) GetConsensusParameter(c *gin.Context) {
 }
 
 func (r *DaoResource) GetCfundStats(c *gin.Context) {
-	cfundStats, err := r.daoService.GetCfundStats()
+	cfundStats, err := r.daoService.GetCfundStats(param.GetNetwork())
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -95,7 +96,7 @@ func (r *DaoResource) GetProposals(c *gin.Context) {
 		return
 	}
 
-	proposals, total, err := r.daoService.GetProposals(parameters, config)
+	proposals, total, err := r.daoService.GetProposals(param.GetNetwork(), parameters, config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -108,7 +109,7 @@ func (r *DaoResource) GetProposals(c *gin.Context) {
 }
 
 func (r *DaoResource) GetProposal(c *gin.Context) {
-	proposal, err := r.daoService.GetProposal(c.Param("hash"))
+	proposal, err := r.daoService.GetProposal(param.GetNetwork(), c.Param("hash"))
 
 	if err == repository.ErrProposalNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
@@ -124,7 +125,7 @@ func (r *DaoResource) GetProposal(c *gin.Context) {
 }
 
 func (r *DaoResource) GetProposalVotes(c *gin.Context) {
-	votes, err := r.daoService.GetProposalVotes(c.Param("hash"))
+	votes, err := r.daoService.GetProposalVotes(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrProposalNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
@@ -138,7 +139,7 @@ func (r *DaoResource) GetProposalVotes(c *gin.Context) {
 }
 
 func (r *DaoResource) GetProposalTrend(c *gin.Context) {
-	trend, err := r.daoService.GetProposalTrend(c.Param("hash"))
+	trend, err := r.daoService.GetProposalTrend(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrProposalNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
@@ -163,7 +164,7 @@ func (r *DaoResource) GetPaymentRequests(c *gin.Context) {
 		return
 	}
 
-	paymentRequests, total, err := r.daoService.GetPaymentRequests(parameters, config)
+	paymentRequests, total, err := r.daoService.GetPaymentRequests(param.GetNetwork(), parameters, config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -176,14 +177,14 @@ func (r *DaoResource) GetPaymentRequests(c *gin.Context) {
 }
 
 func (r *DaoResource) GetPaymentRequestsForProposal(c *gin.Context) {
-	proposal, err := r.daoService.GetProposal(c.Param("hash"))
+	proposal, err := r.daoService.GetProposal(param.GetNetwork(), c.Param("hash"))
 
 	if err == repository.ErrProposalNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
 	}
 
-	paymentRequests, err := r.daoService.GetPaymentRequestsForProposal(proposal)
+	paymentRequests, err := r.daoService.GetPaymentRequestsForProposal(param.GetNetwork(), proposal)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -193,7 +194,7 @@ func (r *DaoResource) GetPaymentRequestsForProposal(c *gin.Context) {
 }
 
 func (r *DaoResource) GetPaymentRequest(c *gin.Context) {
-	paymentRequest, err := r.daoService.GetPaymentRequest(c.Param("hash"))
+	paymentRequest, err := r.daoService.GetPaymentRequest(param.GetNetwork(), c.Param("hash"))
 
 	if err != nil {
 		if err == repository.ErrPaymentRequestNotFound {
@@ -208,7 +209,7 @@ func (r *DaoResource) GetPaymentRequest(c *gin.Context) {
 }
 
 func (r *DaoResource) GetPaymentRequestVotes(c *gin.Context) {
-	votes, err := r.daoService.GetPaymentRequestVotes(c.Param("hash"))
+	votes, err := r.daoService.GetPaymentRequestVotes(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrPaymentRequestNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
@@ -222,7 +223,7 @@ func (r *DaoResource) GetPaymentRequestVotes(c *gin.Context) {
 }
 
 func (r *DaoResource) GetPaymentRequestTrend(c *gin.Context) {
-	trend, err := r.daoService.GetPaymentRequestTrend(c.Param("hash"))
+	trend, err := r.daoService.GetPaymentRequestTrend(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrPaymentRequestNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
@@ -247,7 +248,7 @@ func (r *DaoResource) GetConsultations(c *gin.Context) {
 		return
 	}
 
-	consultations, total, err := r.daoService.GetConsultations(parameters, config)
+	consultations, total, err := r.daoService.GetConsultations(param.GetNetwork(), parameters, config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -260,7 +261,7 @@ func (r *DaoResource) GetConsultations(c *gin.Context) {
 }
 
 func (r *DaoResource) GetConsultation(c *gin.Context) {
-	proposal, err := r.daoService.GetConsultation(c.Param("hash"))
+	proposal, err := r.daoService.GetConsultation(param.GetNetwork(), c.Param("hash"))
 
 	if err == repository.ErrConsultationNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
@@ -276,7 +277,7 @@ func (r *DaoResource) GetConsultation(c *gin.Context) {
 }
 
 func (r *DaoResource) GetAnswer(c *gin.Context) {
-	proposal, err := r.daoService.GetAnswer(c.Param("hash"))
+	proposal, err := r.daoService.GetAnswer(param.GetNetwork(), c.Param("hash"))
 
 	if err == repository.ErrAnswerNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
@@ -292,7 +293,7 @@ func (r *DaoResource) GetAnswer(c *gin.Context) {
 }
 
 func (r *DaoResource) GetAnswerVotes(c *gin.Context) {
-	votes, err := r.daoService.GetAnswerVotes(c.Param("hash"), c.Param("answer"))
+	votes, err := r.daoService.GetAnswerVotes(param.GetNetwork(), c.Param("hash"), c.Param("answer"))
 	if err == repository.ErrAnswerNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return

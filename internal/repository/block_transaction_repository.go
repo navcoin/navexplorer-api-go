@@ -11,10 +11,17 @@ import (
 
 type BlockTransactionRepository struct {
 	elastic *elastic_cache.Index
+	network string
 }
 
 func NewBlockTransactionRepository(elastic *elastic_cache.Index) *BlockTransactionRepository {
-	return &BlockTransactionRepository{elastic}
+	return &BlockTransactionRepository{elastic: elastic}
+}
+
+func (r *BlockTransactionRepository) Network(network string) *BlockTransactionRepository {
+	r.network = network
+
+	return r
 }
 
 func (r *BlockTransactionRepository) Transactions(asc bool, size, page int, ignoreCoinbase, ignoreStaking bool) ([]*explorer.BlockTransaction, int64, error) {
@@ -26,7 +33,7 @@ func (r *BlockTransactionRepository) Transactions(asc bool, size, page int, igno
 		query = query.MustNot(elastic.NewTermsQuery("type", "staking", "cold_staking"))
 	}
 
-	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get(r.network)).
 		Query(query).
 		Sort("height", asc).
 		From((page * size) - size).
@@ -49,7 +56,7 @@ func (r *BlockTransactionRepository) Transactions(asc bool, size, page int, igno
 }
 
 func (r *BlockTransactionRepository) TransactionsByBlock(block *explorer.Block) ([]*explorer.BlockTransaction, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get(r.network)).
 		Query(elastic.NewMatchPhraseQuery("blockhash", block.Hash)).
 		Sort("index", true).
 		Size(10000).
@@ -59,7 +66,7 @@ func (r *BlockTransactionRepository) TransactionsByBlock(block *explorer.Block) 
 }
 
 func (r *BlockTransactionRepository) TransactionByHash(hash string) (*explorer.BlockTransaction, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get(r.network)).
 		Query(elastic.NewTermQuery("hash", hash)).
 		Do(context.Background())
 
@@ -86,7 +93,7 @@ func (r *BlockTransactionRepository) TotalAmountByOutputType(voutType explorer.V
 	agg := elastic.NewNestedAggregation().Path("vout")
 	agg.SubAggregation("vout", typeAgg)
 
-	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get(r.network)).
 		Aggregation("total", agg).
 		Size(0).
 		Do(context.Background())
@@ -115,7 +122,7 @@ func (r *BlockTransactionRepository) AssociatedStakingAddresses(address string) 
 
 	query := elastic.NewNestedQuery("outputs", outputsQuery)
 
-	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get(r.network)).
 		Query(query).
 		Size(50000000).
 		Sort("time", false).

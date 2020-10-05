@@ -10,28 +10,28 @@ import (
 )
 
 type Service interface {
-	GetBlockCycleByHeight(height uint64) (*entity.LegacyBlockCycle, error)
-	GetBlockCycleByBlock(block *explorer.Block) (*entity.LegacyBlockCycle, error)
-	GetConsensus() (*explorer.ConsensusParameters, error)
-	GetCfundStats() (*entity.CfundStats, error)
+	GetBlockCycleByHeight(network string, height uint64) (*entity.LegacyBlockCycle, error)
+	GetBlockCycleByBlock(network string, block *explorer.Block) (*entity.LegacyBlockCycle, error)
+	GetConsensus(network string) (*explorer.ConsensusParameters, error)
+	GetCfundStats(network string) (*entity.CfundStats, error)
 
-	GetProposals(parameters ProposalParameters, config *pagination.Config) ([]*explorer.Proposal, int64, error)
-	GetProposal(hash string) (*explorer.Proposal, error)
-	GetVotingCycles(element explorer.ChainHeight, count uint) ([]*entity.VotingCycle, error)
-	GetProposalVotes(hash string) ([]*entity.CfundVote, error)
-	GetProposalTrend(hash string) ([]*entity.CfundTrend, error)
+	GetProposals(network string, parameters ProposalParameters, config *pagination.Config) ([]*explorer.Proposal, int64, error)
+	GetProposal(network, hash string) (*explorer.Proposal, error)
+	GetVotingCycles(network string, element explorer.ChainHeight, count uint) ([]*entity.VotingCycle, error)
+	GetProposalVotes(network, hash string) ([]*entity.CfundVote, error)
+	GetProposalTrend(network, hash string) ([]*entity.CfundTrend, error)
 
-	GetPaymentRequests(parameters PaymentRequestParameters, config *pagination.Config) ([]*explorer.PaymentRequest, int64, error)
-	GetPaymentRequestsForProposal(proposal *explorer.Proposal) ([]*explorer.PaymentRequest, error)
-	GetPaymentRequest(hash string) (*explorer.PaymentRequest, error)
-	GetPaymentRequestVotes(hash string) ([]*entity.CfundVote, error)
-	GetPaymentRequestTrend(hash string) ([]*entity.CfundTrend, error)
+	GetPaymentRequests(network string, parameters PaymentRequestParameters, config *pagination.Config) ([]*explorer.PaymentRequest, int64, error)
+	GetPaymentRequestsForProposal(network string, proposal *explorer.Proposal) ([]*explorer.PaymentRequest, error)
+	GetPaymentRequest(network, hash string) (*explorer.PaymentRequest, error)
+	GetPaymentRequestVotes(network, hash string) ([]*entity.CfundVote, error)
+	GetPaymentRequestTrend(network, hash string) ([]*entity.CfundTrend, error)
 
-	GetConsultations(parameters ConsultationParameters, config *pagination.Config) ([]*explorer.Consultation, int64, error)
-	GetConsultation(hash string) (*explorer.Consultation, error)
-	GetAnswer(hash string) (*explorer.Answer, error)
-	GetAnswerVotes(consultationHash string, hash string) ([]*entity.CfundVote, error)
-	GetConsensusConsultations(config *pagination.Config) ([]*explorer.Consultation, int64, error)
+	GetConsultations(network string, parameters ConsultationParameters, config *pagination.Config) ([]*explorer.Consultation, int64, error)
+	GetConsultation(network, hash string) (*explorer.Consultation, error)
+	GetAnswer(network, hash string) (*explorer.Answer, error)
+	GetAnswerVotes(network, consultationHash string, hash string) ([]*entity.CfundVote, error)
+	GetConsensusConsultations(network string, config *pagination.Config) ([]*explorer.Consultation, int64, error)
 }
 
 type service struct {
@@ -85,24 +85,24 @@ func NewDaoService(
 	}
 }
 
-func (s *service) GetBlockCycleByHeight(height uint64) (*entity.LegacyBlockCycle, error) {
-	return s.GetBlockCycleByBlock(&explorer.Block{RawBlock: explorer.RawBlock{Height: height}})
+func (s *service) GetBlockCycleByHeight(network string, height uint64) (*entity.LegacyBlockCycle, error) {
+	return s.GetBlockCycleByBlock(network, &explorer.Block{RawBlock: explorer.RawBlock{Height: height}})
 }
 
-func (s *service) GetBlockCycleByBlock(block *explorer.Block) (*entity.LegacyBlockCycle, error) {
+func (s *service) GetBlockCycleByBlock(network string, block *explorer.Block) (*entity.LegacyBlockCycle, error) {
 	blockCycle := &entity.LegacyBlockCycle{
-		BlocksInCycle: uint(s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value),
+		BlocksInCycle: uint(s.consensusService.GetParameter(network, consensus.VOTING_CYCLE_LENGTH).Value),
 		ProposalVoting: entity.Voting{
-			Quorum: float64(s.consensusService.GetParameter(consensus.PROPOSAL_MIN_QUORUM).Value) / 100,
-			Cycles: uint(s.consensusService.GetParameter(consensus.PROPOSAL_MAX_VOTING_CYCLES).Value),
-			Accept: uint(s.consensusService.GetParameter(consensus.PROPOSAL_MIN_ACCEPT).Value),
-			Reject: uint(s.consensusService.GetParameter(consensus.PROPOSAL_MIN_REJECT).Value),
+			Quorum: float64(s.consensusService.GetParameter(network, consensus.PROPOSAL_MIN_QUORUM).Value) / 100,
+			Cycles: uint(s.consensusService.GetParameter(network, consensus.PROPOSAL_MAX_VOTING_CYCLES).Value),
+			Accept: uint(s.consensusService.GetParameter(network, consensus.PROPOSAL_MIN_ACCEPT).Value),
+			Reject: uint(s.consensusService.GetParameter(network, consensus.PROPOSAL_MIN_REJECT).Value),
 		},
 		PaymentVoting: entity.Voting{
-			Quorum: float64(s.consensusService.GetParameter(consensus.PAYMENT_REQUEST_MIN_QUORUM).Value) / 100,
-			Cycles: uint(s.consensusService.GetParameter(consensus.PAYMENT_REQUEST_MAX_VOTING_CYCLES).Value),
-			Accept: uint(s.consensusService.GetParameter(consensus.PAYMENT_REQUEST_MIN_ACCEPT).Value),
-			Reject: uint(s.consensusService.GetParameter(consensus.PAYMENT_REQUEST_MIN_REJECT).Value),
+			Quorum: float64(s.consensusService.GetParameter(network, consensus.PAYMENT_REQUEST_MIN_QUORUM).Value) / 100,
+			Cycles: uint(s.consensusService.GetParameter(network, consensus.PAYMENT_REQUEST_MAX_VOTING_CYCLES).Value),
+			Accept: uint(s.consensusService.GetParameter(network, consensus.PAYMENT_REQUEST_MIN_ACCEPT).Value),
+			Reject: uint(s.consensusService.GetParameter(network, consensus.PAYMENT_REQUEST_MIN_REJECT).Value),
 		},
 		Cycle:      block.BlockCycle.Cycle,
 		FirstBlock: (block.BlockCycle.Cycle * block.BlockCycle.Size) - block.BlockCycle.Size,
@@ -113,43 +113,43 @@ func (s *service) GetBlockCycleByBlock(block *explorer.Block) (*entity.LegacyBlo
 	return blockCycle, nil
 }
 
-func (s *service) GetConsensus() (*explorer.ConsensusParameters, error) {
-	return s.consensusService.GetParameters()
+func (s *service) GetConsensus(network string) (*explorer.ConsensusParameters, error) {
+	return s.consensusService.GetParameters(network)
 }
 
-func (s *service) GetCfundStats() (*entity.CfundStats, error) {
+func (s *service) GetCfundStats(network string) (*entity.CfundStats, error) {
 	cfundStats := new(entity.CfundStats)
 
-	if block, _ := s.blockRepository.BestBlock(); block != nil {
+	if block, _ := s.blockRepository.Network(network).BestBlock(); block != nil {
 		cfundStats.Available = block.Cfund.Available
 		cfundStats.Locked = block.Cfund.Locked
 	}
 
-	if paid, _ := s.paymentRequestRepository.ValuePaid(); paid != nil {
+	if paid, _ := s.paymentRequestRepository.Network(network).ValuePaid(); paid != nil {
 		cfundStats.Paid = *paid
 	}
 
 	return cfundStats, nil
 }
 
-func (s *service) GetProposals(parameters ProposalParameters, config *pagination.Config) ([]*explorer.Proposal, int64, error) {
+func (s *service) GetProposals(network string, parameters ProposalParameters, config *pagination.Config) ([]*explorer.Proposal, int64, error) {
 	var status *explorer.ProposalStatus
 	if parameters.State != nil && explorer.IsProposalStateValid(*parameters.State) {
 		s := explorer.GetProposalStatusByState(*parameters.State)
 		status = &s
 	}
 
-	return s.proposalRepository.Proposals(status, config.Ascending, config.Size, config.Page)
+	return s.proposalRepository.Network(network).Proposals(status, config.Ascending, config.Size, config.Page)
 }
 
-func (s *service) GetProposal(hash string) (*explorer.Proposal, error) {
-	return s.proposalRepository.Proposal(hash)
+func (s *service) GetProposal(network, hash string) (*explorer.Proposal, error) {
+	return s.proposalRepository.Network(network).Proposal(hash)
 }
 
-func (s *service) GetVotingCycles(element explorer.ChainHeight, count uint) ([]*entity.VotingCycle, error) {
+func (s *service) GetVotingCycles(network string, element explorer.ChainHeight, count uint) ([]*entity.VotingCycle, error) {
 	log.Infof("GetVotingCycles for %T", element)
 
-	block, err := s.blockRepository.BlockByHeight(element.GetHeight())
+	block, err := s.blockRepository.Network(network).BlockByHeight(element.GetHeight())
 	if err != nil {
 		return nil, err
 	}
@@ -157,55 +157,55 @@ func (s *service) GetVotingCycles(element explorer.ChainHeight, count uint) ([]*
 	var segments uint
 	switch e := element.(type) {
 	case *explorer.Proposal:
-		segments = uint(s.consensusService.GetParameter(consensus.PROPOSAL_MAX_VOTING_CYCLES).Value) + 2
+		segments = uint(s.consensusService.GetParameter(network, consensus.PROPOSAL_MAX_VOTING_CYCLES).Value) + 2
 	case *explorer.PaymentRequest:
-		segments = uint(s.consensusService.GetParameter(consensus.PAYMENT_REQUEST_MAX_VOTING_CYCLES).Value) + 2
+		segments = uint(s.consensusService.GetParameter(network, consensus.PAYMENT_REQUEST_MAX_VOTING_CYCLES).Value) + 2
 	case *explorer.Consultation:
-		segments = uint(s.consensusService.GetParameter(consensus.CONSULTATION_MAX_VOTING_CYCLES).Value) + 2
+		segments = uint(s.consensusService.GetParameter(network, consensus.CONSULTATION_MAX_VOTING_CYCLES).Value) + 2
 	default:
 		log.Fatalf("Unable to get Max voting cycles from %T", e)
 	}
 
 	return entity.CreateVotingCycles(
 		segments,
-		uint(s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value),
+		uint(s.consensusService.GetParameter(network, consensus.VOTING_CYCLE_LENGTH).Value),
 		uint(block.Height)-block.BlockCycle.Index,
 		count+1,
 	), nil
 }
 
-func (s *service) GetProposalVotes(hash string) ([]*entity.CfundVote, error) {
+func (s *service) GetProposalVotes(network, hash string) ([]*entity.CfundVote, error) {
 	log.WithField("hash", hash).Info("GetProposalVotes")
 
-	proposal, err := s.GetProposal(hash)
+	proposal, err := s.GetProposal(network, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	votingCycles, err := s.GetVotingCycles(proposal, proposal.VotingCycle)
+	votingCycles, err := s.GetVotingCycles(network, proposal, proposal.VotingCycle)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.voteRepository.GetVotes(explorer.ProposalVote, hash, votingCycles)
+	return s.voteRepository.Network(network).GetVotes(explorer.ProposalVote, hash, votingCycles)
 }
 
-func (s *service) GetProposalTrend(hash string) ([]*entity.CfundTrend, error) {
+func (s *service) GetProposalTrend(network, hash string) ([]*entity.CfundTrend, error) {
 	log.WithField("hash", hash).Info("GetProposalTrend")
 
-	proposal, err := s.GetProposal(hash)
+	proposal, err := s.GetProposal(network, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	max, err := s.getMax(proposal.Status, proposal.StateChangedOnBlock)
+	max, err := s.getMax(network, proposal.Status, proposal.StateChangedOnBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	size := uint(s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value)
+	size := uint(s.consensusService.GetParameter(network, consensus.VOTING_CYCLE_LENGTH).Value)
 
-	cfundVotes, err := s.voteRepository.GetVotes(
+	cfundVotes, err := s.voteRepository.Network(network).GetVotes(
 		explorer.ProposalVote,
 		proposal.Hash,
 		entity.CreateVotingCycles(10, size/10, max-size+1, 10),
@@ -235,7 +235,7 @@ func (s *service) GetProposalTrend(hash string) ([]*entity.CfundTrend, error) {
 	return cfundTrends, nil
 }
 
-func (s *service) GetPaymentRequests(parameters PaymentRequestParameters, config *pagination.Config) ([]*explorer.PaymentRequest, int64, error) {
+func (s *service) GetPaymentRequests(network string, parameters PaymentRequestParameters, config *pagination.Config) ([]*explorer.PaymentRequest, int64, error) {
 	var status *explorer.PaymentRequestStatus
 	if parameters.State != nil && explorer.IsPaymentRequestStateValid(*parameters.State) {
 		s := explorer.GetPaymentRequestStatusByState(*parameters.State)
@@ -247,26 +247,26 @@ func (s *service) GetPaymentRequests(parameters PaymentRequestParameters, config
 		proposalHash = parameters.Proposal
 	}
 
-	return s.paymentRequestRepository.PaymentRequests(proposalHash, status, config.Ascending, config.Size, config.Page)
+	return s.paymentRequestRepository.Network(network).PaymentRequests(proposalHash, status, config.Ascending, config.Size, config.Page)
 }
 
-func (s *service) GetPaymentRequestsForProposal(proposal *explorer.Proposal) ([]*explorer.PaymentRequest, error) {
-	return s.paymentRequestRepository.PaymentRequestsForProposal(proposal)
+func (s *service) GetPaymentRequestsForProposal(network string, proposal *explorer.Proposal) ([]*explorer.PaymentRequest, error) {
+	return s.paymentRequestRepository.Network(network).PaymentRequestsForProposal(proposal)
 }
 
-func (s *service) GetPaymentRequest(hash string) (*explorer.PaymentRequest, error) {
-	return s.paymentRequestRepository.PaymentRequest(hash)
+func (s *service) GetPaymentRequest(network, hash string) (*explorer.PaymentRequest, error) {
+	return s.paymentRequestRepository.Network(network).PaymentRequest(hash)
 }
 
-func (s *service) GetPaymentRequestVotes(hash string) ([]*entity.CfundVote, error) {
+func (s *service) GetPaymentRequestVotes(network, hash string) ([]*entity.CfundVote, error) {
 	log.Debugf("GetPaymentRequestVotes(hash:%s)", hash)
 
-	paymentRequest, err := s.GetPaymentRequest(hash)
+	paymentRequest, err := s.GetPaymentRequest(network, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	votingCycles, err := s.GetVotingCycles(paymentRequest, paymentRequest.VotingCycle)
+	votingCycles, err := s.GetVotingCycles(network, paymentRequest, paymentRequest.VotingCycle)
 	if err != nil {
 		return nil, err
 	}
@@ -274,19 +274,19 @@ func (s *service) GetPaymentRequestVotes(hash string) ([]*entity.CfundVote, erro
 	return s.voteRepository.GetVotes(explorer.PaymentRequestVote, hash, votingCycles)
 }
 
-func (s *service) GetPaymentRequestTrend(hash string) ([]*entity.CfundTrend, error) {
+func (s *service) GetPaymentRequestTrend(network, hash string) ([]*entity.CfundTrend, error) {
 	log.Debugf("GetPaymentRequestTrend(hash:%s)", hash)
-	paymentRequest, err := s.GetPaymentRequest(hash)
+	paymentRequest, err := s.GetPaymentRequest(network, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	max, err := s.getMax(paymentRequest.Status, paymentRequest.StateChangedOnBlock)
+	max, err := s.getMax(network, paymentRequest.Status, paymentRequest.StateChangedOnBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	size := uint(s.consensusService.GetParameter(consensus.VOTING_CYCLE_LENGTH).Value)
+	size := uint(s.consensusService.GetParameter(network, consensus.VOTING_CYCLE_LENGTH).Value)
 
 	cfundVotes, err := s.voteRepository.GetVotes(
 		explorer.PaymentRequestVote,
@@ -318,27 +318,29 @@ func (s *service) GetPaymentRequestTrend(hash string) ([]*entity.CfundTrend, err
 	return cfundTrends, nil
 }
 
-func (s *service) GetConsultations(parameters ConsultationParameters, config *pagination.Config) ([]*explorer.Consultation, int64, error) {
+func (s *service) GetConsultations(network string, parameters ConsultationParameters, config *pagination.Config) ([]*explorer.Consultation, int64, error) {
 	if parameters.State != nil && explorer.IsConsultationStateValid(*parameters.State) {
 		s := explorer.GetConsultationStatusByState(*parameters.State)
 		parameters.Status = &s
 	}
 
-	return s.consultationRepository.Consultations(parameters.Status, parameters.Consensus, parameters.Min, config.Ascending, config.Size, config.Page)
+	return s.consultationRepository.
+		Network(network).
+		Consultations(parameters.Status, parameters.Consensus, parameters.Min, config.Ascending, config.Size, config.Page)
 }
 
-func (s *service) GetConsultation(hash string) (*explorer.Consultation, error) {
-	return s.consultationRepository.Consultation(hash)
+func (s *service) GetConsultation(network, hash string) (*explorer.Consultation, error) {
+	return s.consultationRepository.Network(network).Consultation(hash)
 }
 
-func (s *service) GetAnswer(hash string) (*explorer.Answer, error) {
-	return s.consultationRepository.Answer(hash)
+func (s *service) GetAnswer(network, hash string) (*explorer.Answer, error) {
+	return s.consultationRepository.Network(network).Answer(hash)
 }
 
-func (s *service) GetAnswerVotes(consultationHash string, hash string) ([]*entity.CfundVote, error) {
+func (s *service) GetAnswerVotes(network, consultationHash string, hash string) ([]*entity.CfundVote, error) {
 	log.Debugf("GetAnswerVotes(hash:%s)", hash)
 
-	consultation, err := s.GetConsultation(consultationHash)
+	consultation, err := s.GetConsultation(network, consultationHash)
 	if err != nil {
 		return nil, err
 	}
@@ -353,26 +355,26 @@ func (s *service) GetAnswerVotes(consultationHash string, hash string) ([]*entit
 
 	}
 
-	votingCycles, err := s.GetVotingCycles(consultation, uint(consultation.VotingCyclesFromCreation))
+	votingCycles, err := s.GetVotingCycles(network, consultation, uint(consultation.VotingCyclesFromCreation))
 	if err != nil {
 		return nil, err
 	}
 
-	return s.voteRepository.GetVotes(explorer.DaoVote, hash, votingCycles)
+	return s.voteRepository.Network(network).GetVotes(explorer.DaoVote, hash, votingCycles)
 }
 
-func (s *service) GetConsensusConsultations(config *pagination.Config) ([]*explorer.Consultation, int64, error) {
-	return s.consultationRepository.ConsensusConsultations(config.Ascending, config.Size, config.Page)
+func (s *service) GetConsensusConsultations(network string, config *pagination.Config) ([]*explorer.Consultation, int64, error) {
+	return s.consultationRepository.Network(network).ConsensusConsultations(config.Ascending, config.Size, config.Page)
 }
 
-func (s *service) getMax(status string, stateChangedOnBlock string) (uint, error) {
+func (s *service) getMax(network, status string, stateChangedOnBlock string) (uint, error) {
 	var block *explorer.Block
 	var err error
 
 	if status == explorer.ProposalPending.Status {
-		block, err = s.blockRepository.BestBlock()
+		block, err = s.blockRepository.Network(network).BestBlock()
 	} else {
-		block, err = s.blockRepository.BlockByHash(stateChangedOnBlock)
+		block, err = s.blockRepository.Network(network).BlockByHash(stateChangedOnBlock)
 	}
 
 	if err != nil {

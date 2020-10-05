@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
+	"github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
@@ -43,7 +44,7 @@ func NewLegacyResource(
 
 // Address Resources
 func (r *LegacyResource) GetAddress(c *gin.Context) {
-	a, err := r.addressService.GetAddress(c.Param("hash"))
+	a, err := r.addressService.GetAddress(param.GetNetwork(), c.Param("hash"))
 	if err != nil {
 		if err == repository.ErrAddressNotFound {
 			handleError(c, err, http.StatusNotFound)
@@ -61,7 +62,7 @@ func (r *LegacyResource) GetAddress(c *gin.Context) {
 func (r *LegacyResource) GetAddresses(c *gin.Context) {
 	config, _ := pagination.Bind(c)
 
-	a, total, err := r.addressService.GetAddresses(config)
+	a, total, err := r.addressService.GetAddresses(param.GetNetwork(), config)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -73,30 +74,30 @@ func (r *LegacyResource) GetAddresses(c *gin.Context) {
 	c.JSON(200, a)
 }
 
-func (r *LegacyResource) GetBalanceChart(c *gin.Context) {
-	chart, err := r.addressService.GetBalanceChart(c.Param("hash"))
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
+//func (r *LegacyResource) GetBalanceChart(c *gin.Context) {
+//	chart, err := r.addressService.GetBalanceChart(c.Param("hash"))
+//	if err != nil {
+//		handleError(c, err, http.StatusInternalServerError)
+//		return
+//	}
+//
+//	c.JSON(200, chart)
+//}
 
-	c.JSON(200, chart)
-}
-
-func (r *LegacyResource) GetStakingChart(c *gin.Context) {
-	period := c.DefaultQuery("period", "daily")
-
-	chart, err := r.addressService.GetStakingChart(period, c.Param("hash"))
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(200, chart)
-}
+//func (r *LegacyResource) GetStakingChart(c *gin.Context) {
+//	period := c.DefaultQuery("period", "daily")
+//
+//	chart, err := r.addressService.GetStakingChart(period, c.Param("hash"))
+//	if err != nil {
+//		handleError(c, err, http.StatusInternalServerError)
+//		return
+//	}
+//
+//	c.JSON(200, chart)
+//}
 
 func (r *LegacyResource) GetAssociatedStakingAddresses(c *gin.Context) {
-	addresses, err := r.addressService.GetAssociatedStakingAddresses(c.Param("hash"))
+	addresses, err := r.addressService.GetAssociatedStakingAddresses(param.GetNetwork(), c.Param("hash"))
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -113,7 +114,7 @@ func (r *LegacyResource) GetBalancesForAddresses(c *gin.Context) {
 		addresses = strings.Split(addressesParam, ",")
 	}
 
-	balances, err := r.addressService.GetNamedAddresses(addresses)
+	balances, err := r.addressService.GetNamedAddresses(param.GetNetwork(), addresses)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -123,7 +124,7 @@ func (r *LegacyResource) GetBalancesForAddresses(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetBestBlock(c *gin.Context) {
-	b, err := r.blockService.GetBestBlock()
+	b, err := r.blockService.GetBestBlock(param.GetNetwork())
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -147,7 +148,7 @@ func (r *LegacyResource) GetBlockGroups(c *gin.Context) {
 		count = 10
 	}
 
-	groups, err := r.blockService.GetBlockGroups(period, count)
+	groups, err := r.blockService.GetBlockGroups(param.GetNetwork(), period, count)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -159,7 +160,7 @@ func (r *LegacyResource) GetBlockGroups(c *gin.Context) {
 func (r *LegacyResource) GetBlocks(c *gin.Context) {
 	config, _ := pagination.Bind(c)
 
-	blocks, total, err := r.blockService.GetBlocks(config)
+	blocks, total, err := r.blockService.GetBlocks(param.GetNetwork(), config)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -172,7 +173,7 @@ func (r *LegacyResource) GetBlocks(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetBlock(c *gin.Context) {
-	b, err := r.blockService.GetBlock(c.Param("hash"))
+	b, err := r.blockService.GetBlock(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrBlockNotFound {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -186,7 +187,7 @@ func (r *LegacyResource) GetBlock(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetRawBlock(c *gin.Context) {
-	b, err := r.blockService.GetRawBlock(c.Param("hash"))
+	b, err := r.blockService.GetRawBlock(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrBlockNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
@@ -200,7 +201,7 @@ func (r *LegacyResource) GetRawBlock(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetTransaction(c *gin.Context) {
-	tx, err := r.blockService.GetTransactionByHash(c.Param("hash"))
+	tx, err := r.blockService.GetTransactionByHash(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrBlockNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
@@ -214,7 +215,7 @@ func (r *LegacyResource) GetTransaction(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetRawTransaction(c *gin.Context) {
-	tx, err := r.blockService.GetRawTransactionByHash(c.Param("hash"))
+	tx, err := r.blockService.GetRawTransactionByHash(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrBlockNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
@@ -241,7 +242,7 @@ func (r *LegacyResource) GetWealthDistribution(c *gin.Context) {
 		b[i], _ = strconv.Atoi(v)
 	}
 
-	distribution, err := r.coinService.GetWealthDistribution(b)
+	distribution, err := r.coinService.GetWealthDistribution(param.GetNetwork(), b)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -251,13 +252,13 @@ func (r *LegacyResource) GetWealthDistribution(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetBlockCycle(c *gin.Context) {
-	b, err := r.blockService.GetBestBlock()
+	b, err := r.blockService.GetBestBlock(param.GetNetwork())
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
-	blockCycle, err := r.daoService.GetBlockCycleByBlock(b)
+	blockCycle, err := r.daoService.GetBlockCycleByBlock(param.GetNetwork(), b)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -267,7 +268,7 @@ func (r *LegacyResource) GetBlockCycle(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetCfundStats(c *gin.Context) {
-	cfundStats, err := r.daoService.GetCfundStats()
+	cfundStats, err := r.daoService.GetCfundStats(param.GetNetwork())
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -277,7 +278,7 @@ func (r *LegacyResource) GetCfundStats(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetProposal(c *gin.Context) {
-	proposal, err := r.daoService.GetProposal(c.Param("hash"))
+	proposal, err := r.daoService.GetProposal(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrProposalNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
@@ -291,7 +292,7 @@ func (r *LegacyResource) GetProposal(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetProposalVotingTrend(c *gin.Context) {
-	trend, err := r.daoService.GetProposalTrend(c.Param("hash"))
+	trend, err := r.daoService.GetProposalTrend(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrProposalNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
@@ -306,7 +307,7 @@ func (r *LegacyResource) GetProposalVotingTrend(c *gin.Context) {
 
 func (r *LegacyResource) GetProposalVotes(c *gin.Context) {
 	vote, err := strconv.ParseBool(c.Param("vote"))
-	votes, err := r.daoService.GetProposalVotes(c.Param("hash"))
+	votes, err := r.daoService.GetProposalVotes(param.GetNetwork(), c.Param("hash"))
 	if err != nil || votes == nil {
 		handleError(c, err, http.StatusNotFound)
 	}
@@ -328,12 +329,12 @@ func (r *LegacyResource) GetProposalVotes(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetPaymentRequestsForProposal(c *gin.Context) {
-	proposal, err := r.daoService.GetProposal(c.Param("hash"))
+	proposal, err := r.daoService.GetProposal(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrProposalNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
 	}
-	paymentRequests, err := r.daoService.GetPaymentRequestsForProposal(proposal)
+	paymentRequests, err := r.daoService.GetPaymentRequestsForProposal(param.GetNetwork(), proposal)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -343,7 +344,7 @@ func (r *LegacyResource) GetPaymentRequestsForProposal(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetPaymentRequestByHash(c *gin.Context) {
-	paymentRequest, err := r.daoService.GetPaymentRequest(c.Param("hash"))
+	paymentRequest, err := r.daoService.GetPaymentRequest(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrPaymentRequestNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
@@ -357,7 +358,7 @@ func (r *LegacyResource) GetPaymentRequestByHash(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetPaymentRequestVotingTrend(c *gin.Context) {
-	trend, err := r.daoService.GetPaymentRequestTrend(c.Param("hash"))
+	trend, err := r.daoService.GetPaymentRequestTrend(param.GetNetwork(), c.Param("hash"))
 	if err == repository.ErrPaymentRequestNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
@@ -372,7 +373,7 @@ func (r *LegacyResource) GetPaymentRequestVotingTrend(c *gin.Context) {
 
 func (r *LegacyResource) GetPaymentRequestVotes(c *gin.Context) {
 	vote, err := strconv.ParseBool(c.Param("vote"))
-	votes, err := r.daoService.GetPaymentRequestVotes(c.Param("hash"))
+	votes, err := r.daoService.GetPaymentRequestVotes(param.GetNetwork(), c.Param("hash"))
 	if err != nil || votes == nil {
 		handleError(c, err, http.StatusNotFound)
 	}
@@ -399,7 +400,7 @@ func (r *LegacyResource) Search(c *gin.Context) {
 	var result Result
 	var err error
 
-	_, err = r.daoService.GetProposal(query)
+	_, err = r.daoService.GetProposal(param.GetNetwork(), query)
 	if err == nil {
 		result.Type = "proposal"
 		result.Value = query
@@ -407,7 +408,7 @@ func (r *LegacyResource) Search(c *gin.Context) {
 		return
 	}
 
-	_, err = r.daoService.GetPaymentRequest(query)
+	_, err = r.daoService.GetPaymentRequest(param.GetNetwork(), query)
 	if err == nil {
 		result.Type = "paymentRequest"
 		result.Value = query
@@ -415,7 +416,7 @@ func (r *LegacyResource) Search(c *gin.Context) {
 		return
 	}
 
-	_, err = r.blockService.GetBlock(query)
+	_, err = r.blockService.GetBlock(param.GetNetwork(), query)
 	if err == nil {
 		result.Type = "block"
 		result.Value = query
@@ -423,7 +424,7 @@ func (r *LegacyResource) Search(c *gin.Context) {
 		return
 	}
 
-	_, err = r.blockService.GetTransactionByHash(query)
+	_, err = r.blockService.GetTransactionByHash(param.GetNetwork(), query)
 	if err == nil {
 		result.Type = "transaction"
 		result.Value = query
@@ -431,7 +432,7 @@ func (r *LegacyResource) Search(c *gin.Context) {
 		return
 	}
 
-	_, err = r.addressService.GetAddress(query)
+	_, err = r.addressService.GetAddress(param.GetNetwork(), query)
 	if err == nil {
 		result.Type = "address"
 		result.Value = query
@@ -443,7 +444,7 @@ func (r *LegacyResource) Search(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetSoftForks(c *gin.Context) {
-	softForks, err := r.softForkService.GetSoftForks()
+	softForks, err := r.softForkService.GetSoftForks(param.GetNetwork())
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -452,49 +453,49 @@ func (r *LegacyResource) GetSoftForks(c *gin.Context) {
 	c.JSON(200, softForks)
 }
 
-func (r *LegacyResource) GetStakingReport(c *gin.Context) {
-	stakingReport, err := r.addressService.GetStakingReport()
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
+//func (r *LegacyResource) GetStakingReport(c *gin.Context) {
+//	stakingReport, err := r.addressService.GetStakingReport()
+//	if err != nil {
+//		handleError(c, err, http.StatusInternalServerError)
+//		return
+//	}
+//
+//	c.JSON(200, stakingReport)
+//}
 
-	c.JSON(200, stakingReport)
-}
+//func (r *LegacyResource) GetStakingByBlockCount(c *gin.Context) {
+//	blockCount, err := strconv.Atoi(c.DefaultQuery("blocks", "1000"))
+//	if err != nil {
+//		blockCount = 1000
+//	}
+//	if blockCount > 50000000 {
+//		blockCount = 50000000
+//	}
+//
+//	staking, err := r.addressService.GetStakingByBlockCount(blockCount, false)
+//	if err != nil {
+//		handleError(c, err, http.StatusInternalServerError)
+//		return
+//	}
+//
+//	c.JSON(200, staking)
+//}
 
-func (r *LegacyResource) GetStakingByBlockCount(c *gin.Context) {
-	blockCount, err := strconv.Atoi(c.DefaultQuery("blocks", "1000"))
-	if err != nil {
-		blockCount = 1000
-	}
-	if blockCount > 50000000 {
-		blockCount = 50000000
-	}
-
-	staking, err := r.addressService.GetStakingByBlockCount(blockCount, false)
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(200, staking)
-}
-
-func (r *LegacyResource) GetStakingRewardsForAddresses(c *gin.Context) {
-	addresses := strings.Split(c.Query("addresses"), ",")
-	if len(addresses) == 0 {
-		handleError(c, errors.New("No addresses provided"), http.StatusBadRequest)
-		return
-	}
-
-	rewards, err := r.addressService.GetStakingRewardsForAddresses(addresses)
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(200, rewards)
-}
+//func (r *LegacyResource) GetStakingRewardsForAddresses(c *gin.Context) {
+//	addresses := strings.Split(c.Query("addresses"), ",")
+//	if len(addresses) == 0 {
+//		handleError(c, errors.New("No addresses provided"), http.StatusBadRequest)
+//		return
+//	}
+//
+//	rewards, err := r.addressService.GetStakingRewardsForAddresses(addresses)
+//	if err != nil {
+//		handleError(c, err, http.StatusInternalServerError)
+//		return
+//	}
+//
+//	c.JSON(200, rewards)
+//}
 
 type Votes struct {
 	Address string `json:"address"`

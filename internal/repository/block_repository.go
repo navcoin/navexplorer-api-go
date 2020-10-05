@@ -18,14 +18,21 @@ var (
 
 type BlockRepository struct {
 	elastic *elastic_cache.Index
+	network string
 }
 
 func NewBlockRepository(elastic *elastic_cache.Index) *BlockRepository {
-	return &BlockRepository{elastic}
+	return &BlockRepository{elastic: elastic}
+}
+
+func (r *BlockRepository) Network(network string) *BlockRepository {
+	r.network = network
+
+	return r
 }
 
 func (r *BlockRepository) BestBlock() (*explorer.Block, error) {
-	results, err := r.elastic.Client.Search().Index(elastic_cache.BlockIndex.Get()).
+	results, err := r.elastic.Client.Search().Index(elastic_cache.BlockIndex.Get(r.network)).
 		Sort("height", false).
 		Size(1).
 		Do(context.Background())
@@ -34,7 +41,7 @@ func (r *BlockRepository) BestBlock() (*explorer.Block, error) {
 }
 
 func (r *BlockRepository) GetBlockGroups(blockGroups *entity.BlockGroups) error {
-	service := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).Size(0)
+	service := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(r.network)).Size(0)
 
 	for i, item := range blockGroups.Items {
 		agg := elastic.NewRangeAggregation().Field("time").AddRange(item.Start, item.End)
@@ -44,7 +51,7 @@ func (r *BlockRepository) GetBlockGroups(blockGroups *entity.BlockGroups) error 
 		agg.SubAggregation("tx", elastic.NewSumAggregation().Field("tx_count"))
 		agg.SubAggregation("height", elastic.NewMaxAggregation().Field("height"))
 
-		service.Aggregation(string(i), agg)
+		service.Aggregation(string(rune(i)), agg)
 	}
 
 	results, err := service.Do(context.Background())
@@ -53,7 +60,7 @@ func (r *BlockRepository) GetBlockGroups(blockGroups *entity.BlockGroups) error 
 	}
 
 	for i, item := range blockGroups.Items {
-		if agg, found := results.Aggregations.Range(string(i)); found {
+		if agg, found := results.Aggregations.Range(string(rune(i))); found {
 			bucket := agg.Buckets[0]
 			item.Blocks = bucket.DocCount
 			if stake, found := bucket.Aggregations.Sum("stake"); found {
@@ -93,7 +100,7 @@ func (r *BlockRepository) Blocks(asc bool, size int, page int) ([]*explorer.Bloc
 		from = size
 	}
 
-	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(r.network)).
 		Sort("height", asc).
 		SearchAfter(from).
 		Size(size).
@@ -118,7 +125,7 @@ func (r *BlockRepository) Blocks(asc bool, size int, page int) ([]*explorer.Bloc
 }
 
 func (r *BlockRepository) BlockGroups(period string, count int) ([]*entity.BlockGroup, error) {
-	service := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).Size(0)
+	service := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(r.network)).Size(0)
 
 	timeGroups := group.CreateTimeGroup(group.GetPeriod(period), count)
 	for i := range timeGroups {
@@ -129,7 +136,7 @@ func (r *BlockRepository) BlockGroups(period string, count int) ([]*entity.Block
 		agg.SubAggregation("transactions", elastic.NewSumAggregation().Field("transactions"))
 		agg.SubAggregation("height", elastic.NewMaxAggregation().Field("height"))
 
-		service.Aggregation(string(i), agg)
+		service.Aggregation(string(rune(i)), agg)
 	}
 
 	results, err := service.Do(context.Background())
@@ -141,7 +148,7 @@ func (r *BlockRepository) BlockGroups(period string, count int) ([]*entity.Block
 	for i := range timeGroups {
 		blockGroup := &entity.BlockGroup{TimeGroup: *timeGroups[i], Period: *group.GetPeriod(period)}
 
-		if agg, found := results.Aggregations.Range(string(i)); found {
+		if agg, found := results.Aggregations.Range(string(rune(i))); found {
 			blockGroup.Blocks = agg.Buckets[0].DocCount
 
 			if stake, found := agg.Buckets[0].Aggregations.Sum("stake"); found {
@@ -199,7 +206,7 @@ func (r *BlockRepository) BlockByHashOrHeight(hash string) (*explorer.Block, err
 }
 
 func (r *BlockRepository) BlockByHash(hash string) (*explorer.Block, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(r.network)).
 		Query(elastic.NewTermQuery("hash", hash)).
 		Size(1).
 		Do(context.Background())
@@ -208,7 +215,7 @@ func (r *BlockRepository) BlockByHash(hash string) (*explorer.Block, error) {
 }
 
 func (r *BlockRepository) BlockByHeight(height uint64) (*explorer.Block, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(r.network)).
 		Query(elastic.NewTermQuery("height", height)).
 		Size(1).
 		Do(context.Background())
@@ -235,7 +242,7 @@ func (r *BlockRepository) FeesForLastBlocks(blocks int) (fees float64, err error
 		return
 	}
 
-	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(r.network)).
 		Query(elastic.NewRangeQuery("height").Gt(bestBlock.Height-uint64(blocks))).
 		Aggregation("fees", elastic.NewSumAggregation().Field("fees")).
 		Size(0).

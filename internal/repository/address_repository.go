@@ -19,14 +19,21 @@ var (
 
 type AddressRepository struct {
 	elastic *elastic_cache.Index
+	network string
 }
 
 func NewAddressRepository(elastic *elastic_cache.Index) *AddressRepository {
-	return &AddressRepository{elastic}
+	return &AddressRepository{elastic: elastic}
+}
+
+func (r *AddressRepository) Network(network string) *AddressRepository {
+	r.network = network
+
+	return r
 }
 
 func (r *AddressRepository) Addresses(size int, page int) ([]*explorer.Address, int64, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(r.network)).
 		Sort("spending", false).
 		From((page * size) - size).
 		Size(size).
@@ -43,7 +50,7 @@ func (r *AddressRepository) Addresses(size int, page int) ([]*explorer.Address, 
 }
 
 func (r *AddressRepository) AddressByHash(hash string) (*explorer.Address, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(r.network)).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
 		Do(context.Background())
@@ -52,7 +59,7 @@ func (r *AddressRepository) AddressByHash(hash string) (*explorer.Address, error
 }
 
 func (r *AddressRepository) BalancesForAddresses(addresses []string) ([]*explorer.Address, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(r.network)).
 		Query(elastic.NewMatchQuery("hash", strings.Join(addresses, " "))).
 		Size(5000).
 		Do(context.Background())
@@ -78,7 +85,7 @@ func (r *AddressRepository) WealthDistribution(groups []int) ([]*entitycoin.Weal
 	distribution := make([]*entitycoin.Wealth, 0)
 
 	for i := 0; i < len(groups); i++ {
-		results, _ := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
+		results, _ := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(r.network)).
 			From(0).
 			Size(groups[i]).
 			Sort("spending", false).
@@ -103,7 +110,7 @@ func (r *AddressRepository) WealthDistribution(groups []int) ([]*entitycoin.Weal
 }
 
 func (r *AddressRepository) GetTotalSupply() (totalSupply float64, err error) {
-	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(r.network)).
 		Aggregation("totalWealth", elastic.NewSumAggregation().Field("spending")).
 		Size(0).
 		Do(context.Background())
@@ -121,7 +128,7 @@ func (r *AddressRepository) GetTotalSupply() (totalSupply float64, err error) {
 func (r *AddressRepository) UpdateAddress(address *explorer.Address) error {
 	_, err := r.elastic.Client.
 		Index().
-		Index(elastic_cache.AddressIndex.Get()).
+		Index(elastic_cache.AddressIndex.Get(r.network)).
 		Id(address.Slug()).
 		BodyJson(address).
 		Do(context.Background())
@@ -130,7 +137,7 @@ func (r *AddressRepository) UpdateAddress(address *explorer.Address) error {
 }
 
 func (r *AddressRepository) populateRichListPosition(address *explorer.Address) error {
-	spending, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get()).
+	spending, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(r.network)).
 		Query(elastic.NewRangeQuery("spending").Gt(address.Spending)).
 		Do(context.Background())
 	if err != nil {
@@ -138,7 +145,7 @@ func (r *AddressRepository) populateRichListPosition(address *explorer.Address) 
 		return err
 	}
 
-	staking, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get()).
+	staking, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(r.network)).
 		Query(elastic.NewRangeQuery("staking").Gt(address.Staking)).
 		Do(context.Background())
 	if err != nil {
@@ -146,7 +153,7 @@ func (r *AddressRepository) populateRichListPosition(address *explorer.Address) 
 		return err
 	}
 
-	voting, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get()).
+	voting, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(r.network)).
 		Query(elastic.NewRangeQuery("spending").Gt(address.Voting)).
 		Do(context.Background())
 	if err != nil {

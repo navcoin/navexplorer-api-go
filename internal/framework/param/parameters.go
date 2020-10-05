@@ -1,5 +1,7 @@
 package param
 
+import "github.com/NavExplorer/navexplorer-api-go/internal/config"
+
 var parameters = make(map[string]map[string]interface{})
 
 func SetNetworkParam(network string, name string, value interface{}) {
@@ -24,4 +26,8 @@ func GetNetworkParam(network string, name string, defaultValue interface{}) inte
 
 func GetGlobalParam(name string, defaultValue interface{}) interface{} {
 	return GetNetworkParam("global", name, defaultValue)
+}
+
+func GetNetwork() string {
+	return GetGlobalParam("network", config.Get().DefaultNetwork).(string)
 }

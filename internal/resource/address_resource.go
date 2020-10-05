@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
+	"github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/resource/dto"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
@@ -25,7 +26,7 @@ func NewAddressResource(addressService address.Service, cache *cache.Cache) *Add
 }
 
 func (r *AddressResource) GetAddress(c *gin.Context) {
-	a, err := r.addressService.GetAddress(c.Param("hash"))
+	a, err := r.addressService.GetAddress(param.GetNetwork(), c.Param("hash"))
 	if err != nil {
 		if err == repository.ErrAddressNotFound {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
@@ -41,7 +42,7 @@ func (r *AddressResource) GetAddress(c *gin.Context) {
 func (r *AddressResource) GetAddresses(c *gin.Context) {
 	config, _ := pagination.Bind(c)
 
-	addresses, total, err := r.addressService.GetAddresses(config)
+	addresses, total, err := r.addressService.GetAddresses(param.GetNetwork(), config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -54,7 +55,7 @@ func (r *AddressResource) GetAddresses(c *gin.Context) {
 }
 
 func (r *AddressResource) GetSummary(c *gin.Context) {
-	summary, err := r.addressService.GetAddressSummary(c.Param("hash"))
+	summary, err := r.addressService.GetAddressSummary(param.GetNetwork(), c.Param("hash"))
 	if err != nil {
 		if err == repository.ErrAddressHistoryNotFound {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
@@ -79,7 +80,7 @@ func (r *AddressResource) GetHistory(c *gin.Context) {
 		return
 	}
 
-	history, total, err := r.addressService.GetHistory(c.Param("hash"), string(parameters.TxType), config)
+	history, total, err := r.addressService.GetHistory(param.GetNetwork(), c.Param("hash"), string(parameters.TxType), config)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -92,7 +93,7 @@ func (r *AddressResource) GetHistory(c *gin.Context) {
 }
 
 func (r *AddressResource) ValidateAddress(c *gin.Context) {
-	validateAddress, err := r.addressService.ValidateAddress(c.Param("hash"))
+	validateAddress, err := r.addressService.ValidateAddress(param.GetNetwork(), c.Param("hash"))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -116,21 +117,13 @@ func (r *AddressResource) GetAddressGroups(c *gin.Context) {
 		count = 10
 	}
 
-	callback := func() (interface{}, error) {
-		groups, err := r.addressService.GetAddressGroups(period, count)
-		if err != nil {
-			return nil, err
-		}
-		return groups.Items, nil
-	}
-
-	items, err := r.cache.Get(fmt.Sprintf("address.groups.%s.%d", string(*period), count), callback, cache.RefreshingExpiration)
+	groups, err := r.addressService.GetAddressGroups(param.GetNetwork(), period, count)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
 	}
 
-	c.JSON(200, items)
+	c.JSON(200, groups)
 }
 
 func (r *AddressResource) GetStakingChart(c *gin.Context) {
@@ -146,7 +139,7 @@ func (r *AddressResource) GetStakingChart(c *gin.Context) {
 }
 
 func (r *AddressResource) GetAssociatedStakingAddresses(c *gin.Context) {
-	addresses, err := r.addressService.GetAssociatedStakingAddresses(c.Param("hash"))
+	addresses, err := r.addressService.GetAssociatedStakingAddresses(param.GetNetwork(), c.Param("hash"))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -163,7 +156,7 @@ func (r *AddressResource) GetBalancesForAddresses(c *gin.Context) {
 		addresses = strings.Split(addressesParam, ",")
 	}
 
-	balances, err := r.addressService.GetNamedAddresses(addresses)
+	balances, err := r.addressService.GetNamedAddresses(param.GetNetwork(), addresses)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return

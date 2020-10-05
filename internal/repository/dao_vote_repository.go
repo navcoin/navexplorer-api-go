@@ -11,10 +11,17 @@ import (
 
 type DaoVoteRepository struct {
 	elastic *elastic_cache.Index
+	network string
 }
 
 func NewDaoVoteRepository(elastic *elastic_cache.Index) *DaoVoteRepository {
-	return &DaoVoteRepository{elastic}
+	return &DaoVoteRepository{elastic: elastic}
+}
+
+func (r *DaoVoteRepository) Network(network string) *DaoVoteRepository {
+	r.network = network
+
+	return r
 }
 
 func (r *DaoVoteRepository) GetVotes(voteType explorer.VoteType, hash string, votingCycles []*entity.VotingCycle) ([]*entity.CfundVote, error) {
@@ -43,7 +50,7 @@ func (r *DaoVoteRepository) GetVotes(voteType explorer.VoteType, hash string, vo
 			addressAgg.SubAggregation("votes", votesAgg)
 			addressAgg.Partition(p).NumPartitions(partitions).Size(10000)
 
-			results, err := r.elastic.Client.Search(elastic_cache.DaoVoteIndex.Get()).
+			results, err := r.elastic.Client.Search(elastic_cache.DaoVoteIndex.Get(r.network)).
 				Query(elastic.NewRangeQuery("height").Gte(vc.Start).Lte(vc.End)).
 				Aggregation("address", addressAgg).
 				Size(0).

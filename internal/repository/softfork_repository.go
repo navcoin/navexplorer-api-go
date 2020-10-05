@@ -9,14 +9,21 @@ import (
 
 type SoftForkRepository struct {
 	elastic *elastic_cache.Index
+	network string
 }
 
 func NewSoftForkRepository(elastic *elastic_cache.Index) *SoftForkRepository {
-	return &SoftForkRepository{elastic}
+	return &SoftForkRepository{elastic: elastic}
+}
+
+func (r *SoftForkRepository) Network(network string) *SoftForkRepository {
+	r.network = network
+
+	return r
 }
 
 func (r *SoftForkRepository) SoftForks() ([]*explorer.SoftFork, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.SoftForkIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.SoftForkIndex.Get(r.network)).
 		Size(9999).
 		Sort("signalBit", false).
 		Do(context.Background())

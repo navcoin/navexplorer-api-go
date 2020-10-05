@@ -7,8 +7,8 @@ import (
 )
 
 type Service interface {
-	GetParameters() (*explorer.ConsensusParameters, error)
-	GetParameter(parameter Parameter) *explorer.ConsensusParameter
+	GetParameters(network string) (*explorer.ConsensusParameters, error)
+	GetParameter(network string, parameter Parameter) *explorer.ConsensusParameter
 }
 
 type service struct {
@@ -19,8 +19,8 @@ func NewConsensusService(consensusRepository *repository.DaoConsensusRepository)
 	return &service{consensusRepository}
 }
 
-func (s *service) GetParameters() (*explorer.ConsensusParameters, error) {
-	p, err := s.consensusRepository.GetConsensusParameters()
+func (s *service) GetParameters(network string) (*explorer.ConsensusParameters, error) {
+	p, err := s.consensusRepository.Network(network).GetConsensusParameters()
 	if err != nil {
 		log.WithError(err).Error("Failed to get consensus parameters")
 		return nil, err
@@ -29,8 +29,8 @@ func (s *service) GetParameters() (*explorer.ConsensusParameters, error) {
 	return p, nil
 }
 
-func (s *service) GetParameter(parameter Parameter) *explorer.ConsensusParameter {
-	parameters, _ := s.GetParameters()
+func (s *service) GetParameter(network string, parameter Parameter) *explorer.ConsensusParameter {
+	parameters, _ := s.GetParameters(network)
 
 	return parameters.Get(int(parameter))
 }

@@ -9,15 +9,15 @@ import (
 )
 
 type Service interface {
-	GetBestBlock() (*explorer.Block, error)
-	GetBlockGroups(period *group.Period, count int) (*entity.BlockGroups, error)
-	GetBlock(hash string) (*explorer.Block, error)
-	GetRawBlock(hash string) (*explorer.RawBlock, error)
-	GetBlocks(config *pagination.Config) ([]*explorer.Block, int64, error)
-	GetTransactions(config *pagination.Config, ignoreCoinbase, ignoreStaking bool) ([]*explorer.BlockTransaction, int64, error)
-	GetTransactionsByBlockHash(blockHash string) ([]*explorer.BlockTransaction, error)
-	GetTransactionByHash(hash string) (*explorer.BlockTransaction, error)
-	GetRawTransactionByHash(hash string) (*explorer.RawBlockTransaction, error)
+	GetBestBlock(network string) (*explorer.Block, error)
+	GetBlockGroups(network string, period *group.Period, count int) (*entity.BlockGroups, error)
+	GetBlock(network, hash string) (*explorer.Block, error)
+	GetRawBlock(network, hash string) (*explorer.RawBlock, error)
+	GetBlocks(network string, config *pagination.Config) ([]*explorer.Block, int64, error)
+	GetTransactions(network string, config *pagination.Config, ignoreCoinbase, ignoreStaking bool) ([]*explorer.BlockTransaction, int64, error)
+	GetTransactionsByBlockHash(network, blockHash string) ([]*explorer.BlockTransaction, error)
+	GetTransactionByHash(network, hash string) (*explorer.BlockTransaction, error)
+	GetRawTransactionByHash(network, hash string) (*explorer.RawBlockTransaction, error)
 }
 
 type service struct {
@@ -32,11 +32,11 @@ func NewBlockService(
 	return &service{blockRepo, transactionRepo}
 }
 
-func (s *service) GetBestBlock() (*explorer.Block, error) {
-	return s.blockRepo.BestBlock()
+func (s *service) GetBestBlock(network string) (*explorer.Block, error) {
+	return s.blockRepo.Network(network).BestBlock()
 }
 
-func (s *service) GetBlockGroups(period *group.Period, count int) (*entity.BlockGroups, error) {
+func (s *service) GetBlockGroups(network string, period *group.Period, count int) (*entity.BlockGroups, error) {
 	timeGroups := group.CreateTimeGroup(period, count)
 
 	blockGroups := new(entity.BlockGroups)
@@ -48,40 +48,40 @@ func (s *service) GetBlockGroups(period *group.Period, count int) (*entity.Block
 		blockGroups.Items = append(blockGroups.Items, blockGroup)
 	}
 
-	err := s.blockRepo.GetBlockGroups(blockGroups)
+	err := s.blockRepo.Network(network).GetBlockGroups(blockGroups)
 
 	return blockGroups, err
 }
 
-func (s *service) GetBlock(hash string) (*explorer.Block, error) {
-	return s.blockRepo.BlockByHashOrHeight(hash)
+func (s *service) GetBlock(network, hash string) (*explorer.Block, error) {
+	return s.blockRepo.Network(network).BlockByHashOrHeight(hash)
 }
 
-func (s *service) GetRawBlock(hash string) (*explorer.RawBlock, error) {
-	return s.blockRepo.RawBlockByHashOrHeight(hash)
+func (s *service) GetRawBlock(network, hash string) (*explorer.RawBlock, error) {
+	return s.blockRepo.Network(network).RawBlockByHashOrHeight(hash)
 }
 
-func (s *service) GetBlocks(config *pagination.Config) ([]*explorer.Block, int64, error) {
-	return s.blockRepo.Blocks(config.Ascending, config.Size, config.Page)
+func (s *service) GetBlocks(network string, config *pagination.Config) ([]*explorer.Block, int64, error) {
+	return s.blockRepo.Network(network).Blocks(config.Ascending, config.Size, config.Page)
 }
 
-func (s *service) GetTransactions(config *pagination.Config, ignoreCoinbase, ignoreStaking bool) ([]*explorer.BlockTransaction, int64, error) {
-	return s.transactionRepo.Transactions(config.Ascending, config.Size, config.Page, ignoreCoinbase, ignoreStaking)
+func (s *service) GetTransactions(network string, config *pagination.Config, ignoreCoinbase, ignoreStaking bool) ([]*explorer.BlockTransaction, int64, error) {
+	return s.transactionRepo.Network(network).Transactions(config.Ascending, config.Size, config.Page, ignoreCoinbase, ignoreStaking)
 }
 
-func (s *service) GetTransactionsByBlockHash(blockHash string) ([]*explorer.BlockTransaction, error) {
-	block, err := s.blockRepo.BlockByHashOrHeight(blockHash)
+func (s *service) GetTransactionsByBlockHash(network, blockHash string) ([]*explorer.BlockTransaction, error) {
+	block, err := s.blockRepo.Network(network).BlockByHashOrHeight(blockHash)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.transactionRepo.TransactionsByBlock(block)
+	return s.transactionRepo.Network(network).TransactionsByBlock(block)
 }
 
-func (s *service) GetTransactionByHash(hash string) (*explorer.BlockTransaction, error) {
-	return s.transactionRepo.TransactionByHash(hash)
+func (s *service) GetTransactionByHash(network, hash string) (*explorer.BlockTransaction, error) {
+	return s.transactionRepo.Network(network).TransactionByHash(hash)
 }
 
-func (s *service) GetRawTransactionByHash(hash string) (*explorer.RawBlockTransaction, error) {
-	return s.transactionRepo.RawTransactionByHash(hash)
+func (s *service) GetRawTransactionByHash(network, hash string) (*explorer.RawBlockTransaction, error) {
+	return s.transactionRepo.Network(network).RawTransactionByHash(hash)
 }
