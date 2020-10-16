@@ -5,34 +5,35 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address/entity"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	log "github.com/sirupsen/logrus"
 )
 
 type Service interface {
-	GetAddress(network string, hash string) (*explorer.Address, error)
-	GetAddresses(network string, config *pagination.Config) ([]*explorer.Address, int64, error)
-	GetAddressSummary(network string, hash string) (*entity.AddressSummary, error)
-	GetStakingChart(period string, address string) ([]*entity.StakingGroup, error)
-	GetAddressGroups(network string, period *group.Period, count int) ([]entity.AddressGroup, error)
-	GetHistory(network string, hash string, txType string, config *pagination.Config) ([]*explorer.AddressHistory, int64, error)
-	GetAssociatedStakingAddresses(network string, address string) ([]string, error)
-	GetNamedAddresses(network string, addresses []string) ([]*explorer.Address, error)
-	ValidateAddress(network string, hash string) (bool, error)
+	GetAddress(n network.Network, hash string) (*explorer.Address, error)
+	GetAddresses(n network.Network, config *pagination.Config) ([]*explorer.Address, int64, error)
+	GetAddressSummary(n network.Network, hash string) (*entity.AddressSummary, error)
+	GetStakingChart(n network.Network, period string, address string) ([]*entity.StakingGroup, error)
+	GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error)
+	GetHistory(n network.Network, hash string, txType string, config *pagination.Config) ([]*explorer.AddressHistory, int64, error)
+	GetAssociatedStakingAddresses(n network.Network, address string) ([]string, error)
+	GetNamedAddresses(n network.Network, addresses []string) ([]*explorer.Address, error)
+	ValidateAddress(n network.Network, hash string) (bool, error)
 }
 
 type service struct {
-	addressRepository          *repository.AddressRepository
+	addressRepository          repository.AddressRepository
 	addressHistoryRepository   repository.AddressHistoryRepository
-	blockRepository            *repository.BlockRepository
-	blockTransactionRepository *repository.BlockTransactionRepository
+	blockRepository            repository.BlockRepository
+	blockTransactionRepository repository.BlockTransactionRepository
 }
 
 func NewAddressService(
-	addressRepository *repository.AddressRepository,
+	addressRepository repository.AddressRepository,
 	addressHistoryRepository repository.AddressHistoryRepository,
-	blockRepository *repository.BlockRepository,
-	blockTransactionRepository *repository.BlockTransactionRepository,
+	blockRepository repository.BlockRepository,
+	blockTransactionRepository repository.BlockTransactionRepository,
 ) Service {
 	return &service{
 		addressRepository,
@@ -42,44 +43,44 @@ func NewAddressService(
 	}
 }
 
-func (s *service) GetAddress(network string, hash string) (*explorer.Address, error) {
-	address, err := s.addressRepository.Network(network).AddressByHash(hash)
+func (s *service) GetAddress(n network.Network, hash string) (*explorer.Address, error) {
+	address, err := s.addressRepository.GetAddressByHash(n, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	s.UpdateCreatedAt(network, address)
+	s.UpdateCreatedAt(n, address)
 
 	return address, err
 }
 
-func (s *service) GetAddresses(network string, config *pagination.Config) ([]*explorer.Address, int64, error) {
-	return s.addressRepository.Network(network).Addresses(config.Size, config.Page)
+func (s *service) GetAddresses(n network.Network, config *pagination.Config) ([]*explorer.Address, int64, error) {
+	return s.addressRepository.GetAddresses(n, config.Size, config.Page)
 }
 
-func (s *service) GetHistory(network string, hash string, txType string, config *pagination.Config) ([]*explorer.AddressHistory, int64, error) {
-	return s.addressHistoryRepository.Network(network).HistoryByHash(hash, txType, config.Ascending, config.Size, config.Page)
+func (s *service) GetHistory(n network.Network, hash string, txType string, config *pagination.Config) ([]*explorer.AddressHistory, int64, error) {
+	return s.addressHistoryRepository.GetHistoryByHash(n, hash, txType, config.Ascending, config.Size, config.Page)
 }
 
-func (s *service) GetAddressSummary(network string, hash string) (*entity.AddressSummary, error) {
-	h, err := s.addressRepository.Network(network).AddressByHash(hash)
+func (s *service) GetAddressSummary(n network.Network, hash string) (*entity.AddressSummary, error) {
+	h, err := s.addressRepository.GetAddressByHash(n, hash)
 	if err != nil {
 		return nil, err
 	}
 
 	summary := &entity.AddressSummary{Height: h.Height, Hash: h.Hash}
 
-	txs, err := s.addressHistoryRepository.Network(network).CountByHash(h.Hash)
+	txs, err := s.addressHistoryRepository.GetCountByHash(n, h.Hash)
 	if err == nil {
 		summary.Txs = txs
 	}
 
-	_, stakeStaking, stakeSpending, stakeVoting, err := s.addressHistoryRepository.Network(network).StakingSummary(hash)
+	_, stakeStaking, stakeSpending, stakeVoting, err := s.addressHistoryRepository.GetStakingSummary(n, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	spendingReceive, spendingSent, stakingReceive, stakingSent, votingReceive, votingSent, err := s.addressHistoryRepository.Network(network).SpendSummary(hash)
+	spendingReceive, spendingSent, stakingReceive, stakingSent, votingReceive, votingSent, err := s.addressHistoryRepository.GetSpendSummary(n, hash)
 
 	summary.Spending = &entity.AddressBalance{
 		Balance:  h.Spending,
@@ -105,16 +106,16 @@ func (s *service) GetAddressSummary(network string, hash string) (*entity.Addres
 	return summary, nil
 }
 
-func (s *service) GetAddressGroups(network string, period *group.Period, count int) ([]entity.AddressGroup, error) {
-	return s.addressHistoryRepository.Network(network).GetAddressGroups(period, count)
+func (s *service) GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error) {
+	return s.addressHistoryRepository.GetAddressGroups(n, period, count)
 }
 
 //func (s *service) GetBalanceChart(address string) (entity.Chart, error) {
 //	return s.addressTransactionRepository.BalanceChart(address)
 //}
 //
-func (s *service) GetStakingChart(period string, address string) ([]*entity.StakingGroup, error) {
-	return s.addressHistoryRepository.StakingChart(period, address)
+func (s *service) GetStakingChart(n network.Network, period string, address string) ([]*entity.StakingGroup, error) {
+	return s.addressHistoryRepository.GetStakingChart(n, period, address)
 }
 
 //
@@ -161,24 +162,24 @@ func (s *service) GetStakingChart(period string, address string) ([]*entity.Stak
 //	return stakingBlocks, err
 //}
 
-func (s *service) GetAssociatedStakingAddresses(network, address string) ([]string, error) {
-	return s.blockTransactionRepository.Network(network).AssociatedStakingAddresses(address)
+func (s *service) GetAssociatedStakingAddresses(n network.Network, address string) ([]string, error) {
+	return s.blockTransactionRepository.GetAssociatedStakingAddresses(n, address)
 }
 
-func (s *service) GetNamedAddresses(network string, addresses []string) ([]*explorer.Address, error) {
-	return s.addressRepository.Network(network).BalancesForAddresses(addresses)
+func (s *service) GetNamedAddresses(n network.Network, addresses []string) ([]*explorer.Address, error) {
+	return s.addressRepository.GetBalancesForAddresses(n, addresses)
 }
 
-func (s *service) ValidateAddress(network, hash string) (bool, error) {
+func (s *service) ValidateAddress(n network.Network, hash string) (bool, error) {
 	return true, nil
 }
 
-func (s *service) UpdateCreatedAt(network string, address *explorer.Address) {
+func (s *service) UpdateCreatedAt(n network.Network, address *explorer.Address) {
 	if address.CreatedBlock != 0 {
 		return
 	}
 
-	history, err := s.addressHistoryRepository.Network(network).FirstByHash(address.Hash)
+	history, err := s.addressHistoryRepository.GetFirstByHash(n, address.Hash)
 	if err != nil {
 		return
 	}
@@ -186,7 +187,7 @@ func (s *service) UpdateCreatedAt(network string, address *explorer.Address) {
 	address.CreatedBlock = history.Height
 	address.CreatedTime = history.Time
 
-	err = s.addressRepository.Network(network).UpdateAddress(address)
+	err = s.addressRepository.UpdateAddress(n, address)
 	if err != nil {
 		log.WithField("hash", address.Hash).Error("Failed to update address created fields")
 	} else {

@@ -4,8 +4,6 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"github.com/NavExplorer/navexplorer-api-go/internal/config"
-	"github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
@@ -100,7 +98,7 @@ func (c *cache) set(k string, x interface{}, d time.Duration) {
 		Expiration: e,
 	}
 
-	log.WithField("object", x).Infof("Cache set (%s)", k)
+	log.Infof("Cache set (%s)", k)
 }
 
 // Add an item to the cache, replacing any existing item, using the default
@@ -141,9 +139,6 @@ func (c *cache) Replace(k string, x interface{}, d time.Duration) error {
 // whether the key was found.
 func (c *cache) Get(k string, callback func() (interface{}, error), d time.Duration) (interface{}, error) {
 	c.mu.RLock()
-
-	n := param.GetGlobalParam("network", config.Get().DefaultNetwork).(string)
-	k = fmt.Sprintf("%s.%s.%s", n, config.Get().Index[n], k)
 
 	item, found := c.items[k]
 	if !found {
@@ -187,8 +182,8 @@ func (c *Cache) Refresh(network string) {
 			continue
 		}
 
-		c.set(k, x, RefreshingExpiration)
 		log.Infof("Cache refresh (%s)", k)
+		c.set(k, x, RefreshingExpiration)
 	}
 }
 

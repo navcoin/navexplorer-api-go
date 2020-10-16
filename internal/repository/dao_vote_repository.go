@@ -4,27 +4,25 @@ import (
 	"context"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao/entity"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	"math"
 )
 
-type DaoVoteRepository struct {
+type DaoVoteRepository interface {
+	GetVotes(n network.Network, voteType explorer.VoteType, hash string, votingCycles []*entity.VotingCycle) ([]*entity.CfundVote, error)
+}
+
+type daoVoteRepository struct {
 	elastic *elastic_cache.Index
-	network string
 }
 
-func NewDaoVoteRepository(elastic *elastic_cache.Index) *DaoVoteRepository {
-	return &DaoVoteRepository{elastic: elastic}
+func NewDaoVoteRepository(elastic *elastic_cache.Index) DaoVoteRepository {
+	return &daoVoteRepository{elastic: elastic}
 }
 
-func (r *DaoVoteRepository) Network(network string) *DaoVoteRepository {
-	r.network = network
-
-	return r
-}
-
-func (r *DaoVoteRepository) GetVotes(voteType explorer.VoteType, hash string, votingCycles []*entity.VotingCycle) ([]*entity.CfundVote, error) {
+func (r *daoVoteRepository) GetVotes(n network.Network, voteType explorer.VoteType, hash string, votingCycles []*entity.VotingCycle) ([]*entity.CfundVote, error) {
 	var cfundVotes = make([]*entity.CfundVote, 0)
 
 	for _, vc := range votingCycles {
@@ -50,7 +48,7 @@ func (r *DaoVoteRepository) GetVotes(voteType explorer.VoteType, hash string, vo
 			addressAgg.SubAggregation("votes", votesAgg)
 			addressAgg.Partition(p).NumPartitions(partitions).Size(10000)
 
-			results, err := r.elastic.Client.Search(elastic_cache.DaoVoteIndex.Get(r.network)).
+			results, err := r.elastic.Client.Search(elastic_cache.DaoVoteIndex.Get(n)).
 				Query(elastic.NewRangeQuery("height").Gte(vc.Start).Lte(vc.End)).
 				Aggregation("address", addressAgg).
 				Size(0).
@@ -59,8 +57,6 @@ func (r *DaoVoteRepository) GetVotes(voteType explorer.VoteType, hash string, vo
 				return nil, err
 			}
 
-			//if height, found := results.Aggregations.Range("height"); found {
-			//	if address, found := height.Buckets[0].Terms("address"); found {
 			if address, found := results.Aggregations.Terms("address"); found {
 				for _, addressBucket := range address.Buckets {
 					addressVote := &entity.CfundVoteAddress{Address: addressBucket.Key.(string)}
@@ -83,8 +79,6 @@ func (r *DaoVoteRepository) GetVotes(voteType explorer.VoteType, hash string, vo
 					}
 				}
 			}
-			//	}
-			//}
 		}
 
 		cfundVotes = append(cfundVotes, cfundVote)

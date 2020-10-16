@@ -7,32 +7,38 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block/entity"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	"strconv"
 )
 
+type BlockRepository interface {
+	GetBestBlock(n network.Network) (*explorer.Block, error)
+	GetBlocks(n network.Network, asc bool, size int, page int) ([]*explorer.Block, int64, error)
+	GetBlockGroups(n network.Network, period string, count int) ([]*entity.BlockGroup, error)
+	PopulateBlockGroups(n network.Network, blockGroups *entity.BlockGroups) error
+	GetBlockByHashOrHeight(n network.Network, hash string) (*explorer.Block, error)
+	GetBlockByHash(n network.Network, hash string) (*explorer.Block, error)
+	GetBlockByHeight(n network.Network, height uint64) (*explorer.Block, error)
+	GetRawBlockByHashOrHeight(n network.Network, hash string) (*explorer.RawBlock, error)
+	GetFeesForLastBlocks(n network.Network, blocks int) (fees float64, err error)
+}
+
 var (
 	ErrBlockNotFound = errors.New("Block not found")
 )
 
-type BlockRepository struct {
+type blockRepository struct {
 	elastic *elastic_cache.Index
-	network string
 }
 
-func NewBlockRepository(elastic *elastic_cache.Index) *BlockRepository {
-	return &BlockRepository{elastic: elastic}
+func NewBlockRepository(elastic *elastic_cache.Index) BlockRepository {
+	return &blockRepository{elastic: elastic}
 }
 
-func (r *BlockRepository) Network(network string) *BlockRepository {
-	r.network = network
-
-	return r
-}
-
-func (r *BlockRepository) BestBlock() (*explorer.Block, error) {
-	results, err := r.elastic.Client.Search().Index(elastic_cache.BlockIndex.Get(r.network)).
+func (r *blockRepository) GetBestBlock(n network.Network) (*explorer.Block, error) {
+	results, err := r.elastic.Client.Search().Index(elastic_cache.BlockIndex.Get(n)).
 		Sort("height", false).
 		Size(1).
 		Do(context.Background())
@@ -40,57 +46,8 @@ func (r *BlockRepository) BestBlock() (*explorer.Block, error) {
 	return r.findOne(results, err)
 }
 
-func (r *BlockRepository) GetBlockGroups(blockGroups *entity.BlockGroups) error {
-	service := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(r.network)).Size(0)
-
-	for i, item := range blockGroups.Items {
-		agg := elastic.NewRangeAggregation().Field("time").AddRange(item.Start, item.End)
-		agg.SubAggregation("stake", elastic.NewSumAggregation().Field("stake"))
-		agg.SubAggregation("fees", elastic.NewSumAggregation().Field("fees"))
-		agg.SubAggregation("spend", elastic.NewSumAggregation().Field("spend"))
-		agg.SubAggregation("tx", elastic.NewSumAggregation().Field("tx_count"))
-		agg.SubAggregation("height", elastic.NewMaxAggregation().Field("height"))
-
-		service.Aggregation(string(rune(i)), agg)
-	}
-
-	results, err := service.Do(context.Background())
-	if err != nil {
-		return err
-	}
-
-	for i, item := range blockGroups.Items {
-		if agg, found := results.Aggregations.Range(string(rune(i))); found {
-			bucket := agg.Buckets[0]
-			item.Blocks = bucket.DocCount
-			if stake, found := bucket.Aggregations.Sum("stake"); found {
-				item.Stake = int64(*stake.Value)
-			}
-			if fees, found := bucket.Aggregations.Sum("fees"); found {
-				item.Fees = int64(*fees.Value)
-			}
-
-			if spend, found := bucket.Aggregations.Sum("spend"); found {
-				item.Spend = int64(*spend.Value)
-			}
-
-			if transactions, found := bucket.Aggregations.Sum("tx"); found {
-				item.Transactions = int64(*transactions.Value)
-			}
-
-			if height, found := bucket.Aggregations.Max("height"); found {
-				if height.Value != nil {
-					item.Height = int64(*height.Value)
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func (r *BlockRepository) Blocks(asc bool, size int, page int) ([]*explorer.Block, int64, error) {
-	bestBlock, err := r.BestBlock()
+func (r *blockRepository) GetBlocks(n network.Network, asc bool, size int, page int) ([]*explorer.Block, int64, error) {
+	bestBlock, err := r.GetBestBlock(n)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -100,7 +57,7 @@ func (r *BlockRepository) Blocks(asc bool, size int, page int) ([]*explorer.Bloc
 		from = size
 	}
 
-	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(r.network)).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(n)).
 		Sort("height", asc).
 		SearchAfter(from).
 		Size(size).
@@ -124,8 +81,8 @@ func (r *BlockRepository) Blocks(asc bool, size int, page int) ([]*explorer.Bloc
 	return blocks, results.TotalHits(), err
 }
 
-func (r *BlockRepository) BlockGroups(period string, count int) ([]*entity.BlockGroup, error) {
-	service := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(r.network)).Size(0)
+func (r *blockRepository) GetBlockGroups(n network.Network, period string, count int) ([]*entity.BlockGroup, error) {
+	service := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(n)).Size(0)
 
 	timeGroups := group.CreateTimeGroup(group.GetPeriod(period), count)
 	for i := range timeGroups {
@@ -178,23 +135,72 @@ func (r *BlockRepository) BlockGroups(period string, count int) ([]*entity.Block
 	return blockGroups, err
 }
 
-func (r *BlockRepository) BlockByHashOrHeight(hash string) (*explorer.Block, error) {
-	block, err := r.BlockByHash(hash)
+func (r *blockRepository) PopulateBlockGroups(n network.Network, blockGroups *entity.BlockGroups) error {
+	service := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(n)).Size(0)
+
+	for i, item := range blockGroups.Items {
+		agg := elastic.NewRangeAggregation().Field("time").AddRange(item.Start, item.End)
+		agg.SubAggregation("stake", elastic.NewSumAggregation().Field("stake"))
+		agg.SubAggregation("fees", elastic.NewSumAggregation().Field("fees"))
+		agg.SubAggregation("spend", elastic.NewSumAggregation().Field("spend"))
+		agg.SubAggregation("tx", elastic.NewSumAggregation().Field("tx_count"))
+		agg.SubAggregation("height", elastic.NewMaxAggregation().Field("height"))
+
+		service.Aggregation(string(rune(i)), agg)
+	}
+
+	results, err := service.Do(context.Background())
+	if err != nil {
+		return err
+	}
+
+	for i, item := range blockGroups.Items {
+		if agg, found := results.Aggregations.Range(string(rune(i))); found {
+			bucket := agg.Buckets[0]
+			item.Blocks = bucket.DocCount
+			if stake, found := bucket.Aggregations.Sum("stake"); found {
+				item.Stake = int64(*stake.Value)
+			}
+			if fees, found := bucket.Aggregations.Sum("fees"); found {
+				item.Fees = int64(*fees.Value)
+			}
+
+			if spend, found := bucket.Aggregations.Sum("spend"); found {
+				item.Spend = int64(*spend.Value)
+			}
+
+			if transactions, found := bucket.Aggregations.Sum("tx"); found {
+				item.Transactions = int64(*transactions.Value)
+			}
+
+			if height, found := bucket.Aggregations.Max("height"); found {
+				if height.Value != nil {
+					item.Height = int64(*height.Value)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (r *blockRepository) GetBlockByHashOrHeight(n network.Network, hash string) (*explorer.Block, error) {
+	block, err := r.GetBlockByHash(n, hash)
 	if err != nil {
 		height, _ := strconv.Atoi(hash)
-		block, err = r.BlockByHeight(uint64(height))
+		block, err = r.GetBlockByHeight(n, uint64(height))
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	bestBlock, err := r.BestBlock()
+	bestBlock, err := r.GetBestBlock(n)
 	if err != nil {
 		return nil, err
 	}
 
-	nextBlock, _ := r.BlockByHeight(block.Height + 1)
+	nextBlock, _ := r.GetBlockByHeight(n, block.Height+1)
 	if nextBlock != nil {
 		block.Nextblockhash = nextBlock.Hash
 	}
@@ -205,8 +211,8 @@ func (r *BlockRepository) BlockByHashOrHeight(hash string) (*explorer.Block, err
 	return block, err
 }
 
-func (r *BlockRepository) BlockByHash(hash string) (*explorer.Block, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(r.network)).
+func (r *blockRepository) GetBlockByHash(n network.Network, hash string) (*explorer.Block, error) {
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(n)).
 		Query(elastic.NewTermQuery("hash", hash)).
 		Size(1).
 		Do(context.Background())
@@ -214,8 +220,8 @@ func (r *BlockRepository) BlockByHash(hash string) (*explorer.Block, error) {
 	return r.findOne(results, err)
 }
 
-func (r *BlockRepository) BlockByHeight(height uint64) (*explorer.Block, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(r.network)).
+func (r *blockRepository) GetBlockByHeight(n network.Network, height uint64) (*explorer.Block, error) {
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(n)).
 		Query(elastic.NewTermQuery("height", height)).
 		Size(1).
 		Do(context.Background())
@@ -223,8 +229,8 @@ func (r *BlockRepository) BlockByHeight(height uint64) (*explorer.Block, error) 
 	return r.findOne(results, err)
 }
 
-func (r *BlockRepository) RawBlockByHashOrHeight(hash string) (*explorer.RawBlock, error) {
-	block, err := r.BlockByHashOrHeight(hash)
+func (r *blockRepository) GetRawBlockByHashOrHeight(n network.Network, hash string) (*explorer.RawBlock, error) {
+	block, err := r.GetBlockByHashOrHeight(n, hash)
 	if err != nil {
 		return nil, err
 	}
@@ -236,13 +242,13 @@ func (r *BlockRepository) RawBlockByHashOrHeight(hash string) (*explorer.RawBloc
 	return rawBlock, err
 }
 
-func (r *BlockRepository) FeesForLastBlocks(blocks int) (fees float64, err error) {
-	bestBlock, err := r.BestBlock()
+func (r *blockRepository) GetFeesForLastBlocks(n network.Network, blocks int) (fees float64, err error) {
+	bestBlock, err := r.GetBestBlock(n)
 	if err != nil {
 		return
 	}
 
-	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(r.network)).
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(n)).
 		Query(elastic.NewRangeQuery("height").Gt(bestBlock.Height-uint64(blocks))).
 		Aggregation("fees", elastic.NewSumAggregation().Field("fees")).
 		Size(0).
@@ -258,7 +264,7 @@ func (r *BlockRepository) FeesForLastBlocks(blocks int) (fees float64, err error
 	return
 }
 
-func (r *BlockRepository) findOne(results *elastic.SearchResult, err error) (*explorer.Block, error) {
+func (r *blockRepository) findOne(results *elastic.SearchResult, err error) (*explorer.Block, error) {
 	if err != nil || results.TotalHits() == 0 {
 		err = ErrBlockNotFound
 		return nil, err

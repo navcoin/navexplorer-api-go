@@ -4,26 +4,23 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 )
 
-type SoftForkRepository struct {
+type SoftForkRepository interface {
+	GetSoftForks(n network.Network) ([]*explorer.SoftFork, error)
+}
+
+type softForkRepository struct {
 	elastic *elastic_cache.Index
-	network string
 }
 
-func NewSoftForkRepository(elastic *elastic_cache.Index) *SoftForkRepository {
-	return &SoftForkRepository{elastic: elastic}
+func NewSoftForkRepository(elastic *elastic_cache.Index) SoftForkRepository {
+	return &softForkRepository{elastic: elastic}
 }
-
-func (r *SoftForkRepository) Network(network string) *SoftForkRepository {
-	r.network = network
-
-	return r
-}
-
-func (r *SoftForkRepository) SoftForks() ([]*explorer.SoftFork, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.SoftForkIndex.Get(r.network)).
+func (r *softForkRepository) GetSoftForks(n network.Network) ([]*explorer.SoftFork, error) {
+	results, err := r.elastic.Client.Search(elastic_cache.SoftForkIndex.Get(n)).
 		Size(9999).
 		Sort("signalBit", false).
 		Do(context.Background())

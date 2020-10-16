@@ -17,6 +17,7 @@ var container *dic.Container
 
 func main() {
 	config.Init()
+
 	container, _ = dic.NewContainer(dingo.App)
 
 	if config.Get().Debug {

@@ -6,34 +6,37 @@ import (
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	entitycoin "github.com/NavExplorer/navexplorer-api-go/internal/service/coin/entity"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
+type AddressRepository interface {
+	GetAddresses(n network.Network, size, page int) ([]*explorer.Address, int64, error)
+	GetAddressByHash(n network.Network, hash string) (*explorer.Address, error)
+	GetBalancesForAddresses(n network.Network, addresses []string) ([]*explorer.Address, error)
+	GetWealthDistribution(n network.Network, groups []int) ([]*entitycoin.Wealth, error)
+	GetTotalSupply(n network.Network) (totalSupply float64, err error)
+	UpdateAddress(n network.Network, address *explorer.Address) error
+}
+
 var (
 	ErrAddressNotFound = errors.New("Address not found")
 	ErrAddressInvalid  = errors.New("Address is invalid")
 )
 
-type AddressRepository struct {
+type addressRepository struct {
 	elastic *elastic_cache.Index
-	network string
 }
 
-func NewAddressRepository(elastic *elastic_cache.Index) *AddressRepository {
-	return &AddressRepository{elastic: elastic}
+func NewAddressRepository(elastic *elastic_cache.Index) AddressRepository {
+	return &addressRepository{elastic: elastic}
 }
 
-func (r *AddressRepository) Network(network string) *AddressRepository {
-	r.network = network
-
-	return r
-}
-
-func (r *AddressRepository) Addresses(size int, page int) ([]*explorer.Address, int64, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(r.network)).
+func (r *addressRepository) GetAddresses(n network.Network, size, page int) ([]*explorer.Address, int64, error) {
+	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
 		Sort("spending", false).
 		From((page * size) - size).
 		Size(size).
@@ -49,17 +52,17 @@ func (r *AddressRepository) Addresses(size int, page int) ([]*explorer.Address, 
 	return addresses, total, err
 }
 
-func (r *AddressRepository) AddressByHash(hash string) (*explorer.Address, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(r.network)).
+func (r *addressRepository) GetAddressByHash(n network.Network, hash string) (*explorer.Address, error) {
+	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
 		Do(context.Background())
 
-	return r.findOne(results, err)
+	return r.findOne(n, results, err)
 }
 
-func (r *AddressRepository) BalancesForAddresses(addresses []string) ([]*explorer.Address, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(r.network)).
+func (r *addressRepository) GetBalancesForAddresses(n network.Network, addresses []string) ([]*explorer.Address, error) {
+	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
 		Query(elastic.NewMatchQuery("hash", strings.Join(addresses, " "))).
 		Size(5000).
 		Do(context.Background())
@@ -71,8 +74,8 @@ func (r *AddressRepository) BalancesForAddresses(addresses []string) ([]*explore
 	return a, err
 }
 
-func (r *AddressRepository) WealthDistribution(groups []int) ([]*entitycoin.Wealth, error) {
-	totalSupply, err := r.GetTotalSupply()
+func (r *addressRepository) GetWealthDistribution(n network.Network, groups []int) ([]*entitycoin.Wealth, error) {
+	totalSupply, err := r.GetTotalSupply(n)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +88,7 @@ func (r *AddressRepository) WealthDistribution(groups []int) ([]*entitycoin.Weal
 	distribution := make([]*entitycoin.Wealth, 0)
 
 	for i := 0; i < len(groups); i++ {
-		results, _ := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(r.network)).
+		results, _ := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
 			From(0).
 			Size(groups[i]).
 			Sort("spending", false).
@@ -109,8 +112,8 @@ func (r *AddressRepository) WealthDistribution(groups []int) ([]*entitycoin.Weal
 	return distribution, err
 }
 
-func (r *AddressRepository) GetTotalSupply() (totalSupply float64, err error) {
-	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(r.network)).
+func (r *addressRepository) GetTotalSupply(n network.Network) (totalSupply float64, err error) {
+	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
 		Aggregation("totalWealth", elastic.NewSumAggregation().Field("spending")).
 		Size(0).
 		Do(context.Background())
@@ -125,10 +128,10 @@ func (r *AddressRepository) GetTotalSupply() (totalSupply float64, err error) {
 	return
 }
 
-func (r *AddressRepository) UpdateAddress(address *explorer.Address) error {
+func (r *addressRepository) UpdateAddress(n network.Network, address *explorer.Address) error {
 	_, err := r.elastic.Client.
 		Index().
-		Index(elastic_cache.AddressIndex.Get(r.network)).
+		Index(elastic_cache.AddressIndex.Get(n)).
 		Id(address.Slug()).
 		BodyJson(address).
 		Do(context.Background())
@@ -136,8 +139,8 @@ func (r *AddressRepository) UpdateAddress(address *explorer.Address) error {
 	return err
 }
 
-func (r *AddressRepository) populateRichListPosition(address *explorer.Address) error {
-	spending, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(r.network)).
+func (r *addressRepository) populateRichListPosition(n network.Network, address *explorer.Address) error {
+	spending, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(n)).
 		Query(elastic.NewRangeQuery("spending").Gt(address.Spending)).
 		Do(context.Background())
 	if err != nil {
@@ -145,7 +148,7 @@ func (r *AddressRepository) populateRichListPosition(address *explorer.Address) 
 		return err
 	}
 
-	staking, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(r.network)).
+	staking, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(n)).
 		Query(elastic.NewRangeQuery("staking").Gt(address.Staking)).
 		Do(context.Background())
 	if err != nil {
@@ -153,7 +156,7 @@ func (r *AddressRepository) populateRichListPosition(address *explorer.Address) 
 		return err
 	}
 
-	voting, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(r.network)).
+	voting, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(n)).
 		Query(elastic.NewRangeQuery("spending").Gt(address.Voting)).
 		Do(context.Background())
 	if err != nil {
@@ -170,7 +173,7 @@ func (r *AddressRepository) populateRichListPosition(address *explorer.Address) 
 	return nil
 }
 
-func (r *AddressRepository) findOne(results *elastic.SearchResult, err error) (*explorer.Address, error) {
+func (r *addressRepository) findOne(n network.Network, results *elastic.SearchResult, err error) (*explorer.Address, error) {
 	if err != nil || results.TotalHits() == 0 {
 		err = ErrAddressNotFound
 		return nil, err
@@ -183,7 +186,7 @@ func (r *AddressRepository) findOne(results *elastic.SearchResult, err error) (*
 		return nil, err
 	}
 
-	err = r.populateRichListPosition(address)
+	err = r.populateRichListPosition(n, address)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +194,7 @@ func (r *AddressRepository) findOne(results *elastic.SearchResult, err error) (*
 	return address, err
 }
 
-func (r *AddressRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.Address, int64, error) {
+func (r *addressRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.Address, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}

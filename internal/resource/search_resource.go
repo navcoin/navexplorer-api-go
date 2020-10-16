@@ -2,7 +2,6 @@ package resource
 
 import (
 	"errors"
-	"github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
@@ -30,8 +29,14 @@ func NewSearchResource(addressService address.Service, blockService block.Servic
 }
 
 func (r *SearchResource) Search(c *gin.Context) {
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	network := n
 	query := c.Query("query")
-	network := param.GetNetwork()
 
 	if _, err := r.daoService.GetProposal(network, query); err == nil {
 		c.JSON(200, &Result{"proposal", query})

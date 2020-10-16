@@ -7,31 +7,32 @@ import (
 	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao/entity"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
 )
 
-type DaoProposalRepository struct {
+type DaoProposalRepository interface {
+	GetProposals(n network.Network, status *explorer.ProposalStatus, dir bool, size int, page int) ([]*explorer.Proposal, int64, error)
+	GetLegacyProposals(n network.Network, status *explorer.ProposalStatus, dir bool, size int, page int) ([]*entity.LegacyProposal, int64, error)
+	GetProposal(n network.Network, hash string) (*explorer.Proposal, error)
+	GetValueLocked(n network.Network) (*float64, error)
+}
+
+type daoProposalRepository struct {
 	elastic *elastic_cache.Index
-	network string
 }
 
 var (
 	ErrProposalNotFound = errors.New("Proposal not found")
 )
 
-func NewDaoProposalRepository(elastic *elastic_cache.Index) *DaoProposalRepository {
-	return &DaoProposalRepository{elastic: elastic}
+func NewDaoProposalRepository(elastic *elastic_cache.Index) DaoProposalRepository {
+	return &daoProposalRepository{elastic: elastic}
 }
 
-func (r *DaoProposalRepository) Network(network string) *DaoProposalRepository {
-	r.network = network
-
-	return r
-}
-
-func (r *DaoProposalRepository) Proposals(status *explorer.ProposalStatus, dir bool, size int, page int) ([]*explorer.Proposal, int64, error) {
+func (r *daoProposalRepository) GetProposals(n network.Network, status *explorer.ProposalStatus, dir bool, size int, page int) ([]*explorer.Proposal, int64, error) {
 	query := elastic.NewBoolQuery()
 	if status != nil {
 		statusQuery := status.Status
@@ -41,7 +42,7 @@ func (r *DaoProposalRepository) Proposals(status *explorer.ProposalStatus, dir b
 		query = query.Must(elastic.NewMatchQuery("status", statusQuery))
 	}
 
-	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get(r.network)).
+	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get(n)).
 		Query(query).
 		Sort("height", dir).
 		From((page * size) - size).
@@ -54,13 +55,13 @@ func (r *DaoProposalRepository) Proposals(status *explorer.ProposalStatus, dir b
 	return r.findMany(results, err)
 }
 
-func (r *DaoProposalRepository) LegacyProposals(status *explorer.ProposalStatus, dir bool, size int, page int) ([]*entity.LegacyProposal, int64, error) {
+func (r *daoProposalRepository) GetLegacyProposals(n network.Network, status *explorer.ProposalStatus, dir bool, size int, page int) ([]*entity.LegacyProposal, int64, error) {
 	query := elastic.NewBoolQuery()
 	if status != nil {
 		query = query.Must(elastic.NewTermQuery("status.keyword", status))
 	}
 
-	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get(r.network)).
+	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get(n)).
 		Query(query).
 		Sort("height", dir).
 		From((page * size) - size).
@@ -81,8 +82,8 @@ func (r *DaoProposalRepository) LegacyProposals(status *explorer.ProposalStatus,
 	return proposals, results.TotalHits(), err
 }
 
-func (r *DaoProposalRepository) Proposal(hash string) (*explorer.Proposal, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get(r.network)).
+func (r *daoProposalRepository) GetProposal(n network.Network, hash string) (*explorer.Proposal, error) {
+	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get(n)).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
 		Do(context.Background())
@@ -90,8 +91,7 @@ func (r *DaoProposalRepository) Proposal(hash string) (*explorer.Proposal, error
 	return r.findOne(results, err)
 }
 
-func (r *DaoProposalRepository) ValueLocked() (*float64, error) {
-
+func (r *daoProposalRepository) GetValueLocked(n network.Network) (*float64, error) {
 	query := elastic.NewBoolQuery()
 	query = query.Should(elastic.NewMatchQuery("state", explorer.ProposalAccepted.State))
 	query = query.Should(elastic.NewMatchQuery("state", explorer.ProposalPendingVotingPreq.State))
@@ -99,7 +99,7 @@ func (r *DaoProposalRepository) ValueLocked() (*float64, error) {
 	lockedAgg := elastic.NewFilterAggregation().Filter(query)
 	lockedAgg.SubAggregation("notPaidYet", elastic.NewSumAggregation().Field("notPaidYet"))
 
-	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get(r.network)).
+	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get(n)).
 		Aggregation("locked", lockedAgg).
 		Size(0).
 		Do(context.Background())
@@ -118,7 +118,7 @@ func (r *DaoProposalRepository) ValueLocked() (*float64, error) {
 	return nil, errors.New("Could not find locked aggregation")
 }
 
-func (r *DaoProposalRepository) findOne(results *elastic.SearchResult, err error) (*explorer.Proposal, error) {
+func (r *daoProposalRepository) findOne(results *elastic.SearchResult, err error) (*explorer.Proposal, error) {
 	if err != nil || results.TotalHits() == 0 {
 		err = ErrProposalNotFound
 		return nil, err
@@ -134,7 +134,7 @@ func (r *DaoProposalRepository) findOne(results *elastic.SearchResult, err error
 	return proposal, err
 }
 
-func (r *DaoProposalRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.Proposal, int64, error) {
+func (r *daoProposalRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.Proposal, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}

@@ -5,74 +5,69 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address/entity"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	log "github.com/sirupsen/logrus"
 	"reflect"
 )
 
-type addressHistoryCachedRepository struct {
+type cachingAddressHistoryRepository struct {
 	repository AddressHistoryRepository
 	cache      *cache.Cache
-	network    string
 }
 
-func NewAddressHistoryCachedRepository(repository AddressHistoryRepository, cache *cache.Cache) AddressHistoryRepository {
-	return &addressHistoryCachedRepository{repository: repository, cache: cache}
+func NewCachingAddressHistoryRepository(repository AddressHistoryRepository, cache *cache.Cache) AddressHistoryRepository {
+	return &cachingAddressHistoryRepository{repository: repository, cache: cache}
 }
 
-func (r *addressHistoryCachedRepository) Network(network string) AddressHistoryRepository {
-	r.repository.Network(network)
-
-	return r
+func (r *cachingAddressHistoryRepository) GetLatestByHash(n network.Network, hash string) (*explorer.AddressHistory, error) {
+	return r.repository.GetLatestByHash(n, hash)
 }
 
-func (r *addressHistoryCachedRepository) LatestByHash(hash string) (*explorer.AddressHistory, error) {
-	return r.repository.LatestByHash(hash)
+func (r *cachingAddressHistoryRepository) GetFirstByHash(n network.Network, hash string) (*explorer.AddressHistory, error) {
+	return r.repository.GetFirstByHash(n, hash)
 }
 
-func (r *addressHistoryCachedRepository) FirstByHash(hash string) (*explorer.AddressHistory, error) {
-	return r.repository.FirstByHash(hash)
+func (r *cachingAddressHistoryRepository) GetCountByHash(n network.Network, hash string) (int64, error) {
+	return r.repository.GetCountByHash(n, hash)
 }
 
-func (r *addressHistoryCachedRepository) CountByHash(hash string) (int64, error) {
-	return r.repository.CountByHash(hash)
+func (r *cachingAddressHistoryRepository) GetStakingSummary(n network.Network, hash string) (count, staking, spending, voting int64, err error) {
+	return r.repository.GetStakingSummary(n, hash)
 }
 
-func (r *addressHistoryCachedRepository) StakingSummary(hash string) (count, staking, spending, voting int64, err error) {
-	return r.repository.StakingSummary(hash)
+func (r *cachingAddressHistoryRepository) GetSpendSummary(n network.Network, hash string) (spendingReceive, spendingSent, stakingReceive, stakingSent, votingReceive, votingSent int64, err error) {
+	return r.repository.GetSpendSummary(n, hash)
 }
 
-func (r *addressHistoryCachedRepository) SpendSummary(hash string) (spendingReceive, spendingSent, stakingReceive, stakingSent, votingReceive, votingSent int64, err error) {
-	return r.repository.SpendSummary(hash)
+func (r *cachingAddressHistoryRepository) GetHistoryByHash(n network.Network, hash, txType string, dir bool, size, page int) ([]*explorer.AddressHistory, int64, error) {
+	return r.repository.GetHistoryByHash(n, hash, txType, dir, size, page)
 }
 
-func (r *addressHistoryCachedRepository) HistoryByHash(hash, txType string, dir bool, size, page int) ([]*explorer.AddressHistory, int64, error) {
-	return r.repository.HistoryByHash(hash, txType, dir, size, page)
-}
-
-func (r *addressHistoryCachedRepository) GetAddressGroups(period *group.Period, count int) ([]entity.AddressGroup, error) {
+func (r *cachingAddressHistoryRepository) GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error) {
 	addressGroup := make([]entity.AddressGroup, count)
 
-	callback := func() (interface{}, error) {
-		return r.repository.GetAddressGroups(period, count)
-	}
-
-	cacheId := fmt.Sprintf("address.groups.%s.%d", string(*period), count)
-	cacheResult, err := r.cache.Get(cacheId, callback, cache.RefreshingExpiration)
+	result, err := r.cache.Get(
+		fmt.Sprintf("%s.address.groups.%s.%d", n.ToString(), string(*period), count),
+		func() (interface{}, error) {
+			return r.repository.GetAddressGroups(n, period, count)
+		},
+		cache.RefreshingExpiration,
+	)
 	if err != nil {
 		log.WithError(err).Error("Failed to get cache")
 		return addressGroup, err
 	}
 
-	for i, v := range InterfaceSlice(cacheResult) {
+	for i, v := range InterfaceSlice(result) {
 		addressGroup[i] = v.(entity.AddressGroup)
 	}
 
 	return addressGroup, nil
 }
 
-func (r *addressHistoryCachedRepository) StakingChart(period string, hash string) (groups []*entity.StakingGroup, err error) {
-	return r.repository.StakingChart(period, hash)
+func (r *cachingAddressHistoryRepository) GetStakingChart(n network.Network, period string, hash string) (groups []*entity.StakingGroup, err error) {
+	return r.repository.GetStakingChart(n, period, hash)
 }
 
 func InterfaceSlice(slice interface{}) []interface{} {

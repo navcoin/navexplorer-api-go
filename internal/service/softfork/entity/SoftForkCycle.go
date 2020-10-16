@@ -1,9 +1,6 @@
 package entity
 
-import (
-	"github.com/NavExplorer/navexplorer-api-go/internal/config"
-	"github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
-)
+import "github.com/NavExplorer/navexplorer-api-go/internal/service/network"
 
 type SoftForkCycle struct {
 	BlocksInCycle   uint64 `json:"blocksInCycle"`
@@ -13,8 +10,8 @@ type SoftForkCycle struct {
 	RemainingBlocks uint64 `json:"remainingBlocks"`
 }
 
-func GetBlocksInCycle() uint64 {
-	if param.GetGlobalParam("network", config.Get().DefaultNetwork) == "testnet" {
+func GetBlocksInCycle(network network.Network) uint64 {
+	if network.Name == "testnet" {
 		return 800
 	}
 
