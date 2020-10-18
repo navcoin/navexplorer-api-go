@@ -11,12 +11,10 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/softfork"
-	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type LegacyResource struct {
@@ -45,7 +43,13 @@ func NewLegacyResource(
 
 // Address Resources
 func (r *LegacyResource) GetAddress(c *gin.Context) {
-	a, err := r.addressService.GetAddress(c.Param("hash"))
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	a, err := r.addressService.GetAddress(n, c.Param("hash"))
 	if err != nil {
 		if err == repository.ErrAddressNotFound {
 			handleError(c, err, http.StatusNotFound)
@@ -61,9 +65,15 @@ func (r *LegacyResource) GetAddress(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetAddresses(c *gin.Context) {
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
 	config, _ := pagination.Bind(c)
 
-	a, total, err := r.addressService.GetAddresses(config)
+	a, total, err := r.addressService.GetAddresses(n, config)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -75,60 +85,36 @@ func (r *LegacyResource) GetAddresses(c *gin.Context) {
 	c.JSON(200, a)
 }
 
-func (r *LegacyResource) GetTransactions(c *gin.Context) {
-	config, _ := pagination.Bind(c)
+//func (r *LegacyResource) GetBalanceChart(c *gin.Context) {
+//	chart, err := r.addressService.GetBalanceChart(c.Param("hash"))
+//	if err != nil {
+//		handleError(c, err, http.StatusInternalServerError)
+//		return
+//	}
+//
+//	c.JSON(200, chart)
+//}
 
-	txs, total, err := r.addressService.GetTransactions(c.Param("hash"), strings.Join(getFilters(c), " "), false, config)
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	paginator := pagination.NewPaginator(len(txs), total, config)
-	paginator.WriteHeader(c)
-
-	c.JSON(200, txs)
-}
-
-func (r *LegacyResource) GetColdTransactions(c *gin.Context) {
-	config, _ := pagination.Bind(c)
-
-	txs, total, err := r.addressService.GetTransactions(c.Param("hash"), strings.Join(getFilters(c), " "), true, config)
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	paginator := pagination.NewPaginator(len(txs), total, config)
-	paginator.WriteHeader(c)
-
-	c.JSON(200, txs)
-}
-
-func (r *LegacyResource) GetBalanceChart(c *gin.Context) {
-	chart, err := r.addressService.GetBalanceChart(c.Param("hash"))
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(200, chart)
-}
-
-func (r *LegacyResource) GetStakingChart(c *gin.Context) {
-	period := c.DefaultQuery("period", "daily")
-
-	chart, err := r.addressService.GetStakingChart(period, c.Param("hash"))
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(200, chart)
-}
+//func (r *LegacyResource) GetStakingChart(c *gin.Context) {
+//	period := c.DefaultQuery("period", "daily")
+//
+//	chart, err := r.addressService.GetStakingChart(period, c.Param("hash"))
+//	if err != nil {
+//		handleError(c, err, http.StatusInternalServerError)
+//		return
+//	}
+//
+//	c.JSON(200, chart)
+//}
 
 func (r *LegacyResource) GetAssociatedStakingAddresses(c *gin.Context) {
-	addresses, err := r.addressService.GetAssociatedStakingAddresses(c.Param("hash"))
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	addresses, err := r.addressService.GetAssociatedStakingAddresses(n, c.Param("hash"))
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -137,35 +123,13 @@ func (r *LegacyResource) GetAssociatedStakingAddresses(c *gin.Context) {
 	c.JSON(200, addresses)
 }
 
-func (r *LegacyResource) GetTransactionsForAddresses(c *gin.Context) {
-	addresses := strings.Split(c.Query("addresses"), ",")
-	if len(addresses) == 0 {
-		handleError(c, errors.New("No addresses provided"), http.StatusBadRequest)
-		return
-	}
-
-	endTimestamp, err := strconv.ParseInt(c.Query("end"), 10, 64)
-	endTime := time.Now()
-	if err != nil && endTimestamp != 0 {
-		endTime = time.Unix(endTimestamp, 0)
-	}
-
-	startTimestamp, err := strconv.ParseInt(c.Query("start"), 10, 64)
-	startTime := time.Now().Add(-(time.Hour * 24))
-	if err != nil && startTimestamp != 0 {
-		startTime = time.Unix(startTimestamp, 0)
-	}
-
-	transactions, err := r.addressService.GetTransactionsForAddresses(addresses, urlDecodeType(c.Param("type")), &startTime, &endTime)
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(200, transactions)
-}
-
 func (r *LegacyResource) GetBalancesForAddresses(c *gin.Context) {
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
 	_ = c.Request.ParseForm()
 
 	addresses := make([]string, 0)
@@ -173,7 +137,7 @@ func (r *LegacyResource) GetBalancesForAddresses(c *gin.Context) {
 		addresses = strings.Split(addressesParam, ",")
 	}
 
-	balances, err := r.addressService.GetBalancesForAddresses(addresses)
+	balances, err := r.addressService.GetNamedAddresses(n, addresses)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -183,7 +147,13 @@ func (r *LegacyResource) GetBalancesForAddresses(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetBestBlock(c *gin.Context) {
-	b, err := r.blockService.GetBestBlock()
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	b, err := r.blockService.GetBestBlock(n)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -193,6 +163,12 @@ func (r *LegacyResource) GetBestBlock(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetBlockGroups(c *gin.Context) {
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
 	period := group.GetPeriod(c.DefaultQuery("period", "daily"))
 	if period == nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -207,7 +183,7 @@ func (r *LegacyResource) GetBlockGroups(c *gin.Context) {
 		count = 10
 	}
 
-	groups, err := r.blockService.GetBlockGroups(period, count)
+	groups, err := r.blockService.GetBlockGroups(n, period, count)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -217,9 +193,15 @@ func (r *LegacyResource) GetBlockGroups(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetBlocks(c *gin.Context) {
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
 	config, _ := pagination.Bind(c)
 
-	blocks, total, err := r.blockService.GetBlocks(config)
+	blocks, total, err := r.blockService.GetBlocks(n, config)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -232,7 +214,13 @@ func (r *LegacyResource) GetBlocks(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetBlock(c *gin.Context) {
-	b, err := r.blockService.GetBlock(c.Param("hash"))
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	b, err := r.blockService.GetBlock(n, c.Param("hash"))
 	if err == repository.ErrBlockNotFound {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -245,27 +233,14 @@ func (r *LegacyResource) GetBlock(c *gin.Context) {
 	c.JSON(200, b)
 }
 
-func (r *LegacyResource) GetBlockTransactions(c *gin.Context) {
-	b, err := r.blockService.GetBlock(c.Param("hash"))
-	txs, err := r.blockService.GetTransactions(b.Hash)
-	if err == repository.ErrBlockNotFound {
-		handleError(c, err, http.StatusNotFound)
-		return
-	}
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	if txs == nil {
-		txs = make([]*explorer.BlockTransaction, 0)
-	}
-
-	c.JSON(200, txs)
-}
-
 func (r *LegacyResource) GetRawBlock(c *gin.Context) {
-	b, err := r.blockService.GetRawBlock(c.Param("hash"))
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	b, err := r.blockService.GetRawBlock(n, c.Param("hash"))
 	if err == repository.ErrBlockNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
@@ -279,7 +254,13 @@ func (r *LegacyResource) GetRawBlock(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetTransaction(c *gin.Context) {
-	tx, err := r.blockService.GetTransactionByHash(c.Param("hash"))
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	tx, err := r.blockService.GetTransactionByHash(n, c.Param("hash"))
 	if err == repository.ErrBlockNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
@@ -293,7 +274,13 @@ func (r *LegacyResource) GetTransaction(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetRawTransaction(c *gin.Context) {
-	tx, err := r.blockService.GetRawTransactionByHash(c.Param("hash"))
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	tx, err := r.blockService.GetRawTransactionByHash(n, c.Param("hash"))
 	if err == repository.ErrBlockNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
@@ -307,6 +294,12 @@ func (r *LegacyResource) GetRawTransaction(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetWealthDistribution(c *gin.Context) {
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
 	groupsQuery := c.DefaultQuery("groups", "10,100,1000")
 	if groupsQuery == "" {
 		groupsQuery = "10,100,1000"
@@ -320,7 +313,7 @@ func (r *LegacyResource) GetWealthDistribution(c *gin.Context) {
 		b[i], _ = strconv.Atoi(v)
 	}
 
-	distribution, err := r.coinService.GetWealthDistribution(b)
+	distribution, err := r.coinService.GetWealthDistribution(n, b)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -330,13 +323,19 @@ func (r *LegacyResource) GetWealthDistribution(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetBlockCycle(c *gin.Context) {
-	b, err := r.blockService.GetBestBlock()
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	b, err := r.blockService.GetBestBlock(n)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
-	blockCycle, err := r.daoService.GetBlockCycleByBlock(b)
+	blockCycle, err := r.daoService.GetBlockCycleByBlock(n, b)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -346,7 +345,13 @@ func (r *LegacyResource) GetBlockCycle(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetCfundStats(c *gin.Context) {
-	cfundStats, err := r.daoService.GetCfundStats()
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	cfundStats, err := r.daoService.GetCfundStats(n)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -356,7 +361,13 @@ func (r *LegacyResource) GetCfundStats(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetProposal(c *gin.Context) {
-	proposal, err := r.daoService.GetProposal(c.Param("hash"))
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	proposal, err := r.daoService.GetProposal(n, c.Param("hash"))
 	if err == repository.ErrProposalNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
@@ -370,7 +381,13 @@ func (r *LegacyResource) GetProposal(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetProposalVotingTrend(c *gin.Context) {
-	trend, err := r.daoService.GetProposalTrend(c.Param("hash"))
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	trend, err := r.daoService.GetProposalTrend(n, c.Param("hash"))
 	if err == repository.ErrProposalNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
@@ -384,8 +401,14 @@ func (r *LegacyResource) GetProposalVotingTrend(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetProposalVotes(c *gin.Context) {
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
 	vote, err := strconv.ParseBool(c.Param("vote"))
-	votes, err := r.daoService.GetProposalVotes(c.Param("hash"))
+	votes, err := r.daoService.GetProposalVotes(n, c.Param("hash"))
 	if err != nil || votes == nil {
 		handleError(c, err, http.StatusNotFound)
 	}
@@ -407,12 +430,18 @@ func (r *LegacyResource) GetProposalVotes(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetPaymentRequestsForProposal(c *gin.Context) {
-	proposal, err := r.daoService.GetProposal(c.Param("hash"))
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	proposal, err := r.daoService.GetProposal(n, c.Param("hash"))
 	if err == repository.ErrProposalNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
 	}
-	paymentRequests, err := r.daoService.GetPaymentRequestsForProposal(proposal)
+	paymentRequests, err := r.daoService.GetPaymentRequestsForProposal(n, proposal)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -422,7 +451,13 @@ func (r *LegacyResource) GetPaymentRequestsForProposal(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetPaymentRequestByHash(c *gin.Context) {
-	paymentRequest, err := r.daoService.GetPaymentRequest(c.Param("hash"))
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	paymentRequest, err := r.daoService.GetPaymentRequest(n, c.Param("hash"))
 	if err == repository.ErrPaymentRequestNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
@@ -436,7 +471,13 @@ func (r *LegacyResource) GetPaymentRequestByHash(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetPaymentRequestVotingTrend(c *gin.Context) {
-	trend, err := r.daoService.GetPaymentRequestTrend(c.Param("hash"))
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	trend, err := r.daoService.GetPaymentRequestTrend(n, c.Param("hash"))
 	if err == repository.ErrPaymentRequestNotFound {
 		handleError(c, err, http.StatusNotFound)
 		return
@@ -450,8 +491,14 @@ func (r *LegacyResource) GetPaymentRequestVotingTrend(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetPaymentRequestVotes(c *gin.Context) {
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
 	vote, err := strconv.ParseBool(c.Param("vote"))
-	votes, err := r.daoService.GetPaymentRequestVotes(c.Param("hash"))
+	votes, err := r.daoService.GetPaymentRequestVotes(n, c.Param("hash"))
 	if err != nil || votes == nil {
 		handleError(c, err, http.StatusNotFound)
 	}
@@ -473,12 +520,17 @@ func (r *LegacyResource) GetPaymentRequestVotes(c *gin.Context) {
 }
 
 func (r *LegacyResource) Search(c *gin.Context) {
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
 	query := c.Query("query")
 
 	var result Result
-	var err error
 
-	_, err = r.daoService.GetProposal(query)
+	_, err = r.daoService.GetProposal(n, query)
 	if err == nil {
 		result.Type = "proposal"
 		result.Value = query
@@ -486,7 +538,7 @@ func (r *LegacyResource) Search(c *gin.Context) {
 		return
 	}
 
-	_, err = r.daoService.GetPaymentRequest(query)
+	_, err = r.daoService.GetPaymentRequest(n, query)
 	if err == nil {
 		result.Type = "paymentRequest"
 		result.Value = query
@@ -494,7 +546,7 @@ func (r *LegacyResource) Search(c *gin.Context) {
 		return
 	}
 
-	_, err = r.blockService.GetBlock(query)
+	_, err = r.blockService.GetBlock(n, query)
 	if err == nil {
 		result.Type = "block"
 		result.Value = query
@@ -502,7 +554,7 @@ func (r *LegacyResource) Search(c *gin.Context) {
 		return
 	}
 
-	_, err = r.blockService.GetTransactionByHash(query)
+	_, err = r.blockService.GetTransactionByHash(n, query)
 	if err == nil {
 		result.Type = "transaction"
 		result.Value = query
@@ -510,7 +562,7 @@ func (r *LegacyResource) Search(c *gin.Context) {
 		return
 	}
 
-	_, err = r.addressService.GetAddress(query)
+	_, err = r.addressService.GetAddress(n, query)
 	if err == nil {
 		result.Type = "address"
 		result.Value = query
@@ -522,7 +574,13 @@ func (r *LegacyResource) Search(c *gin.Context) {
 }
 
 func (r *LegacyResource) GetSoftForks(c *gin.Context) {
-	softForks, err := r.softForkService.GetSoftForks()
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	softForks, err := r.softForkService.GetSoftForks(n)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -531,49 +589,49 @@ func (r *LegacyResource) GetSoftForks(c *gin.Context) {
 	c.JSON(200, softForks)
 }
 
-func (r *LegacyResource) GetStakingReport(c *gin.Context) {
-	stakingReport, err := r.addressService.GetStakingReport()
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
+//func (r *LegacyResource) GetStakingReport(c *gin.Context) {
+//	stakingReport, err := r.addressService.GetStakingReport()
+//	if err != nil {
+//		handleError(c, err, http.StatusInternalServerError)
+//		return
+//	}
+//
+//	c.JSON(200, stakingReport)
+//}
 
-	c.JSON(200, stakingReport)
-}
+//func (r *LegacyResource) GetStakingByBlockCount(c *gin.Context) {
+//	blockCount, err := strconv.Atoi(c.DefaultQuery("blocks", "1000"))
+//	if err != nil {
+//		blockCount = 1000
+//	}
+//	if blockCount > 50000000 {
+//		blockCount = 50000000
+//	}
+//
+//	staking, err := r.addressService.GetStakingByBlockCount(blockCount, false)
+//	if err != nil {
+//		handleError(c, err, http.StatusInternalServerError)
+//		return
+//	}
+//
+//	c.JSON(200, staking)
+//}
 
-func (r *LegacyResource) GetStakingByBlockCount(c *gin.Context) {
-	blockCount, err := strconv.Atoi(c.DefaultQuery("blocks", "1000"))
-	if err != nil {
-		blockCount = 1000
-	}
-	if blockCount > 50000000 {
-		blockCount = 50000000
-	}
-
-	staking, err := r.addressService.GetStakingByBlockCount(blockCount, false)
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(200, staking)
-}
-
-func (r *LegacyResource) GetStakingRewardsForAddresses(c *gin.Context) {
-	addresses := strings.Split(c.Query("addresses"), ",")
-	if len(addresses) == 0 {
-		handleError(c, errors.New("No addresses provided"), http.StatusBadRequest)
-		return
-	}
-
-	rewards, err := r.addressService.GetStakingRewardsForAddresses(addresses)
-	if err != nil {
-		handleError(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(200, rewards)
-}
+//func (r *LegacyResource) GetStakingRewardsForAddresses(c *gin.Context) {
+//	addresses := strings.Split(c.Query("addresses"), ",")
+//	if len(addresses) == 0 {
+//		handleError(c, errors.New("No addresses provided"), http.StatusBadRequest)
+//		return
+//	}
+//
+//	rewards, err := r.addressService.GetStakingRewardsForAddresses(addresses)
+//	if err != nil {
+//		handleError(c, err, http.StatusInternalServerError)
+//		return
+//	}
+//
+//	c.JSON(200, rewards)
+//}
 
 type Votes struct {
 	Address string `json:"address"`

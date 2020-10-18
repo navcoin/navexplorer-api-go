@@ -17,6 +17,7 @@ var container *dic.Container
 
 func main() {
 	config.Init()
+
 	container, _ = dic.NewContainer(dingo.App)
 
 	if config.Get().Debug {
@@ -42,17 +43,21 @@ func main() {
 		c.String(http.StatusOK, "Welcome to NavExplorer API!")
 	})
 
-	addressResource := resource.NewAddressResource(container.GetAddressService())
+	addressResource := resource.NewAddressResource(container.GetAddressService(), container.GetCache())
 	r.GET("/address", addressResource.GetAddresses)
 	r.GET("/address/:hash", addressResource.GetAddress)
-	r.GET("/address/:hash/tx", addressResource.GetTransactions)
-	r.GET("/address/:hash/tx/cold", addressResource.GetColdTransactions)
+	r.GET("/address/:hash/summary", addressResource.GetSummary)
+	r.GET("/address/:hash/history", addressResource.GetHistory)
 	r.GET("/address/:hash/validate", addressResource.ValidateAddress)
 	r.GET("/address/:hash/staking", addressResource.GetStakingChart)
 	r.GET("/address/:hash/assoc/staking", addressResource.GetAssociatedStakingAddresses)
 	r.GET("/balance", addressResource.GetBalancesForAddresses)
+	r.GET("/addressgroup", addressResource.GetAddressGroups)
 
-	blockResource := resource.NewBlockResource(container.GetBlockService(), container.GetDaoService())
+	distributionResource := resource.NewDistributionResource(container.GetDistributionService())
+	r.GET("/distribution/total-supply", distributionResource.GetTotalSupply)
+
+	blockResource := resource.NewBlockResource(container.GetBlockService(), container.GetDaoService(), container.GetCache())
 	r.GET("/bestblock", blockResource.GetBestBlock)
 	r.GET("/blockcycle", blockResource.GetBestBlockCycle)
 	r.GET("/blockgroup", blockResource.GetBlockGroups)
@@ -61,12 +66,13 @@ func main() {
 	r.GET("/block/:hash/cycle", blockResource.GetBlockCycle)
 	r.GET("/block/:hash/raw", blockResource.GetRawBlock)
 	r.GET("/block/:hash/tx", blockResource.GetTransactionsByBlock)
+	r.GET("/tx", blockResource.GetTransactions)
 	r.GET("/tx/:hash", blockResource.GetTransactionByHash)
 	r.GET("/tx/:hash/raw", blockResource.GetRawTransactionByHash)
 
-	stakingResource := resource.NewStakingResource(container.GetAddressService())
-	r.GET("/staking/blocks", stakingResource.GetBlocks)
-	r.GET("/staking/rewards", stakingResource.GetStakingRewardsForAddresses)
+	//stakingResource := resource.NewStakingResource(container.GetAddressService())
+	//r.GET("/staking/blocks", stakingResource.GetBlocks)
+	//r.GET("/staking/rewards", stakingResource.GetStakingRewardsForAddresses)
 
 	softForkResource := resource.NewSoftForkResource(container.GetSoftforkService(), container.GetSoftforkRepo())
 	r.GET("/softfork", softForkResource.GetSoftForks)
@@ -122,20 +128,16 @@ func includeLegacyApiEndpoints(r *gin.Engine) {
 	api.GET("/address", legacyResource.GetAddresses)
 	api.GET("/address/:hash", legacyResource.GetAddress)
 	//api.GET("/address/:hash/validate", legacyResource.ValidateAddress)
-	api.GET("/address/:hash/tx", legacyResource.GetTransactions)
-	api.GET("/address/:hash/coldtx", legacyResource.GetColdTransactions)
-	api.GET("/address/:hash/chart/balance", legacyResource.GetBalanceChart)
-	api.GET("/address/:hash/chart/staking", legacyResource.GetStakingChart)
+	//api.GET("/address/:hash/chart/balance", legacyResource.GetBalanceChart)
+	//api.GET("/address/:hash/chart/staking", legacyResource.GetStakingChart)
 	api.GET("/address/:hash/assoc/staking", legacyResource.GetAssociatedStakingAddresses)
 
-	api.GET("/transactions/:type", legacyResource.GetTransactionsForAddresses)
 	api.GET("/balance", legacyResource.GetBalancesForAddresses)
 
 	api.GET("/bestblock", legacyResource.GetBestBlock)
 	api.GET("/blockgroup", legacyResource.GetBlockGroups)
 	api.GET("/block", legacyResource.GetBlocks)
 	api.GET("/block/:hash", legacyResource.GetBlock)
-	api.GET("/block/:hash/tx", legacyResource.GetBlockTransactions)
 	api.GET("/block/:hash/raw", legacyResource.GetRawBlock)
 	api.GET("/tx/:hash", legacyResource.GetTransaction)
 	api.GET("/tx/:hash/raw", legacyResource.GetRawTransaction)
@@ -156,7 +158,7 @@ func includeLegacyApiEndpoints(r *gin.Engine) {
 
 	api.GET("/soft-fork", legacyResource.GetSoftForks)
 
-	api.GET("/staking/report", legacyResource.GetStakingReport)
-	api.GET("/staking/blocks", legacyResource.GetStakingByBlockCount)
-	api.GET("/staking/rewards", legacyResource.GetStakingRewardsForAddresses)
+	//api.GET("/staking/report", legacyResource.GetStakingReport)
+	//api.GET("/staking/blocks", legacyResource.GetStakingByBlockCount)
+	//api.GET("/staking/rewards", legacyResource.GetStakingRewardsForAddresses)
 }

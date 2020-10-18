@@ -1,6 +1,6 @@
 package entity
 
-import "github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
+import "github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 
 type LegacyProposal struct {
 	explorer.Proposal

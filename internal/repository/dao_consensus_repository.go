@@ -5,11 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
-	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
+	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/getsentry/raven-go"
 )
 
-type DaoConsensusRepository struct {
+type DaoConsensusRepository interface {
+	GetConsensusParameters(n network.Network) (*explorer.ConsensusParameters, error)
+}
+
+type daoConsensusRepository struct {
 	elastic *elastic_cache.Index
 }
 
@@ -17,12 +22,12 @@ var (
 	ErrConsensusNotFound = errors.New("Consensus not found")
 )
 
-func NewDaoConsensusRepository(elastic *elastic_cache.Index) *DaoConsensusRepository {
-	return &DaoConsensusRepository{elastic}
+func NewDaoConsensusRepository(elastic *elastic_cache.Index) DaoConsensusRepository {
+	return &daoConsensusRepository{elastic: elastic}
 }
 
-func (r *DaoConsensusRepository) GetConsensusParameters() (*explorer.ConsensusParameters, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.ConsensusIndex.Get()).
+func (r *daoConsensusRepository) GetConsensusParameters(n network.Network) (*explorer.ConsensusParameters, error) {
+	results, err := r.elastic.Client.Search(elastic_cache.ConsensusIndex.Get(n)).
 		Size(1000).
 		Sort("id", true).
 		Do(context.Background())

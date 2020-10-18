@@ -29,29 +29,36 @@ func NewSearchResource(addressService address.Service, blockService block.Servic
 }
 
 func (r *SearchResource) Search(c *gin.Context) {
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	network := n
 	query := c.Query("query")
 
-	if _, err := r.daoService.GetProposal(query); err == nil {
+	if _, err := r.daoService.GetProposal(network, query); err == nil {
 		c.JSON(200, &Result{"proposal", query})
 		return
 	}
 
-	if _, err := r.daoService.GetPaymentRequest(query); err == nil {
+	if _, err := r.daoService.GetPaymentRequest(network, query); err == nil {
 		c.JSON(200, &Result{"paymentRequest", query})
 		return
 	}
 
-	if _, err := r.blockService.GetBlock(query); err == nil {
+	if _, err := r.blockService.GetBlock(network, query); err == nil {
 		c.JSON(200, &Result{"block", query})
 		return
 	}
 
-	if _, err := r.blockService.GetTransactionByHash(query); err == nil {
+	if _, err := r.blockService.GetTransactionByHash(network, query); err == nil {
 		c.JSON(200, &Result{"transaction", query})
 		return
 	}
 
-	if _, err := r.addressService.GetAddress(query); err == nil {
+	if _, err := r.addressService.GetAddress(network, query); err == nil {
 		c.JSON(200, &Result{"address", query})
 		return
 	}

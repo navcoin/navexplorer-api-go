@@ -5,11 +5,19 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
-	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
+	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 )
 
-type DaoConsultationRepository struct {
+type DaoConsultationRepository interface {
+	GetConsultations(n network.Network, status *explorer.ConsultationStatus, consensus *bool, min *uint, asc bool, size, page int) ([]*explorer.Consultation, int64, error)
+	GetConsultation(n network.Network, hash string) (*explorer.Consultation, error)
+	GetAnswer(n network.Network, hash string) (*explorer.Answer, error)
+	GetConsensusConsultations(n network.Network, dir bool, size, page int) ([]*explorer.Consultation, int64, error)
+}
+
+type daoConsultationRepository struct {
 	elastic *elastic_cache.Index
 }
 
@@ -18,11 +26,11 @@ var (
 	ErrAnswerNotFound       = errors.New("Answer not found")
 )
 
-func NewDaoConsultationRepository(elastic *elastic_cache.Index) *DaoConsultationRepository {
-	return &DaoConsultationRepository{elastic}
+func NewDaoConsultationRepository(elastic *elastic_cache.Index) DaoConsultationRepository {
+	return &daoConsultationRepository{elastic: elastic}
 }
 
-func (r *DaoConsultationRepository) Consultations(status *explorer.ConsultationStatus, consensus *bool, min *uint, asc bool, size int, page int) ([]*explorer.Consultation, int64, error) {
+func (r *daoConsultationRepository) GetConsultations(n network.Network, status *explorer.ConsultationStatus, consensus *bool, min *uint, asc bool, size, page int) ([]*explorer.Consultation, int64, error) {
 	query := elastic.NewBoolQuery()
 	if status != nil {
 		query = query.Must(elastic.NewTermQuery("state", status.State))
@@ -34,7 +42,7 @@ func (r *DaoConsultationRepository) Consultations(status *explorer.ConsultationS
 		query = query.Must(elastic.NewTermQuery("consensusParameter", consensus))
 	}
 
-	result, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get()).
+	result, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get(n)).
 		Query(query).
 		Sort("height", asc).
 		From((page * size) - size).
@@ -47,8 +55,8 @@ func (r *DaoConsultationRepository) Consultations(status *explorer.ConsultationS
 	return r.findMany(result, err)
 }
 
-func (r *DaoConsultationRepository) Consultation(hash string) (*explorer.Consultation, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get()).
+func (r *daoConsultationRepository) GetConsultation(n network.Network, hash string) (*explorer.Consultation, error) {
+	results, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get(n)).
 		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
 		Do(context.Background())
@@ -56,11 +64,11 @@ func (r *DaoConsultationRepository) Consultation(hash string) (*explorer.Consult
 	return r.findOne(results, err)
 }
 
-func (r *DaoConsultationRepository) Answer(hash string) (*explorer.Answer, error) {
+func (r *daoConsultationRepository) GetAnswer(n network.Network, hash string) (*explorer.Answer, error) {
 	query := elastic.NewTermQuery("answers.hash.keyword", hash)
 	nestedQuery := elastic.NewNestedQuery("answers", query)
 
-	results, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get()).
+	results, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get(n)).
 		Query(nestedQuery).
 		Size(1).
 		Do(context.Background())
@@ -79,8 +87,8 @@ func (r *DaoConsultationRepository) Answer(hash string) (*explorer.Answer, error
 	return nil, ErrAnswerNotFound
 }
 
-func (r *DaoConsultationRepository) ConsensusConsultations(dir bool, size int, page int) ([]*explorer.Consultation, int64, error) {
-	result, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get()).
+func (r *daoConsultationRepository) GetConsensusConsultations(n network.Network, dir bool, size, page int) ([]*explorer.Consultation, int64, error) {
+	result, err := r.elastic.Client.Search(elastic_cache.DaoConsultationIndex.Get(n)).
 		Query(elastic.NewTermQuery("consensusParameter", true)).
 		Sort("height", dir).
 		From((page * size) - size).
@@ -93,7 +101,7 @@ func (r *DaoConsultationRepository) ConsensusConsultations(dir bool, size int, p
 	return r.findMany(result, err)
 }
 
-func (r *DaoConsultationRepository) findOne(results *elastic.SearchResult, err error) (*explorer.Consultation, error) {
+func (r *daoConsultationRepository) findOne(results *elastic.SearchResult, err error) (*explorer.Consultation, error) {
 	if err != nil || results.TotalHits() == 0 {
 		err = ErrConsultationNotFound
 		return nil, err
@@ -109,7 +117,7 @@ func (r *DaoConsultationRepository) findOne(results *elastic.SearchResult, err e
 	return consultation, err
 }
 
-func (r *DaoConsultationRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.Consultation, int64, error) {
+func (r *daoConsultationRepository) findMany(results *elastic.SearchResult, err error) ([]*explorer.Consultation, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}

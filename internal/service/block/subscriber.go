@@ -1,7 +1,9 @@
 package block
 
 import (
+	"github.com/NavExplorer/navexplorer-api-go/internal/cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/event"
+	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
 	log "github.com/sirupsen/logrus"
 	"sync"
 )
@@ -13,14 +15,16 @@ var (
 
 type Subscriber struct {
 	consumer *event.Consumer
-	networks []string
+	networks []network.Network
+	cache    *cache.Cache
 }
 
-func NewBlockSubscriber(networks []string, consumer *event.Consumer) *Subscriber {
+func NewBlockSubscriber(networks []network.Network, consumer *event.Consumer, cache *cache.Cache) *Subscriber {
 	once.Do(func() {
 		instance = &Subscriber{
 			consumer: consumer,
 			networks: networks,
+			cache:    cache,
 		}
 	})
 
@@ -28,14 +32,18 @@ func NewBlockSubscriber(networks []string, consumer *event.Consumer) *Subscriber
 }
 
 func (s *Subscriber) Subscribe() {
+	log.Info("API is subscribing to events")
+
 	for _, n := range s.networks {
-		go s.consumer.Consume(n, "indexed.block", react(n))
+		go s.consumer.Consume(n, "indexed.block", react(s, n))
 	}
 }
 
-func react(network string) func(string) {
+func react(s *Subscriber, network network.Network) func(string) {
 	return func(msg string) {
 		log.Infof("Block %s indexed for %s", msg, network)
+		s.cache.Refresh(network.ToString())
+
 		return
 	}
 }

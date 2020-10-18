@@ -1,7 +1,7 @@
 package framework
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/internal/framework/param"
+	"github.com/NavExplorer/navexplorer-api-go/internal/config"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -20,10 +20,9 @@ func SetReleaseMode(debug bool) {
 func NetworkSelect(c *gin.Context) {
 	network := c.GetHeader("Network")
 	if network == "" {
-		network = "mainnet"
+		network = config.Get().DefaultNetwork
 	}
 
-	param.SetGlobalParam("network", network)
 	c.Header("X-Network", network)
 }
 
