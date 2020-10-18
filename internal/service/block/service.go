@@ -1,11 +1,11 @@
 package block
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/internal/framework/pagination"
-	"github.com/NavExplorer/navexplorer-api-go/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/internal/service/block/entity"
-	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
-	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework/pagination"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/block/entity"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/group"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 )
 

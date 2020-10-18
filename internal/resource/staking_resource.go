@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/internal/service/address"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address"
 )
 
 type StakingResource struct {
