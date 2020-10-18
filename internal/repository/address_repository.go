@@ -7,7 +7,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	entitycoin "github.com/NavExplorer/navexplorer-api-go/internal/service/coin/entity"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
-	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
+	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -100,7 +100,7 @@ func (r *addressRepository) GetWealthDistribution(n network.Network, groups []in
 			address := new(explorer.Address)
 			err = json.Unmarshal(element.Source, &address)
 
-			wealth.Balance += float64(address.Spending) / 100000000
+			wealth.Balance += float64(address.Spendable) / 100000000
 			wealth.Percentage = int64((wealth.Balance / totalWealth.Balance) * 100)
 		}
 
@@ -141,7 +141,7 @@ func (r *addressRepository) UpdateAddress(n network.Network, address *explorer.A
 
 func (r *addressRepository) populateRichListPosition(n network.Network, address *explorer.Address) error {
 	spending, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(n)).
-		Query(elastic.NewRangeQuery("spending").Gt(address.Spending)).
+		Query(elastic.NewRangeQuery("spending").Gt(address.Spendable)).
 		Do(context.Background())
 	if err != nil {
 		log.WithError(err).Error("Failed to get rich list position")
@@ -149,7 +149,7 @@ func (r *addressRepository) populateRichListPosition(n network.Network, address 
 	}
 
 	staking, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(n)).
-		Query(elastic.NewRangeQuery("staking").Gt(address.Staking)).
+		Query(elastic.NewRangeQuery("staking").Gt(address.Stakable)).
 		Do(context.Background())
 	if err != nil {
 		log.WithError(err).Error("Failed to get rich list position")
@@ -157,7 +157,7 @@ func (r *addressRepository) populateRichListPosition(n network.Network, address 
 	}
 
 	voting, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(n)).
-		Query(elastic.NewRangeQuery("spending").Gt(address.Voting)).
+		Query(elastic.NewRangeQuery("spending").Gt(address.VotingWeight)).
 		Do(context.Background())
 	if err != nil {
 		log.WithError(err).Error("Failed to get rich list position")

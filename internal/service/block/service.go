@@ -6,7 +6,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/block/entity"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
-	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
+	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 )
 
 type Service interface {

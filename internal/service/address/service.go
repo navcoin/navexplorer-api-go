@@ -6,7 +6,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/address/entity"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
-	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
+	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -75,32 +75,32 @@ func (s *service) GetAddressSummary(n network.Network, hash string) (*entity.Add
 		summary.Txs = txs
 	}
 
-	_, stakeStaking, stakeSpending, stakeVoting, err := s.addressHistoryRepository.GetStakingSummary(n, hash)
+	_, stakeStakable, stakeSpendable, stakeVotingWeight, err := s.addressHistoryRepository.GetStakingSummary(n, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	spendingReceive, spendingSent, stakingReceive, stakingSent, votingReceive, votingSent, err := s.addressHistoryRepository.GetSpendSummary(n, hash)
+	spendableReceive, spendableSent, stakableReceive, stakableSent, votingWeightReceive, votingWeightSent, err := s.addressHistoryRepository.GetSpendSummary(n, hash)
 
 	summary.Spending = &entity.AddressBalance{
-		Balance:  h.Spending,
-		Sent:     spendingSent,
-		Received: spendingReceive,
-		Staked:   stakeSpending,
+		Balance:  h.Spendable,
+		Sent:     spendableSent,
+		Received: spendableReceive,
+		Staked:   stakeSpendable,
 	}
 
 	summary.Staking = &entity.AddressBalance{
-		Balance:  h.Staking,
-		Received: stakingReceive,
-		Sent:     stakingSent,
-		Staked:   stakeStaking,
+		Balance:  h.Stakable,
+		Received: stakableReceive,
+		Sent:     stakableSent,
+		Staked:   stakeStakable,
 	}
 
 	summary.Voting = &entity.AddressBalance{
-		Balance:  h.Voting,
-		Received: votingReceive,
-		Sent:     votingSent,
-		Staked:   stakeVoting,
+		Balance:  h.VotingWeight,
+		Received: votingWeightReceive,
+		Sent:     votingWeightSent,
+		Staked:   stakeVotingWeight,
 	}
 
 	return summary, nil

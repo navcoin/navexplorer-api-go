@@ -5,7 +5,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/dao/entity"
 	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
-	"github.com/NavExplorer/navexplorer-indexer-go/pkg/explorer"
+	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	"math"
 )
