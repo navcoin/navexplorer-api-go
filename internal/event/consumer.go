@@ -2,7 +2,7 @@ package event
 
 import (
 	"fmt"
-	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 )

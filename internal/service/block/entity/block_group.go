@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/group"
 )
 
 type BlockGroups struct {

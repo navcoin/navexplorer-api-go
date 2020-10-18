@@ -2,10 +2,10 @@ package repository
 
 import (
 	"fmt"
-	"github.com/NavExplorer/navexplorer-api-go/internal/cache"
-	"github.com/NavExplorer/navexplorer-api-go/internal/service/address/entity"
-	"github.com/NavExplorer/navexplorer-api-go/internal/service/group"
-	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/cache"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address/entity"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/group"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	log "github.com/sirupsen/logrus"
 	"reflect"

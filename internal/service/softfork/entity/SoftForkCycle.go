@@ -1,6 +1,6 @@
 package entity
 
-import "github.com/NavExplorer/navexplorer-api-go/internal/service/network"
+import "github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 
 type SoftForkCycle struct {
 	BlocksInCycle   uint64 `json:"blocksInCycle"`

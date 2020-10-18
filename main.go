@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/NavExplorer/navexplorer-api-go/generated/dic"
-	"github.com/NavExplorer/navexplorer-api-go/internal/config"
-	"github.com/NavExplorer/navexplorer-api-go/internal/framework"
-	"github.com/NavExplorer/navexplorer-api-go/internal/resource"
+	"github.com/NavExplorer/navexplorer-api-go/v2/generated/dic"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/config"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/resource"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/sarulabs/dingo/v3"

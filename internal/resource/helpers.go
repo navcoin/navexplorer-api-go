@@ -1,8 +1,8 @@
 package resource
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/internal/config"
-	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/config"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/gin-gonic/gin"
 	"strings"
 )

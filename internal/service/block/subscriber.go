@@ -1,9 +1,9 @@
 package block
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/internal/cache"
-	"github.com/NavExplorer/navexplorer-api-go/internal/event"
-	"github.com/NavExplorer/navexplorer-api-go/internal/service/network"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/cache"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/event"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	log "github.com/sirupsen/logrus"
 	"sync"
 )
