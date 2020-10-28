@@ -98,7 +98,7 @@ func (c *cache) set(k string, x interface{}, d time.Duration) {
 		Expiration: e,
 	}
 
-	log.Infof("Cache set (%s)", k)
+	log.Debugf("Cache set (%s)", k)
 }
 
 // Add an item to the cache, replacing any existing item, using the default
@@ -142,7 +142,7 @@ func (c *cache) Get(k string, callback func() (interface{}, error), d time.Durat
 
 	item, found := c.items[k]
 	if !found {
-		log.Infof("Cache create (%s)", k)
+		log.Debugf("Cache create (%s)", k)
 		x, err := callback()
 		c.set(k, x, d)
 
@@ -163,7 +163,7 @@ func (c *cache) Get(k string, callback func() (interface{}, error), d time.Durat
 		}
 	}
 
-	log.Infof("Cache found (%s)", k)
+	log.Debugf("Cache found (%s)", k)
 
 	c.mu.RUnlock()
 	return item.Object, nil
@@ -182,7 +182,7 @@ func (c *Cache) Refresh(network string) {
 			continue
 		}
 
-		log.Infof("Cache refresh (%s)", k)
+		log.Debugf("Cache refresh (%s)", k)
 		c.set(k, x, RefreshingExpiration)
 	}
 }
