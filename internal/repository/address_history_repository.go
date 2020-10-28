@@ -11,6 +11,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
+	"sync"
 	"time"
 )
 
@@ -255,50 +256,43 @@ func (r *addressHistoryRepository) GetAddressGroups(n network.Network, period *g
 		addressGroups = append(addressGroups, blockGroup)
 	}
 
-	service := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(n)).Size(0)
-
-	for i, item := range addressGroups {
-		hashAgg := elastic.NewCardinalityAggregation().Field("hash.keyword")
-
-		spendAgg := elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("is_stake", false))
-		spendAgg.SubAggregation("hash", elastic.NewCardinalityAggregation().Field("hash.keyword"))
-
-		stakeAgg := elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("is_stake", true))
-		stakeAgg.SubAggregation("hash", elastic.NewCardinalityAggregation().Field("hash.keyword"))
-
-		agg := elastic.NewRangeAggregation().Field("time").AddRange(item.Start, item.End)
-		agg.SubAggregation("hash", hashAgg)
-		agg.SubAggregation("spend", spendAgg)
-		agg.SubAggregation("stake", stakeAgg)
-
-		service.Aggregation(string(rune(i)), agg)
-	}
-
-	results, err := service.Do(context.Background())
-	if err != nil {
-		return nil, err
-	}
+	var wg sync.WaitGroup
+	wg.Add(len(addressGroups))
 
 	for i := range addressGroups {
-		if agg, found := results.Aggregations.Range(string(rune(i))); found {
+		go func(idx int) {
+			defer wg.Done()
+			spendAgg := elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("is_stake", false))
+			spendAgg.SubAggregation("hash", elastic.NewCardinalityAggregation().Field("hash.keyword"))
 
-			if hash, found := agg.Buckets[0].Cardinality("hash"); found {
-				addressGroups[i].Addresses = int64(*hash.Value)
+			stakeAgg := elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("is_stake", true))
+			stakeAgg.SubAggregation("hash", elastic.NewCardinalityAggregation().Field("hash.keyword"))
+
+			results, err := r.elastic.Client.
+				Search(elastic_cache.AddressHistoryIndex.Get(n)).
+				Query(elastic.NewRangeQuery("time").From(addressGroups[idx].Start).To(addressGroups[idx].End)).
+				Size(0).
+				Aggregation("spend", spendAgg).
+				Aggregation("stake", stakeAgg).
+				Do(context.Background())
+			if err != nil {
+				return
 			}
 
-			if spend, found := agg.Buckets[0].Filter("spend"); found {
-				if hash, found := spend.Cardinality("hash"); found {
-					addressGroups[i].Spend = int64(*hash.Value)
+			if agg, found := results.Aggregations.Filter("spend"); found {
+				if hash, found := agg.Cardinality("hash"); found {
+					addressGroups[idx].Spend = int64(*hash.Value)
 				}
 			}
 
-			if spend, found := agg.Buckets[0].Filter("stake"); found {
-				if hash, found := spend.Cardinality("hash"); found {
-					addressGroups[i].Stake = int64(*hash.Value)
+			if agg, found := results.Aggregations.Filter("stake"); found {
+				if hash, found := agg.Cardinality("hash"); found {
+					addressGroups[idx].Stake = int64(*hash.Value)
 				}
 			}
-		}
+		}(i)
 	}
+	wg.Wait()
 
 	return addressGroups, nil
 }
