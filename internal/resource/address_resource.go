@@ -148,7 +148,7 @@ func (r *AddressResource) GetAddressGroups(c *gin.Context) {
 	}
 
 	count, err := strconv.Atoi(c.DefaultQuery("count", "10"))
-	if err != nil || count > 10 {
+	if err != nil || count > 100 {
 		count = 10
 	}
 

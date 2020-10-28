@@ -82,21 +82,21 @@ func (s *service) GetAddressSummary(n network.Network, hash string) (*entity.Add
 
 	spendableReceive, spendableSent, stakableReceive, stakableSent, votingWeightReceive, votingWeightSent, err := s.addressHistoryRepository.GetSpendSummary(n, hash)
 
-	summary.Spending = &entity.AddressBalance{
+	summary.Spendable = &entity.AddressBalance{
 		Balance:  h.Spendable,
 		Sent:     spendableSent,
 		Received: spendableReceive,
 		Staked:   stakeSpendable,
 	}
 
-	summary.Staking = &entity.AddressBalance{
+	summary.Stakable = &entity.AddressBalance{
 		Balance:  h.Stakable,
 		Received: stakableReceive,
 		Sent:     stakableSent,
 		Staked:   stakeStakable,
 	}
 
-	summary.Voting = &entity.AddressBalance{
+	summary.VotingWeight = &entity.AddressBalance{
 		Balance:  h.VotingWeight,
 		Received: votingWeightReceive,
 		Sent:     votingWeightSent,

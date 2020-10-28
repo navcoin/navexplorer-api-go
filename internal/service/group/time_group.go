@@ -1,7 +1,6 @@
 package group
 
 import (
-	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -47,7 +46,14 @@ func CreateTimeGroup(period *Period, size int) []*TimeGroup {
 			}
 			break
 		case &PeriodWeekly:
-			log.Error("TimeGroup for weekly period not implemented")
+			if i == 0 {
+				group = &TimeGroup{
+					Start: time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location()),
+					End:   start,
+				}
+			} else {
+				group = &TimeGroup{Start: groups[i-1].Start.AddDate(0, 0, -7), End: groups[i-1].Start}
+			}
 			break
 		case &PeriodMonthly:
 			if i == 0 {

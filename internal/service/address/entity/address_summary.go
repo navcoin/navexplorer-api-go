@@ -1,12 +1,12 @@
 package entity
 
 type AddressSummary struct {
-	Height   uint64          `json:"height"`
-	Hash     string          `json:"hash"`
-	Spending *AddressBalance `json:"spending"`
-	Staking  *AddressBalance `json:"staking"`
-	Voting   *AddressBalance `json:"voting"`
-	Txs      int64           `json:"txs"`
+	Height       uint64          `json:"height"`
+	Hash         string          `json:"hash"`
+	Spendable    *AddressBalance `json:"spendable"`
+	Stakable     *AddressBalance `json:"stakable"`
+	VotingWeight *AddressBalance `json:"voting_weight"`
+	Txs          int64           `json:"txs"`
 }
 
 type AddressBalance struct {

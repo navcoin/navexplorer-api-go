@@ -37,7 +37,7 @@ func NewAddressRepository(elastic *elastic_cache.Index) AddressRepository {
 
 func (r *addressRepository) GetAddresses(n network.Network, size, page int) ([]*explorer.Address, int64, error) {
 	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
-		Sort("spending", false).
+		Sort("spendable", false).
 		From((page * size) - size).
 		Size(size).
 		Do(context.Background())
@@ -45,7 +45,7 @@ func (r *addressRepository) GetAddresses(n network.Network, size, page int) ([]*
 	addresses, total, err := r.findMany(results, err)
 	for idx := range addresses {
 		addresses[idx].RichList = explorer.RichList{
-			Spending: uint64(idx + 1 + (page * size) - size),
+			Spendable: uint64(idx + 1 + (page * size) - size),
 		}
 	}
 
@@ -91,7 +91,7 @@ func (r *addressRepository) GetWealthDistribution(n network.Network, groups []in
 		results, _ := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
 			From(0).
 			Size(groups[i]).
-			Sort("spending", false).
+			Sort("spendable", false).
 			Do(context.Background())
 
 		wealth := &entitycoin.Wealth{Group: groups[i]}
@@ -114,7 +114,7 @@ func (r *addressRepository) GetWealthDistribution(n network.Network, groups []in
 
 func (r *addressRepository) GetTotalSupply(n network.Network) (totalSupply float64, err error) {
 	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
-		Aggregation("totalWealth", elastic.NewSumAggregation().Field("spending")).
+		Aggregation("totalWealth", elastic.NewSumAggregation().Field("spendable")).
 		Size(0).
 		Do(context.Background())
 	if err != nil {
@@ -140,24 +140,24 @@ func (r *addressRepository) UpdateAddress(n network.Network, address *explorer.A
 }
 
 func (r *addressRepository) populateRichListPosition(n network.Network, address *explorer.Address) error {
-	spending, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(n)).
-		Query(elastic.NewRangeQuery("spending").Gt(address.Spendable)).
+	spendable, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(n)).
+		Query(elastic.NewRangeQuery("spendable").Gt(address.Spendable)).
 		Do(context.Background())
 	if err != nil {
 		log.WithError(err).Error("Failed to get rich list position")
 		return err
 	}
 
-	staking, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(n)).
-		Query(elastic.NewRangeQuery("staking").Gt(address.Stakable)).
+	stakable, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(n)).
+		Query(elastic.NewRangeQuery("stakable").Gt(address.Stakable)).
 		Do(context.Background())
 	if err != nil {
 		log.WithError(err).Error("Failed to get rich list position")
 		return err
 	}
 
-	voting, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(n)).
-		Query(elastic.NewRangeQuery("spending").Gt(address.VotingWeight)).
+	votingWeight, err := r.elastic.Client.Count(elastic_cache.AddressIndex.Get(n)).
+		Query(elastic.NewRangeQuery("voting_weight").Gt(address.VotingWeight)).
 		Do(context.Background())
 	if err != nil {
 		log.WithError(err).Error("Failed to get rich list position")
@@ -165,9 +165,9 @@ func (r *addressRepository) populateRichListPosition(n network.Network, address 
 	}
 
 	address.RichList = explorer.RichList{
-		Spending: uint64(spending) + 1,
-		Staking:  uint64(staking) + 1,
-		Voting:   uint64(voting) + 1,
+		Spendable:    uint64(spendable) + 1,
+		Stakable:     uint64(stakable) + 1,
+		VotingWeight: uint64(votingWeight) + 1,
 	}
 
 	return nil

@@ -32,11 +32,11 @@ func (r *cachingAddressHistoryRepository) GetCountByHash(n network.Network, hash
 	return r.repository.GetCountByHash(n, hash)
 }
 
-func (r *cachingAddressHistoryRepository) GetStakingSummary(n network.Network, hash string) (count, staking, spending, voting int64, err error) {
+func (r *cachingAddressHistoryRepository) GetStakingSummary(n network.Network, hash string) (count, stakable, spendable, votingWeight int64, err error) {
 	return r.repository.GetStakingSummary(n, hash)
 }
 
-func (r *cachingAddressHistoryRepository) GetSpendSummary(n network.Network, hash string) (spendingReceive, spendingSent, stakingReceive, stakingSent, votingReceive, votingSent int64, err error) {
+func (r *cachingAddressHistoryRepository) GetSpendSummary(n network.Network, hash string) (spendableReceive, spendableSent, stakableReceive, stakableSent, votingWeightReceive, votingWeightSent int64, err error) {
 	return r.repository.GetSpendSummary(n, hash)
 }
 
