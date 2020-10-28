@@ -18,8 +18,8 @@ type AddressHistoryRepository interface {
 	GetLatestByHash(n network.Network, hash string) (*explorer.AddressHistory, error)
 	GetFirstByHash(n network.Network, hash string) (*explorer.AddressHistory, error)
 	GetCountByHash(n network.Network, hash string) (int64, error)
-	GetStakingSummary(n network.Network, hash string) (count, staking, spending, voting int64, err error)
-	GetSpendSummary(n network.Network, hash string) (spendingReceive, spendingSent, stakingReceive, stakingSent, votingReceive, votingSent int64, err error)
+	GetStakingSummary(n network.Network, hash string) (count, stakable, spendable, votingWeight int64, err error)
+	GetSpendSummary(n network.Network, hash string) (spendableReceive, spendableSent, stakableReceive, stakableSent, votingWeightReceive, votingWeightSent int64, err error)
 	GetHistoryByHash(n network.Network, hash, txType string, dir bool, size, page int) ([]*explorer.AddressHistory, int64, error)
 	GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error)
 	GetStakingChart(n network.Network, period, hash string) (groups []*entity.StakingGroup, err error)
@@ -80,14 +80,14 @@ func (r *addressHistoryRepository) GetCountByHash(n network.Network, hash string
 	return results.TotalHits(), nil
 }
 
-func (r *addressHistoryRepository) GetStakingSummary(n network.Network, hash string) (count, staking, spending, voting int64, err error) {
+func (r *addressHistoryRepository) GetStakingSummary(n network.Network, hash string) (count, stakable, spendable, votingWeight int64, err error) {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
 	changeAgg := elastic.NewNestedAggregation().Path("changes")
-	changeAgg.SubAggregation("staking", elastic.NewSumAggregation().Field("changes.staking"))
-	changeAgg.SubAggregation("spending", elastic.NewSumAggregation().Field("changes.spending"))
-	changeAgg.SubAggregation("voting", elastic.NewSumAggregation().Field("changes.voting"))
+	changeAgg.SubAggregation("stakable", elastic.NewSumAggregation().Field("changes.stakable"))
+	changeAgg.SubAggregation("spendable", elastic.NewSumAggregation().Field("changes.spendable"))
+	changeAgg.SubAggregation("voting_weight", elastic.NewSumAggregation().Field("changes.voting_weight"))
 
 	stakeAgg := elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("is_stake", true))
 	stakeAgg.SubAggregation("changes", changeAgg)
@@ -100,17 +100,17 @@ func (r *addressHistoryRepository) GetStakingSummary(n network.Network, hash str
 		Do(context.Background())
 
 	if err == nil && results != nil {
-		if agg, found := results.Aggregations.Filter("stake"); found {
+		if agg, found := results.Aggregations.Filter("stakable"); found {
 			count = agg.DocCount
 			if changes, found := agg.Nested("changes"); found {
-				if stakingValue, found := changes.Sum("staking"); found {
-					staking = int64(*stakingValue.Value)
+				if stakableValue, found := changes.Sum("stakable"); found {
+					stakable = int64(*stakableValue.Value)
 				}
-				if spendingValue, found := changes.Sum("spending"); found {
-					spending = int64(*spendingValue.Value)
+				if spendableValue, found := changes.Sum("spendable"); found {
+					spendable = int64(*spendableValue.Value)
 				}
-				if votingValue, found := changes.Sum("voting"); found {
-					voting = int64(*votingValue.Value)
+				if votingWeightValue, found := changes.Sum("voting_weight"); found {
+					votingWeight = int64(*votingWeightValue.Value)
 				}
 			}
 		}
@@ -119,37 +119,37 @@ func (r *addressHistoryRepository) GetStakingSummary(n network.Network, hash str
 	return
 }
 
-func (r *addressHistoryRepository) GetSpendSummary(n network.Network, hash string) (spendingReceive, spendingSent, stakingReceive, stakingSent, votingReceive, votingSent int64, err error) {
+func (r *addressHistoryRepository) GetSpendSummary(n network.Network, hash string) (spendableReceive, spendableSent, stakableReceive, stakableSent, votingWeightReceive, votingWeightSent int64, err error) {
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 	query = query.Must(elastic.NewTermQuery("is_stake", false))
 
-	spendingReceiveAgg := elastic.NewRangeAggregation().Field("changes.spending").Gt(0)
-	spendingReceiveAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.spending"))
+	spendableReceiveAgg := elastic.NewRangeAggregation().Field("changes.spendable").Gt(0)
+	spendableReceiveAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.spendable"))
 
-	spendingSentAgg := elastic.NewRangeAggregation().Field("changes.spending").Lt(0)
-	spendingSentAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.spending"))
+	spendableSentAgg := elastic.NewRangeAggregation().Field("changes.spendable").Lt(0)
+	spendableSentAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.spendable"))
 
-	stakingReceiveAgg := elastic.NewRangeAggregation().Field("changes.staking").Gt(0)
-	stakingReceiveAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.staking"))
+	stakableReceiveAgg := elastic.NewRangeAggregation().Field("changes.stakable").Gt(0)
+	stakableReceiveAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.stakable"))
 
-	stakingSentAgg := elastic.NewRangeAggregation().Field("changes.staking").Lt(0)
-	stakingSentAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.staking"))
+	stakableSentAgg := elastic.NewRangeAggregation().Field("changes.stakable").Lt(0)
+	stakableSentAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.stakable"))
 
-	votingReceiveAgg := elastic.NewRangeAggregation().Field("changes.voting").Gt(0)
-	votingReceiveAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.voting"))
+	votingWeightReceiveAgg := elastic.NewRangeAggregation().Field("changes.voting_weight").Gt(0)
+	votingWeightReceiveAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.voting_weight"))
 
-	votingSentAgg := elastic.NewRangeAggregation().Field("changes.voting").Lt(0)
-	votingSentAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.voting"))
+	votingWeightSentAgg := elastic.NewRangeAggregation().Field("changes.voting_weight").Lt(0)
+	votingWeightSentAgg.SubAggregation("sum", elastic.NewSumAggregation().Field("changes.voting_weight"))
 
 	changeAgg := elastic.NewNestedAggregation().Path("changes")
-	changeAgg.SubAggregation("spendingReceive", spendingReceiveAgg)
-	changeAgg.SubAggregation("spendingSent", spendingSentAgg)
+	changeAgg.SubAggregation("spendableReceive", spendableReceiveAgg)
+	changeAgg.SubAggregation("spendableSent", spendableSentAgg)
 
-	changeAgg.SubAggregation("stakingSent", stakingSentAgg)
-	changeAgg.SubAggregation("votingSent", votingSentAgg)
-	changeAgg.SubAggregation("stakingReceive", stakingReceiveAgg)
-	changeAgg.SubAggregation("votingReceive", votingReceiveAgg)
+	changeAgg.SubAggregation("stakableSent", stakableSentAgg)
+	changeAgg.SubAggregation("votingWeightSent", votingWeightSentAgg)
+	changeAgg.SubAggregation("stakableReceive", stakableReceiveAgg)
+	changeAgg.SubAggregation("votingWeightReceive", votingWeightReceiveAgg)
 
 	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(n)).
 		Query(query).
@@ -160,39 +160,39 @@ func (r *addressHistoryRepository) GetSpendSummary(n network.Network, hash strin
 
 	if err == nil && results != nil {
 		if changes, found := results.Aggregations.Nested("changes"); found {
-			if spendingReceiveResult, found := changes.Range("spendingReceive"); found {
-				if spendingReceiveSum, found := spendingReceiveResult.Buckets[0].Sum("sum"); found {
-					spendingReceive = int64(*spendingReceiveSum.Value)
+			if spendableReceiveResult, found := changes.Range("spendableReceive"); found {
+				if spendableReceiveSum, found := spendableReceiveResult.Buckets[0].Sum("sum"); found {
+					spendableReceive = int64(*spendableReceiveSum.Value)
 				}
 			}
 
-			if spendingSentResult, found := changes.Range("spendingSent"); found {
-				if spendingSentSum, found := spendingSentResult.Buckets[0].Sum("sum"); found {
-					spendingSent = int64(*spendingSentSum.Value)
+			if spendableSentResult, found := changes.Range("spendableSent"); found {
+				if spendableSentSum, found := spendableSentResult.Buckets[0].Sum("sum"); found {
+					spendableSent = int64(*spendableSentSum.Value)
 				}
 			}
 
-			if stakingReceiveResult, found := changes.Range("stakingReceive"); found {
-				if stakingReceiveSum, found := stakingReceiveResult.Buckets[0].Sum("sum"); found {
-					stakingReceive = int64(*stakingReceiveSum.Value)
+			if stakableReceiveResult, found := changes.Range("stakableReceive"); found {
+				if stakableReceiveSum, found := stakableReceiveResult.Buckets[0].Sum("sum"); found {
+					stakableReceive = int64(*stakableReceiveSum.Value)
 				}
 			}
 
-			if stakingSentResult, found := changes.Range("stakingSent"); found {
-				if stakingSentSum, found := stakingSentResult.Buckets[0].Sum("sum"); found {
-					stakingSent = int64(*stakingSentSum.Value)
+			if stakableSentResult, found := changes.Range("stakableSent"); found {
+				if stakableSentSum, found := stakableSentResult.Buckets[0].Sum("sum"); found {
+					stakableSent = int64(*stakableSentSum.Value)
 				}
 			}
 
-			if votingReceiveResult, found := changes.Range("votingReceive"); found {
-				if votingReceiveSum, found := votingReceiveResult.Buckets[0].Sum("sum"); found {
-					votingReceive = int64(*votingReceiveSum.Value)
+			if votingWeightReceiveResult, found := changes.Range("votingWeightReceive"); found {
+				if votingWeightReceiveSum, found := votingWeightReceiveResult.Buckets[0].Sum("sum"); found {
+					votingWeightReceive = int64(*votingWeightReceiveSum.Value)
 				}
 			}
 
-			if votingSentResult, found := changes.Range("votingSent"); found {
-				if votingSentSum, found := votingSentResult.Buckets[0].Sum("sum"); found {
-					votingSent = int64(*votingSentSum.Value)
+			if votingWeightSentResult, found := changes.Range("votingWeightSent"); found {
+				if votingWeightSentSum, found := votingWeightSentResult.Buckets[0].Sum("sum"); found {
+					votingWeightSent = int64(*votingWeightSentSum.Value)
 				}
 			}
 		}
@@ -214,9 +214,9 @@ func (r *addressHistoryRepository) GetHistoryByHash(n network.Network, hash, txT
 		{
 			query.Must(elastic.NewTermQuery("is_stake", false))
 			query.Filter(elastic.NewNestedQuery("changes", elastic.NewBoolQuery().
-				Should(elastic.NewRangeQuery("changes.spending").Lt(0)).
-				Should(elastic.NewRangeQuery("changes.staking").Lt(0)).
-				Should(elastic.NewRangeQuery("changes.voting").Lt(0))),
+				Should(elastic.NewRangeQuery("changes.spendable").Lt(0)).
+				Should(elastic.NewRangeQuery("changes.stakable").Lt(0)).
+				Should(elastic.NewRangeQuery("changes.voting_weight").Lt(0))),
 			)
 			break
 		}
@@ -224,9 +224,9 @@ func (r *addressHistoryRepository) GetHistoryByHash(n network.Network, hash, txT
 		{
 			query.Must(elastic.NewTermQuery("is_stake", false))
 			query.Filter(elastic.NewNestedQuery("changes", elastic.NewBoolQuery().
-				Should(elastic.NewRangeQuery("changes.spending").Gt(0)).
-				Should(elastic.NewRangeQuery("changes.staking").Gt(0)).
-				Should(elastic.NewRangeQuery("changes.voting").Gt(0))),
+				Should(elastic.NewRangeQuery("changes.spendable").Gt(0)).
+				Should(elastic.NewRangeQuery("changes.stakable").Gt(0)).
+				Should(elastic.NewRangeQuery("changes.voting_weight").Gt(0))),
 			)
 			break
 		}
@@ -351,9 +351,9 @@ func (r *addressHistoryRepository) GetStakingChart(n network.Network, period str
 		}
 
 		changesAgg := elastic.NewNestedAggregation().Path("changes")
-		changesAgg.SubAggregation("staking", elastic.NewSumAggregation().Field("changes.staking"))
-		changesAgg.SubAggregation("spending", elastic.NewSumAggregation().Field("changes.spending"))
-		changesAgg.SubAggregation("voting", elastic.NewSumAggregation().Field("changes.voting"))
+		changesAgg.SubAggregation("stakable", elastic.NewSumAggregation().Field("changes.stakable"))
+		changesAgg.SubAggregation("spendable", elastic.NewSumAggregation().Field("changes.spendable"))
+		changesAgg.SubAggregation("voting_weight", elastic.NewSumAggregation().Field("changes.voting_weight"))
 
 		timeAgg := elastic.NewRangeAggregation().Field("time").AddRange(g.Start, g.End)
 		timeAgg.SubAggregation("changes", changesAgg)
@@ -376,14 +376,14 @@ func (r *addressHistoryRepository) GetStakingChart(n network.Network, period str
 					groups[i].Stakes = bucket.DocCount
 
 					if nested, found := bucket.Aggregations.Nested("changes"); found {
-						if stakingValue, found := nested.Aggregations.Sum("staking"); found {
-							groups[i].Staking = int64(*stakingValue.Value)
+						if stakableValue, found := nested.Aggregations.Sum("stakable"); found {
+							groups[i].Stakable = int64(*stakableValue.Value)
 						}
-						if spendingValue, found := nested.Aggregations.Sum("spending"); found {
-							groups[i].Spending = int64(*spendingValue.Value)
+						if spendableValue, found := nested.Aggregations.Sum("spendable"); found {
+							groups[i].Spendable = int64(*spendableValue.Value)
 						}
-						if votingValue, found := nested.Aggregations.Sum("voting"); found {
-							groups[i].Voting = int64(*votingValue.Value)
+						if votingWeightValue, found := nested.Aggregations.Sum("voting_weight"); found {
+							groups[i].VotingWeight = int64(*votingWeightValue.Value)
 						}
 					}
 					i++
