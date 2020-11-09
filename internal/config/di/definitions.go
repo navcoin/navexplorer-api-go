@@ -59,8 +59,11 @@ var Definitions = []dingo.Def{
 	},
 	{
 		Name: "block.repo",
-		Build: func(elastic *elastic_cache.Index) (repository.BlockRepository, error) {
-			return repository.NewBlockRepository(elastic), nil
+		Build: func(elastic *elastic_cache.Index, cache *cache.Cache) (repository.BlockRepository, error) {
+			return repository.NewCachingBlockRepository(
+				repository.NewBlockRepository(elastic),
+				cache,
+			), nil
 		},
 	},
 	{

@@ -15,7 +15,7 @@ import (
 
 type BlockRepository interface {
 	GetBestBlock(n network.Network) (*explorer.Block, error)
-	GetBlocks(n network.Network, asc bool, size int, page int) ([]*explorer.Block, int64, error)
+	GetBlocks(n network.Network, asc bool, size int, page int, bestBlock *explorer.Block) ([]*explorer.Block, int64, error)
 	GetBlockGroups(n network.Network, period string, count int) ([]*entity.BlockGroup, error)
 	PopulateBlockGroups(n network.Network, blockGroups *entity.BlockGroups) error
 	GetBlockByHashOrHeight(n network.Network, hash string) (*explorer.Block, error)
@@ -46,12 +46,7 @@ func (r *blockRepository) GetBestBlock(n network.Network) (*explorer.Block, erro
 	return r.findOne(results, err)
 }
 
-func (r *blockRepository) GetBlocks(n network.Network, asc bool, size int, page int) ([]*explorer.Block, int64, error) {
-	bestBlock, err := r.GetBestBlock(n)
-	if err != nil {
-		return nil, 0, err
-	}
-
+func (r *blockRepository) GetBlocks(n network.Network, asc bool, size int, page int, bestBlock *explorer.Block) ([]*explorer.Block, int64, error) {
 	from := int(bestBlock.Height+1) - ((page - 1) * size)
 	if from <= 0 {
 		from = size

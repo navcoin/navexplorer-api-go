@@ -33,7 +33,7 @@ func (r *blockTransactionRepository) GetTransactions(n network.Network, asc bool
 		query = query.MustNot(elastic.NewTermQuery("type", "coinbase"))
 	}
 	if ignoreStaking {
-		query = query.MustNot(elastic.NewTermsQuery("type", "staking", "cold_staking"))
+		query = query.MustNot(elastic.NewTermsQuery("type", "staking", "cold_staking", "cold_staking_v2"))
 	}
 
 	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get(n)).

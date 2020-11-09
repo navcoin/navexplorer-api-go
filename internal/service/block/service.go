@@ -63,7 +63,12 @@ func (s *service) GetRawBlock(n network.Network, hash string) (*explorer.RawBloc
 }
 
 func (s *service) GetBlocks(n network.Network, config *pagination.Config) ([]*explorer.Block, int64, error) {
-	return s.blockRepo.GetBlocks(n, config.Ascending, config.Size, config.Page)
+	bestBlock, err := s.blockRepo.GetBestBlock(n)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return s.blockRepo.GetBlocks(n, config.Ascending, config.Size, config.Page, bestBlock)
 }
 
 func (s *service) GetTransactions(n network.Network, config *pagination.Config, ignoreCoinbase, ignoreStaking bool) ([]*explorer.BlockTransaction, int64, error) {
