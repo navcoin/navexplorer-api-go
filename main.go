@@ -54,7 +54,7 @@ func main() {
 	r.GET("/balance", addressResource.GetBalancesForAddresses)
 	r.GET("/addressgroup", addressResource.GetAddressGroups)
 
-	distributionResource := resource.NewDistributionResource(container.GetDistributionService())
+	distributionResource := resource.NewDistributionResource(container.GetSupplyService())
 	r.GET("/distribution/total-supply", distributionResource.GetTotalSupply)
 
 	blockResource := resource.NewBlockResource(container.GetBlockService(), container.GetDaoService(), container.GetCache())
