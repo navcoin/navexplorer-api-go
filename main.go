@@ -162,5 +162,5 @@ func includeLegacyApiEndpoints(r *gin.Engine) {
 	//api.GET("/staking/report", legacyResource.GetStakingReport)
 	//api.GET("/staking/blocks", legacyResource.GetStakingByBlockCount)
 	//r.GET("/staking/blocks", stakingResource.GetStakingByBlockCount)
-	r.GET("/staking/rewards", stakingResource.GetStakingRewardsForAddresses)
+	api.GET("/staking/rewards", stakingResource.GetStakingRewardsForAddresses)
 }
