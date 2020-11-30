@@ -70,9 +70,9 @@ func main() {
 	r.GET("/tx/:hash", blockResource.GetTransactionByHash)
 	r.GET("/tx/:hash/raw", blockResource.GetRawTransactionByHash)
 
-	//stakingResource := resource.NewStakingResource(container.GetAddressService())
+	stakingResource := resource.NewStakingResource(container.GetStakingService())
 	//r.GET("/staking/blocks", stakingResource.GetBlocks)
-	//r.GET("/staking/rewards", stakingResource.GetStakingRewardsForAddresses)
+	r.GET("/staking/rewards", stakingResource.GetStakingRewardsForAddresses)
 
 	softForkResource := resource.NewSoftForkResource(container.GetSoftforkService(), container.GetSoftforkRepo())
 	r.GET("/softfork", softForkResource.GetSoftForks)
@@ -158,7 +158,9 @@ func includeLegacyApiEndpoints(r *gin.Engine) {
 
 	api.GET("/soft-fork", legacyResource.GetSoftForks)
 
+	stakingResource := resource.NewStakingResource(container.GetStakingService())
 	//api.GET("/staking/report", legacyResource.GetStakingReport)
 	//api.GET("/staking/blocks", legacyResource.GetStakingByBlockCount)
-	//api.GET("/staking/rewards", legacyResource.GetStakingRewardsForAddresses)
+	//r.GET("/staking/blocks", stakingResource.GetStakingByBlockCount)
+	r.GET("/staking/rewards", stakingResource.GetStakingRewardsForAddresses)
 }

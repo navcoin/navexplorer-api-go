@@ -166,6 +166,12 @@ var Definitions = []dingo.Def{
 		},
 	},
 	{
+		Name: "staking.service",
+		Build: func(addressHistoryRepo repository.AddressHistoryRepository) (service.StakingService, error) {
+			return service.NewStakingService(addressHistoryRepo), nil
+		},
+	},
+	{
 		Name: "supply.service",
 		Build: func(addressRepo repository.AddressRepository, blocktxRepository repository.BlockTransactionRepository) (service.SupplyService, error) {
 			return service.NewSupplyService(addressRepo, blocktxRepository), nil

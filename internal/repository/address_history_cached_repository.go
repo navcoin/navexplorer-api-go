@@ -70,6 +70,10 @@ func (r *cachingAddressHistoryRepository) GetStakingChart(n network.Network, per
 	return r.repository.GetStakingChart(n, period, hash)
 }
 
+func (r *cachingAddressHistoryRepository) StakingRewardsForAddresses(n network.Network, addresses []string) ([]*entity.StakingReward, error) {
+	return r.repository.StakingRewardsForAddresses(n, addresses)
+}
+
 func InterfaceSlice(slice interface{}) []interface{} {
 	s := reflect.ValueOf(slice)
 	if s.Kind() != reflect.Slice {
