@@ -6,12 +6,12 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/event"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/coin"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao/consensus"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/distribution"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/softfork"
 	"github.com/sarulabs/dingo/v3"
@@ -166,9 +166,15 @@ var Definitions = []dingo.Def{
 		},
 	},
 	{
-		Name: "distribution.service",
-		Build: func(addressRepo repository.AddressRepository) (distribution.Service, error) {
-			return distribution.NewDistributionService(addressRepo), nil
+		Name: "staking.service",
+		Build: func(addressHistoryRepo repository.AddressHistoryRepository) (service.StakingService, error) {
+			return service.NewStakingService(addressHistoryRepo), nil
+		},
+	},
+	{
+		Name: "supply.service",
+		Build: func(addressRepo repository.AddressRepository, blocktxRepository repository.BlockTransactionRepository) (service.SupplyService, error) {
+			return service.NewSupplyService(addressRepo, blocktxRepository), nil
 		},
 	},
 	{

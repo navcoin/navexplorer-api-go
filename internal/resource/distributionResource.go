@@ -1,17 +1,22 @@
 package resource
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/distribution"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 type DistributionResource struct {
-	distributionService distribution.Service
+	supplyService service.SupplyService
 }
 
-func NewDistributionResource(distributionService distribution.Service) *DistributionResource {
-	return &DistributionResource{distributionService}
+type DistributionSupplyResponse struct {
+	Public  float64 `json:"public"`
+	Private float64 `json:"private"`
+}
+
+func NewDistributionResource(supplyService service.SupplyService) *DistributionResource {
+	return &DistributionResource{supplyService}
 }
 
 func (r *DistributionResource) GetTotalSupply(c *gin.Context) {
@@ -21,11 +26,20 @@ func (r *DistributionResource) GetTotalSupply(c *gin.Context) {
 		return
 	}
 
-	totalSupply, err := r.distributionService.GetTotalSupply(n)
+	publicSupply, err := r.supplyService.GetPublicSupply(n)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
 	}
 
-	c.JSON(200, totalSupply)
+	privateSupply, err := r.supplyService.GetPrivateSupply(n)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, &DistributionSupplyResponse{
+		Public:  publicSupply,
+		Private: privateSupply,
+	})
 }

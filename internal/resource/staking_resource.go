@@ -1,15 +1,19 @@
 package resource
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address"
+	"errors"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service"
+	"github.com/gin-gonic/gin"
+	"net/http"
+	"strings"
 )
 
 type StakingResource struct {
-	addressService address.Service
+	stakingService service.StakingService
 }
 
-func NewStakingResource(addressService address.Service) *StakingResource {
-	return &StakingResource{addressService}
+func NewStakingResource(stakingService service.StakingService) *StakingResource {
+	return &StakingResource{stakingService}
 }
 
 //func (r *StakingResource) GetBlocks(c *gin.Context) {
@@ -36,18 +40,25 @@ func NewStakingResource(addressService address.Service) *StakingResource {
 //	c.JSON(200, staking)
 //}
 //
-//func (r *StakingResource) GetStakingRewardsForAddresses(c *gin.Context) {
-//	addresses := strings.Split(c.Query("addresses"), ",")
-//	if len(addresses) == 0 {
-//		handleError(c, errors.New("No addresses provided"), http.StatusBadRequest)
-//		return
-//	}
-//
-//	rewards, err := r.addressService.GetStakingRewardsForAddresses(param.GetNetwork(), addresses)
-//	if err != nil {
-//		handleError(c, err, http.StatusInternalServerError)
-//		return
-//	}
-//
-//	c.JSON(200, rewards)
-//}
+
+func (r *StakingResource) GetStakingRewardsForAddresses(c *gin.Context) {
+	n, err := getNetwork(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		return
+	}
+
+	addresses := strings.Split(c.Query("addresses"), ",")
+	if len(addresses) == 0 {
+		handleError(c, errors.New("No addresses provided"), http.StatusBadRequest)
+		return
+	}
+
+	rewards, err := r.stakingService.GetStakingRewardsForAddresses(n, addresses)
+	if err != nil {
+		handleError(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(200, rewards)
+}
