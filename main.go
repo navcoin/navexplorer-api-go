@@ -54,8 +54,9 @@ func main() {
 	r.GET("/balance", addressResource.GetBalancesForAddresses)
 	r.GET("/addressgroup", addressResource.GetAddressGroups)
 
-	distributionResource := resource.NewDistributionResource(container.GetSupplyService())
-	r.GET("/distribution/total-supply", distributionResource.GetTotalSupply)
+	distributionResource := resource.NewDistributionResource(container.GetAddressService(), container.GetBlockService())
+	r.GET("/distribution/supply", distributionResource.GetSupply)
+	r.GET("/distribution/wealth", distributionResource.GetWealth)
 
 	blockResource := resource.NewBlockResource(container.GetBlockService(), container.GetDaoService(), container.GetCache())
 	r.GET("/bestblock", blockResource.GetBestBlock)
@@ -102,65 +103,9 @@ func main() {
 	searchResource := resource.NewSearchResource(container.GetAddressService(), container.GetBlockService(), container.GetDaoService())
 	r.GET("/search", searchResource.Search)
 
-	if config.Get().Legacy == true {
-		includeLegacyApiEndpoints(r)
-	}
-
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{"code": 404, "message": "Resource not found"})
 	})
 
 	_ = r.Run(fmt.Sprintf(":%d", config.Get().Server.Port))
-}
-
-func includeLegacyApiEndpoints(r *gin.Engine) {
-	log.Info("Including Legacy endpoints")
-	api := r.Group("/api")
-
-	legacyResource := resource.NewLegacyResource(
-		container.GetAddressService(),
-		container.GetBlockService(),
-		container.GetCoinService(),
-		container.GetDaoService(),
-		container.GetSoftforkService(),
-	)
-
-	api.GET("/address", legacyResource.GetAddresses)
-	api.GET("/address/:hash", legacyResource.GetAddress)
-	//api.GET("/address/:hash/validate", legacyResource.ValidateAddress)
-	//api.GET("/address/:hash/chart/balance", legacyResource.GetBalanceChart)
-	//api.GET("/address/:hash/chart/staking", legacyResource.GetStakingChart)
-	api.GET("/address/:hash/assoc/staking", legacyResource.GetAssociatedStakingAddresses)
-
-	api.GET("/balance", legacyResource.GetBalancesForAddresses)
-
-	api.GET("/bestblock", legacyResource.GetBestBlock)
-	api.GET("/blockgroup", legacyResource.GetBlockGroups)
-	api.GET("/block", legacyResource.GetBlocks)
-	api.GET("/block/:hash", legacyResource.GetBlock)
-	api.GET("/block/:hash/raw", legacyResource.GetRawBlock)
-	api.GET("/tx/:hash", legacyResource.GetTransaction)
-	api.GET("/tx/:hash/raw", legacyResource.GetRawTransaction)
-
-	api.GET("/coin/wealth", legacyResource.GetWealthDistribution)
-
-	api.GET("/community-fund/block-cycle", legacyResource.GetBlockCycle)
-	api.GET("/community-fund/stats", legacyResource.GetCfundStats)
-	api.GET("/community-fund/proposal/:hash", legacyResource.GetProposal)
-	api.GET("/community-fund/proposal/:hash/trend", legacyResource.GetProposalVotingTrend)
-	api.GET("/community-fund/proposal/:hash/vote/:vote", legacyResource.GetProposalVotes)
-	api.GET("/community-fund/proposal/:hash/payment-request", legacyResource.GetPaymentRequestsForProposal)
-	api.GET("/community-fund/payment-request/:hash", legacyResource.GetPaymentRequestByHash)
-	api.GET("/community-fund/payment-request/:hash/trend", legacyResource.GetPaymentRequestVotingTrend)
-	api.GET("/community-fund/payment-request/:hash/vote/:vote", legacyResource.GetPaymentRequestVotes)
-
-	api.GET("/search", legacyResource.Search)
-
-	api.GET("/soft-fork", legacyResource.GetSoftForks)
-
-	stakingResource := resource.NewStakingResource(container.GetStakingService())
-	//api.GET("/staking/report", legacyResource.GetStakingReport)
-	//api.GET("/staking/blocks", legacyResource.GetStakingByBlockCount)
-	//r.GET("/staking/blocks", stakingResource.GetStakingByBlockCount)
-	api.GET("/staking/rewards", stakingResource.GetStakingRewardsForAddresses)
 }

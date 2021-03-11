@@ -28,3 +28,10 @@ func networkHeader(c *gin.Context) string {
 
 	return n
 }
+
+func handleError(c *gin.Context, err error, status int) {
+	c.AbortWithStatusJSON(status, gin.H{
+		"status":  status,
+		"message": err.Error(),
+	})
+}

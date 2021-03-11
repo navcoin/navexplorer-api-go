@@ -9,7 +9,6 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/block"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/coin"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
@@ -97,12 +96,6 @@ var Definitions = []dingo.Def{
 		},
 	},
 	{
-		Name: "coin.service",
-		Build: func(addressRepository repository.AddressRepository) (coin.Service, error) {
-			return coin.NewCoinService(addressRepository), nil
-		},
-	},
-	{
 		Name: "dao.proposal.repo",
 		Build: func(elastic *elastic_cache.Index) (repository.DaoProposalRepository, error) {
 			return repository.NewDaoProposalRepository(elastic), nil
@@ -169,12 +162,6 @@ var Definitions = []dingo.Def{
 		Name: "staking.service",
 		Build: func(addressHistoryRepo repository.AddressHistoryRepository) (service.StakingService, error) {
 			return service.NewStakingService(addressHistoryRepo), nil
-		},
-	},
-	{
-		Name: "supply.service",
-		Build: func(addressRepo repository.AddressRepository, blocktxRepository repository.BlockTransactionRepository) (service.SupplyService, error) {
-			return service.NewSupplyService(addressRepo, blocktxRepository), nil
 		},
 	},
 	{

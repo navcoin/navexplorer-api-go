@@ -20,6 +20,7 @@ type Service interface {
 	GetAssociatedStakingAddresses(n network.Network, address string) ([]string, error)
 	GetNamedAddresses(n network.Network, addresses []string) ([]*explorer.Address, error)
 	ValidateAddress(n network.Network, hash string) (bool, error)
+	GetPublicWealthDistribution(n network.Network, groups []int) ([]*entity.Wealth, error)
 }
 
 type service struct {
@@ -172,6 +173,14 @@ func (s *service) GetNamedAddresses(n network.Network, addresses []string) ([]*e
 
 func (s *service) ValidateAddress(n network.Network, hash string) (bool, error) {
 	return true, nil
+}
+
+func (s *service) GetPublicWealthDistribution(n network.Network, groups []int) ([]*entity.Wealth, error) {
+	block, err := s.blockRepository.GetBestBlock(n)
+	if err != nil {
+		return nil, err
+	}
+	return s.addressRepository.GetWealthDistribution(n, groups, block.SupplyBalance.Public)
 }
 
 func (s *service) UpdateCreatedAt(n network.Network, address *explorer.Address) {

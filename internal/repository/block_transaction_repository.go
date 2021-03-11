@@ -17,7 +17,6 @@ type BlockTransactionRepository interface {
 	GetRawTransactionByHash(n network.Network, hash string) (*explorer.RawBlockTransaction, error)
 	GetTotalAmountByOutputType(n network.Network, voutType explorer.VoutType) (*float64, error)
 	GetAssociatedStakingAddresses(n network.Network, address string) ([]string, error)
-	GetPrivateSupply(n network.Network) (supply float64, err error)
 }
 
 type blockTransactionRepository struct {
@@ -152,32 +151,6 @@ func (r *blockTransactionRepository) GetAssociatedStakingAddresses(n network.Net
 	}
 
 	return stakingAddresses, err
-}
-
-func (r *blockTransactionRepository) GetPrivateSupply(n network.Network) (float64, error) {
-	inputAgg := elastic.NewNestedAggregation().Path("vin")
-	inputAgg.SubAggregation("total", elastic.NewSumAggregation().Field("vin.valuesat"))
-
-	outputAgg := elastic.NewNestedAggregation().Path("vout")
-	outputAgg.SubAggregation("total", elastic.NewSumAggregation().Field("vout.valuesat"))
-
-	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get(n)).
-		Aggregation("inputs", inputAgg).
-		Aggregation("outputs", outputAgg).
-		Query(elastic.NewTermQuery("private", true)).
-		Size(0).
-		Do(context.Background())
-	if err != nil {
-		return 0.0, err
-	}
-
-	inputs, _ := results.Aggregations.Nested("inputs")
-	inputTotal, _ := inputs.Aggregations.Sum("total")
-
-	outputs, _ := results.Aggregations.Nested("outputs")
-	outputTotal, _ := outputs.Aggregations.Sum("total")
-
-	return (*inputTotal.Value - *outputTotal.Value) / 100000000, nil
 }
 
 func (r *blockTransactionRepository) findOne(results *elastic.SearchResult, err error) (*explorer.BlockTransaction, error) {

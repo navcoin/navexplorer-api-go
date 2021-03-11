@@ -79,6 +79,16 @@ github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.2-0.20201120155435-84c1187
 github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.2-0.20201120155435-84c1187c14d6/go.mod h1:w+Klrlj8Qzu1Jg/uJoRswphvNi+EGexksL0/JYWyWxw=
 github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.2-0.20201129221106-4d5a9b2c56c1 h1:TLnP7WLDftuGc3x4rT2xnGwADmO4xDadpzx2u2Tp4v4=
 github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.2-0.20201129221106-4d5a9b2c56c1/go.mod h1:w+Klrlj8Qzu1Jg/uJoRswphvNi+EGexksL0/JYWyWxw=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.3 h1:NpQjUMZAwImfKVLHEYtUXnPqCUM/8AzAKht2eXpNink=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.3/go.mod h1:w+Klrlj8Qzu1Jg/uJoRswphvNi+EGexksL0/JYWyWxw=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.4-0.20210302224645-235b04309ffc h1:HuBjII34z9xf6zz8IuOuMPKnEZ6pujuJyPJZb46DNKg=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.4-0.20210302224645-235b04309ffc/go.mod h1:w+Klrlj8Qzu1Jg/uJoRswphvNi+EGexksL0/JYWyWxw=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.4-0.20210302232742-cb4d68914809 h1:cxPgw2TZF4VTW8XOdCuB8/Npu1u8ajme/8FYLyo0Nw4=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.4-0.20210302232742-cb4d68914809/go.mod h1:w+Klrlj8Qzu1Jg/uJoRswphvNi+EGexksL0/JYWyWxw=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.4-0.20210303002018-cd397e665285 h1:xP9zN7x393c5anxSsG8SRgpPwbU+ct9SOYdIo8HXSyE=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.4-0.20210303002018-cd397e665285/go.mod h1:w+Klrlj8Qzu1Jg/uJoRswphvNi+EGexksL0/JYWyWxw=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.4-0.20210311141651-9f19453ff36d h1:XSawmsZKbk1NMq+kQ4tnABqwqCm9Cg2kcUUgE0fpEK0=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.4-0.20210311141651-9f19453ff36d/go.mod h1:w+Klrlj8Qzu1Jg/uJoRswphvNi+EGexksL0/JYWyWxw=
 github.com/NavExplorer/subscriber v0.0.0-20200601205031-4135a91491af h1:KWrfS1eDXRPSpY6pyBMGYiqLSIJ08TargSgbFeUTaMA=
 github.com/NavExplorer/subscriber v0.0.0-20200601205031-4135a91491af/go.mod h1:b9UVwdUV1OVGDsOMqOJeu5Rk5SPyOgfHfvM0HH4fvdU=
 github.com/NavExplorer/subscriber v0.0.0-20200601212953-3a6c48dd3d5d h1:4tlsQCkBbil7rexH6A0CGyRh5I7z1QP/ftiFLWP7ADo=
