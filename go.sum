@@ -20,6 +20,7 @@ github.com/NavExplorer/navcoind-go v0.1.8-0.20200518235421-aef73039a473/go.mod h
 github.com/NavExplorer/navcoind-go v0.1.8-0.20200527214456-804845973a06/go.mod h1:SkiAvsIfYh0pWBox2yOOiDaPOucS/bayAVkMUNR0Sv0=
 github.com/NavExplorer/navcoind-go v0.1.8-0.20200709223613-3322962ba291/go.mod h1:CEjLeqFkhdtqOUbpd5Aoo288nX1X1M/TXUpGXCkm1tk=
 github.com/NavExplorer/navcoind-go v1.1.0/go.mod h1:CEjLeqFkhdtqOUbpd5Aoo288nX1X1M/TXUpGXCkm1tk=
+github.com/NavExplorer/navcoind-go v1.1.3/go.mod h1:CEjLeqFkhdtqOUbpd5Aoo288nX1X1M/TXUpGXCkm1tk=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200513132948-2da7193dae99 h1:frqNMEphRwyfsWFINjeMVmWXeHv8CfwWpf0lcOiSmkQ=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200513132948-2da7193dae99/go.mod h1:57ARY0cfP1M3kBEcsqOGKrhfRS3Fo6vq2IRm6hWwPaM=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200518231923-1329821deb7e h1:wW7zHdzLpArQQGBIYfbsRIolBv3R14v8kdJro933RHk=
@@ -74,6 +75,8 @@ github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.0 h1:odkSf5H2cDh3CrWto95pF
 github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.0/go.mod h1:+iWJ4ALtCzxFITPQKoW5lId/cerMDLXwmS140ygkeVM=
 github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.1 h1:rg3hl78fhlQlWXKnjoaHX+jzJ0azMBUaZX3Q37R/okc=
 github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.1/go.mod h1:+iWJ4ALtCzxFITPQKoW5lId/cerMDLXwmS140ygkeVM=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.4 h1:0Px+vES9WWX27pMBmj+yDMHkN04otbIKGt/l3k+kkU8=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.4/go.mod h1:OaE3hvuyP7NQrB0035E2qRUj5Axd+/wQgs6FZKFheKo=
 github.com/NavExplorer/subscriber v0.0.0-20200601205031-4135a91491af h1:KWrfS1eDXRPSpY6pyBMGYiqLSIJ08TargSgbFeUTaMA=
 github.com/NavExplorer/subscriber v0.0.0-20200601205031-4135a91491af/go.mod h1:b9UVwdUV1OVGDsOMqOJeu5Rk5SPyOgfHfvM0HH4fvdU=
 github.com/NavExplorer/subscriber v0.0.0-20200601212953-3a6c48dd3d5d h1:4tlsQCkBbil7rexH6A0CGyRh5I7z1QP/ftiFLWP7ADo=
@@ -90,6 +93,7 @@ github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hC
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
+github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef/go.mod h1:JS7hed4L1fj0hXcyEejnW57/7LCetXggd+vwrRnYeII=
 github.com/aws/aws-sdk-go v1.25.25/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go v1.34.13/go.mod h1:5zCpMtNQVjRREroY7sYe8lOMRSxkhG6MZveU8YkpAk0=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
