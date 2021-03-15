@@ -11,6 +11,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
+	"strings"
 	"sync"
 	"time"
 )
@@ -24,6 +25,7 @@ type AddressHistoryRepository interface {
 	GetHistoryByHash(n network.Network, hash, txType string, dir bool, size, page int) ([]*explorer.AddressHistory, int64, error)
 	GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error)
 	GetStakingChart(n network.Network, period, hash string) (groups []*entity.StakingGroup, err error)
+	StakingRewardsForAddresses(n network.Network, addresses []string) ([]*entity.StakingReward, error)
 }
 
 var (
@@ -389,6 +391,75 @@ func (r *addressHistoryRepository) GetStakingChart(n network.Network, period str
 	}
 
 	return groups, err
+}
+
+func (r *addressHistoryRepository) StakingRewardsForAddresses(n network.Network, addresses []string) ([]*entity.StakingReward, error) {
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewMatchQuery("hash", strings.Join(addresses, " ")))
+	query = query.Must(elastic.NewTermQuery("is_stake", "true"))
+
+	now := time.Now().UTC().Truncate(time.Second)
+
+	agg := elastic.NewTermsAggregation().Field("hash.keyword")
+	agg.SubAggregation("last24Hours", dateGroupAgg(now.Add(-(time.Hour*24)), now))
+	agg.SubAggregation("last7Days", dateGroupAgg(now.Add(-(time.Hour*24*7)), now))
+	agg.SubAggregation("last30Days", dateGroupAgg(now.Add(-(time.Hour*24*30)), now))
+	agg.SubAggregation("lastYear", dateGroupAgg(now.Add(-(time.Hour*24*365)), now))
+	agg.SubAggregation("all", dateGroupAgg(now.AddDate(-100, 0, 0), now))
+
+	service := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(n))
+	service.Query(query)
+	service.Size(0)
+	service.Aggregation("groups", agg)
+
+	results, err := service.Do(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	rewards := make([]*entity.StakingReward, 0)
+	if agg, found := results.Aggregations.Terms("groups"); found {
+
+		for _, bucket := range agg.Buckets {
+			reward := &entity.StakingReward{Address: bucket.Key.(string)}
+			reward.Periods = append(reward.Periods, stakingPeriodResults(bucket, "last24Hours"))
+			reward.Periods = append(reward.Periods, stakingPeriodResults(bucket, "last7Days"))
+			reward.Periods = append(reward.Periods, stakingPeriodResults(bucket, "last30Days"))
+			reward.Periods = append(reward.Periods, stakingPeriodResults(bucket, "lastYear"))
+			reward.Periods = append(reward.Periods, stakingPeriodResults(bucket, "all"))
+
+			rewards = append(rewards, reward)
+		}
+	}
+
+	return rewards, nil
+}
+
+func dateGroupAgg(from time.Time, to time.Time) (aggregation *elastic.RangeAggregation) {
+	aggregation = elastic.NewRangeAggregation().Field("time").AddRange(from, to)
+	aggregation.SubAggregation("changes", elastic.NewNestedAggregation().Path("changes").
+		SubAggregation("stakable", elastic.NewSumAggregation().Field("changes.stakable")))
+
+	return
+}
+
+func stakingPeriodResults(bucket *elastic.AggregationBucketKeyItem, periodName string) *entity.StakingRewardPeriod {
+	rewardPeriod := &entity.StakingRewardPeriod{Period: periodName}
+
+	if period, found := bucket.Aggregations.Range(rewardPeriod.Period); found {
+		aggBucket := period.Buckets[0]
+
+		balance := int64(0)
+		changes, _ := aggBucket.Aggregations.Nested("changes")
+		if stakedValue, found := changes.Aggregations.Sum("stakable"); found {
+			balance += int64(*stakedValue.Value)
+		}
+
+		rewardPeriod.Stakes = aggBucket.DocCount
+		rewardPeriod.Balance = balance
+	}
+
+	return rewardPeriod
 }
 
 func (r *addressHistoryRepository) findOne(results *elastic.SearchResult, err error) (*explorer.AddressHistory, error) {
