@@ -63,10 +63,21 @@ func (r *DistributionResource) GetWealth(c *gin.Context) {
 	}
 
 	distribution, err := r.addressService.GetPublicWealthDistribution(n, b)
+	publicSupply, err := r.supplyService.GetPublicSupply(n)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
 	c.JSON(200, distribution)
+	privateSupply, err := r.supplyService.GetPrivateSupply(n)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, &DistributionSupplyResponse{
+		Public:  publicSupply,
+		Private: privateSupply,
+	})
 }
