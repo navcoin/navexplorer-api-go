@@ -42,7 +42,7 @@ func (s *Subscriber) Subscribe() {
 func react(s *Subscriber, network network.Network) func(string) {
 	return func(msg string) {
 		log.Infof("Block %s indexed for %s", msg, network)
-		s.cache.Refresh(network.ToString())
+		s.cache.Refresh(network.String())
 
 		return
 	}

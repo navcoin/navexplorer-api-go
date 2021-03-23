@@ -47,8 +47,9 @@ func (r *cachingAddressHistoryRepository) GetHistoryByHash(n network.Network, ha
 func (r *cachingAddressHistoryRepository) GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error) {
 	addressGroup := make([]entity.AddressGroup, count)
 
+	cacheKey := r.cache.GenerateKey(n.String(), "addressGroups", fmt.Sprintf("%s.%d", string(*period), count), nil)
 	result, err := r.cache.Get(
-		fmt.Sprintf("%s.address.groups.%s.%d", n.ToString(), string(*period), count),
+		cacheKey,
 		func() (interface{}, error) {
 			return r.repository.GetAddressGroups(n, period, count)
 		},

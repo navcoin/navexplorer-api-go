@@ -1,7 +1,7 @@
 package address
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework/pagination"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address/entity"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/group"
@@ -12,11 +12,11 @@ import (
 
 type Service interface {
 	GetAddress(n network.Network, hash string) (*explorer.Address, error)
-	GetAddresses(n network.Network, config *pagination.Config) ([]*explorer.Address, int64, error)
+	GetAddresses(n network.Network, pagination framework.Pagination) ([]*explorer.Address, int64, error)
 	GetAddressSummary(n network.Network, hash string) (*entity.AddressSummary, error)
 	GetStakingChart(n network.Network, period string, address string) ([]*entity.StakingGroup, error)
 	GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error)
-	GetHistory(n network.Network, hash string, txType string, config *pagination.Config) ([]*explorer.AddressHistory, int64, error)
+	GetHistory(n network.Network, hash string, txType string, pagintaion framework.Pagination) ([]*explorer.AddressHistory, int64, error)
 	GetAssociatedStakingAddresses(n network.Network, address string) ([]string, error)
 	GetNamedAddresses(n network.Network, addresses []string) ([]*explorer.Address, error)
 	ValidateAddress(n network.Network, hash string) (bool, error)
@@ -55,12 +55,12 @@ func (s *service) GetAddress(n network.Network, hash string) (*explorer.Address,
 	return address, err
 }
 
-func (s *service) GetAddresses(n network.Network, config *pagination.Config) ([]*explorer.Address, int64, error) {
-	return s.addressRepository.GetAddresses(n, config.Size, config.Page)
+func (s *service) GetAddresses(n network.Network, pagination framework.Pagination) ([]*explorer.Address, int64, error) {
+	return s.addressRepository.GetAddresses(n, pagination.Size(), pagination.Page())
 }
 
-func (s *service) GetHistory(n network.Network, hash string, txType string, config *pagination.Config) ([]*explorer.AddressHistory, int64, error) {
-	return s.addressHistoryRepository.GetHistoryByHash(n, hash, txType, config.Ascending, config.Size, config.Page)
+func (s *service) GetHistory(n network.Network, hash string, txType string, pagination framework.Pagination) ([]*explorer.AddressHistory, int64, error) {
+	return s.addressHistoryRepository.GetHistoryByHash(n, hash, txType, false, pagination.Size(), pagination.Page())
 }
 
 func (s *service) GetAddressSummary(n network.Network, hash string) (*entity.AddressSummary, error) {

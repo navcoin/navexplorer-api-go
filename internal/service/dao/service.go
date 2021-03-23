@@ -1,7 +1,7 @@
 package dao
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework/pagination"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao/entity"
@@ -16,23 +16,23 @@ type Service interface {
 	GetConsensus(n network.Network) (*explorer.ConsensusParameters, error)
 	GetCfundStats(n network.Network) (*entity.CfundStats, error)
 
-	GetProposals(n network.Network, parameters ProposalParameters, config *pagination.Config) ([]*explorer.Proposal, int64, error)
+	GetProposals(n network.Network, parameters ProposalParameters, pagination framework.Pagination) ([]*explorer.Proposal, int64, error)
 	GetProposal(n network.Network, hash string) (*explorer.Proposal, error)
 	GetVotingCycles(n network.Network, element explorer.ChainHeight, count uint) ([]*entity.VotingCycle, error)
 	GetProposalVotes(n network.Network, hash string) ([]*entity.CfundVote, error)
 	GetProposalTrend(n network.Network, hash string) ([]*entity.CfundTrend, error)
 
-	GetPaymentRequests(n network.Network, parameters PaymentRequestParameters, config *pagination.Config) ([]*explorer.PaymentRequest, int64, error)
+	GetPaymentRequests(n network.Network, parameters PaymentRequestParameters, pagination framework.Pagination) ([]*explorer.PaymentRequest, int64, error)
 	GetPaymentRequestsForProposal(n network.Network, proposal *explorer.Proposal) ([]*explorer.PaymentRequest, error)
 	GetPaymentRequest(n network.Network, hash string) (*explorer.PaymentRequest, error)
 	GetPaymentRequestVotes(n network.Network, hash string) ([]*entity.CfundVote, error)
 	GetPaymentRequestTrend(n network.Network, hash string) ([]*entity.CfundTrend, error)
 
-	GetConsultations(n network.Network, parameters ConsultationParameters, config *pagination.Config) ([]*explorer.Consultation, int64, error)
+	GetConsultations(n network.Network, parameters ConsultationParameters, pagination framework.Pagination) ([]*explorer.Consultation, int64, error)
 	GetConsultation(n network.Network, hash string) (*explorer.Consultation, error)
 	GetAnswer(n network.Network, hash string) (*explorer.Answer, error)
 	GetAnswerVotes(n network.Network, consultationHash string, hash string) ([]*entity.CfundVote, error)
-	GetConsensusConsultations(n network.Network, config *pagination.Config) ([]*explorer.Consultation, int64, error)
+	GetConsensusConsultations(n network.Network, pagination framework.Pagination) ([]*explorer.Consultation, int64, error)
 }
 
 type service struct {
@@ -133,14 +133,14 @@ func (s *service) GetCfundStats(n network.Network) (*entity.CfundStats, error) {
 	return cfundStats, nil
 }
 
-func (s *service) GetProposals(n network.Network, parameters ProposalParameters, config *pagination.Config) ([]*explorer.Proposal, int64, error) {
+func (s *service) GetProposals(n network.Network, parameters ProposalParameters, pagination framework.Pagination) ([]*explorer.Proposal, int64, error) {
 	var status *explorer.ProposalStatus
 	if parameters.State != nil && explorer.IsProposalStateValid(*parameters.State) {
 		s := explorer.GetProposalStatusByState(*parameters.State)
 		status = &s
 	}
 
-	return s.proposalRepository.GetProposals(n, status, config.Ascending, config.Size, config.Page)
+	return s.proposalRepository.GetProposals(n, status, false, pagination.Size(), pagination.Page())
 }
 
 func (s *service) GetProposal(n network.Network, hash string) (*explorer.Proposal, error) {
@@ -237,7 +237,7 @@ func (s *service) GetProposalTrend(n network.Network, hash string) ([]*entity.Cf
 	return cfundTrends, nil
 }
 
-func (s *service) GetPaymentRequests(n network.Network, parameters PaymentRequestParameters, config *pagination.Config) ([]*explorer.PaymentRequest, int64, error) {
+func (s *service) GetPaymentRequests(n network.Network, parameters PaymentRequestParameters, pagination framework.Pagination) ([]*explorer.PaymentRequest, int64, error) {
 	var status *explorer.PaymentRequestStatus
 	if parameters.State != nil && explorer.IsPaymentRequestStateValid(*parameters.State) {
 		s := explorer.GetPaymentRequestStatusByState(*parameters.State)
@@ -249,7 +249,7 @@ func (s *service) GetPaymentRequests(n network.Network, parameters PaymentReques
 		hash = parameters.Proposal
 	}
 
-	return s.paymentRequestRepository.GetPaymentRequests(n, hash, status, config.Ascending, config.Size, config.Page)
+	return s.paymentRequestRepository.GetPaymentRequests(n, hash, status, false, pagination.Size(), pagination.Page())
 }
 
 func (s *service) GetPaymentRequestsForProposal(n network.Network, proposal *explorer.Proposal) ([]*explorer.PaymentRequest, error) {
@@ -319,13 +319,13 @@ func (s *service) GetPaymentRequestTrend(n network.Network, hash string) ([]*ent
 	return cfundTrends, nil
 }
 
-func (s *service) GetConsultations(n network.Network, parameters ConsultationParameters, config *pagination.Config) ([]*explorer.Consultation, int64, error) {
+func (s *service) GetConsultations(n network.Network, parameters ConsultationParameters, pagination framework.Pagination) ([]*explorer.Consultation, int64, error) {
 	if parameters.State != nil && explorer.IsConsultationStateValid(*parameters.State) {
 		s := explorer.GetConsultationStatusByState(*parameters.State)
 		parameters.Status = &s
 	}
 
-	return s.consultationRepository.GetConsultations(n, parameters.Status, parameters.Consensus, parameters.Min, config.Ascending, config.Size, config.Page)
+	return s.consultationRepository.GetConsultations(n, parameters.Status, parameters.Consensus, parameters.Min, false, pagination.Size(), pagination.Page())
 }
 
 func (s *service) GetConsultation(n network.Network, hash string) (*explorer.Consultation, error) {
@@ -360,8 +360,8 @@ func (s *service) GetAnswerVotes(n network.Network, consultationHash string, has
 	return s.voteRepository.GetVotes(n, explorer.DaoVote, hash, votingCycles)
 }
 
-func (s *service) GetConsensusConsultations(n network.Network, config *pagination.Config) ([]*explorer.Consultation, int64, error) {
-	return s.consultationRepository.GetConsensusConsultations(n, config.Ascending, config.Size, config.Page)
+func (s *service) GetConsensusConsultations(n network.Network, pagination framework.Pagination) ([]*explorer.Consultation, int64, error) {
+	return s.consultationRepository.GetConsensusConsultations(n, false, pagination.Size(), pagination.Page())
 }
 
 func (s *service) getMax(n network.Network, status string, stateChangedOnBlock string) (uint, error) {

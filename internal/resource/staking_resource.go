@@ -42,19 +42,13 @@ func NewStakingResource(stakingService service.StakingService) *StakingResource 
 //
 
 func (r *StakingResource) GetStakingRewardsForAddresses(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
 	addresses := strings.Split(c.Query("addresses"), ",")
 	if len(addresses) == 0 {
 		handleError(c, errors.New("No addresses provided"), http.StatusBadRequest)
 		return
 	}
 
-	rewards, err := r.stakingService.GetStakingRewardsForAddresses(n, addresses)
+	rewards, err := r.stakingService.GetStakingRewardsForAddresses(network(c), addresses)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return

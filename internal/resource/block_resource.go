@@ -3,7 +3,7 @@ package resource
 import (
 	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/cache"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework/pagination"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework/paginator"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao"
@@ -24,15 +24,10 @@ func NewBlockResource(blockService block.Service, daoService dao.Service, cache 
 }
 
 func (r *BlockResource) GetBestBlock(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
+	b, err := r.blockService.GetBestBlock(network(c))
 
-	b, err := r.blockService.GetBestBlock(n)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		errorInternalServerError(c, err.Error())
 		return
 	}
 
@@ -40,15 +35,10 @@ func (r *BlockResource) GetBestBlock(c *gin.Context) {
 }
 
 func (r *BlockResource) GetBestBlockCycle(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
 
-	b, err := r.blockService.GetBestBlock(n)
+	b, err := r.blockService.GetBestBlock(network(c))
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		errorInternalServerError(c, err.Error())
 		return
 	}
 
@@ -56,12 +46,6 @@ func (r *BlockResource) GetBestBlockCycle(c *gin.Context) {
 }
 
 func (r *BlockResource) GetBlockGroups(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
 	period := group.GetPeriod(c.DefaultQuery("period", "daily"))
 	if period == nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -76,7 +60,7 @@ func (r *BlockResource) GetBlockGroups(c *gin.Context) {
 		count = 10
 	}
 
-	groups, err := r.blockService.GetBlockGroups(n, period, count)
+	groups, err := r.blockService.GetBlockGroups(network(c), period, count)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -86,14 +70,8 @@ func (r *BlockResource) GetBlockGroups(c *gin.Context) {
 }
 
 func (r *BlockResource) GetBlock(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
 	hash := c.Param("hash")
-	b, err := r.blockService.GetBlock(n, hash)
+	b, err := r.blockService.GetBlock(network(c), hash)
 	if err == repository.ErrBlockNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
@@ -107,13 +85,7 @@ func (r *BlockResource) GetBlock(c *gin.Context) {
 }
 
 func (r *BlockResource) GetBlockCycle(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
-	b, err := r.blockService.GetBlock(n, c.Param("hash"))
+	b, err := r.blockService.GetBlock(network(c), c.Param("hash"))
 	if err == repository.ErrBlockNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
@@ -123,7 +95,7 @@ func (r *BlockResource) GetBlockCycle(c *gin.Context) {
 		return
 	}
 
-	bc, err := r.daoService.GetBlockCycleByBlock(n, b)
+	bc, err := r.daoService.GetBlockCycleByBlock(network(c), b)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -133,34 +105,20 @@ func (r *BlockResource) GetBlockCycle(c *gin.Context) {
 }
 
 func (r *BlockResource) GetBlocks(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
-	cfg, _ := pagination.Bind(c)
-
-	blocks, total, err := r.blockService.GetBlocks(n, cfg)
+	blocks, total, err := r.blockService.GetBlocks(network(c), pagination(c))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
 	}
 
-	paginator := pagination.NewPaginator(len(blocks), total, cfg)
-	paginator.WriteHeader(c)
+	paginate := paginator.NewPaginator(len(blocks), total, pagination(c))
+	paginate.WriteHeader(c)
 
 	c.JSON(200, blocks)
 }
 
 func (r *BlockResource) GetRawBlock(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
-	b, err := r.blockService.GetRawBlock(n, c.Param("hash"))
+	b, err := r.blockService.GetRawBlock(network(c), c.Param("hash"))
 	if err == repository.ErrBlockNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
@@ -174,13 +132,7 @@ func (r *BlockResource) GetRawBlock(c *gin.Context) {
 }
 
 func (r *BlockResource) GetTransactionsByBlock(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
-	tx, err := r.blockService.GetTransactionsByBlockHash(n, c.Param("hash"))
+	tx, err := r.blockService.GetTransactionsByBlockHash(network(c), c.Param("hash"))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -190,19 +142,13 @@ func (r *BlockResource) GetTransactionsByBlock(c *gin.Context) {
 }
 
 func (r *BlockResource) GetTransactionByHash(c *gin.Context) {
-	n, err := getNetwork(c)
+	tx, err := r.blockService.GetTransactionByHash(network(c), c.Param("hash"))
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
-	tx, err := r.blockService.GetTransactionByHash(n, c.Param("hash"))
-	if err == repository.ErrBlockNotFound {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
-		return
-	}
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		if err == repository.ErrBlockNotFound {
+			errorNotFound(c, err.Error())
+		} else {
+			errorInternalServerError(c, err.Error())
+		}
 		return
 	}
 
@@ -210,19 +156,13 @@ func (r *BlockResource) GetTransactionByHash(c *gin.Context) {
 }
 
 func (r *BlockResource) GetRawTransactionByHash(c *gin.Context) {
-	n, err := getNetwork(c)
+	tx, err := r.blockService.GetRawTransactionByHash(network(c), c.Param("hash"))
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
-	tx, err := r.blockService.GetRawTransactionByHash(n, c.Param("hash"))
-	if err == repository.ErrBlockNotFound {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
-		return
-	}
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		if err == repository.ErrBlockNotFound {
+			errorNotFound(c, err.Error())
+		} else {
+			errorInternalServerError(c, err.Error())
+		}
 		return
 	}
 
@@ -230,38 +170,28 @@ func (r *BlockResource) GetRawTransactionByHash(c *gin.Context) {
 }
 
 func (r *BlockResource) GetTransactions(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
-	cfg, _ := pagination.Bind(c)
+	req := rest(c)
 
 	callback := func() (interface{}, error) {
-		txs, total, err := r.blockService.GetTransactions(n, cfg, true, true)
+		txs, total, err := r.blockService.GetTransactions(req.Network(), req)
 		e := make([]interface{}, len(txs))
 		for i, v := range txs {
 			e[i] = v
 		}
-		return pagination.Paginated{
-			Elements: e,
-			Total:    total,
-		}, err
+		return paginator.Paginated{Elements: e, Total: total}, err
 	}
 
-	paginated, err := r.cache.Get(
-		fmt.Sprintf("%s.txs.%s", n.ToString(), cfg.ToString()),
-		callback,
-		cache.RefreshingExpiration,
-	)
+	cacheKey := fmt.Sprintf("%s.GetTransactions(%s)", req.Network(), req.Query())
+	response, err := r.cache.Get(cacheKey, callback, cache.RefreshingExpiration)
+	transactions := response.(paginator.Paginated).Elements
+
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		errorInternalServerError(c, err.Error())
 		return
 	}
 
-	paginator := pagination.NewPaginator(len(paginated.(pagination.Paginated).Elements), paginated.(pagination.Paginated).Total, cfg)
-	paginator.WriteHeader(c)
+	paginate := paginator.NewPaginator(len(transactions), response.(paginator.Paginated).Total, req.Pagination())
+	paginate.WriteHeader(c)
 
-	c.JSON(200, paginated.(pagination.Paginated).Elements)
+	c.JSON(200, transactions)
 }

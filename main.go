@@ -38,6 +38,7 @@ func main() {
 	r.Use(framework.NetworkSelect)
 	r.Use(framework.Options)
 	r.Use(framework.ErrorHandler)
+	r.Use(framework.RR())
 
 	r.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "Welcome to NavExplorer API!")

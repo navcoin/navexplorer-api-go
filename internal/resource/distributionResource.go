@@ -26,29 +26,21 @@ func NewDistributionResource(addressService address.Service, blockService block.
 }
 
 func (r *DistributionResource) GetSupply(c *gin.Context) {
-	n, err := getNetwork(c)
-
-	block, err := r.blockService.GetBestBlock(n)
+	bestBlock, err := r.blockService.GetBestBlock(network(c))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
 		return
 	}
 
 	c.JSON(200, &DistributionSupplyResponse{
-		Total:   float64(block.SupplyBalance.Public+block.SupplyBalance.Private+block.SupplyBalance.Wrapped) / 100000000,
-		Public:  float64(block.SupplyBalance.Public) / 100000000,
-		Private: float64(block.SupplyBalance.Private) / 100000000,
-		Wrapped: float64(block.SupplyBalance.Wrapped) / 100000000,
+		Total:   float64(bestBlock.SupplyBalance.Public+bestBlock.SupplyBalance.Private+bestBlock.SupplyBalance.Wrapped) / 100000000,
+		Public:  float64(bestBlock.SupplyBalance.Public) / 100000000,
+		Private: float64(bestBlock.SupplyBalance.Private) / 100000000,
+		Wrapped: float64(bestBlock.SupplyBalance.Wrapped) / 100000000,
 	})
 }
 
 func (r *DistributionResource) GetWealth(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
 	groupsQuery := c.DefaultQuery("groups", "10,100,1000")
 	if groupsQuery == "" {
 		groupsQuery = "10,100,1000"
@@ -62,22 +54,11 @@ func (r *DistributionResource) GetWealth(c *gin.Context) {
 		b[i], _ = strconv.Atoi(v)
 	}
 
-	distribution, err := r.addressService.GetPublicWealthDistribution(n, b)
-	publicSupply, err := r.supplyService.GetPublicSupply(n)
+	distribution, err := r.addressService.GetPublicWealthDistribution(network(c), b)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
 	c.JSON(200, distribution)
-	privateSupply, err := r.supplyService.GetPrivateSupply(n)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
-		return
-	}
-
-	c.JSON(200, &DistributionSupplyResponse{
-		Public:  publicSupply,
-		Private: privateSupply,
-	})
 }

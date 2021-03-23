@@ -16,7 +16,7 @@ var (
 	ErrNetworkNotFound = errors.New("Network not found")
 )
 
-func (n *Network) ToString() string {
+func (n *Network) String() string {
 	return fmt.Sprintf("%s.%s", n.Name, n.Index)
 }
 

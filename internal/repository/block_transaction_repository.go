@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/elastic_cache"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
@@ -11,13 +12,11 @@ import (
 )
 
 type BlockTransactionRepository interface {
-	GetTransactions(n network.Network, asc bool, size, page int, ignoreCoinbase, ignoreStaking bool) ([]*explorer.BlockTransaction, int64, error)
+	GetTransactions(n network.Network, p framework.Pagination, s framework.Sort, f framework.Filter) ([]*explorer.BlockTransaction, int64, error)
 	GetTransactionsByBlock(n network.Network, block *explorer.Block) ([]*explorer.BlockTransaction, error)
 	GetTransactionByHash(n network.Network, hash string) (*explorer.BlockTransaction, error)
 	GetRawTransactionByHash(n network.Network, hash string) (*explorer.RawBlockTransaction, error)
-	GetTotalAmountByOutputType(n network.Network, voutType explorer.VoutType) (*float64, error)
 	GetAssociatedStakingAddresses(n network.Network, address string) ([]string, error)
-	GetPrivateSupply(n network.Network) (supply float64, err error)
 }
 
 type blockTransactionRepository struct {
@@ -28,22 +27,31 @@ func NewBlockTransactionRepository(elastic *elastic_cache.Index) BlockTransactio
 	return &blockTransactionRepository{elastic: elastic}
 }
 
-func (r *blockTransactionRepository) GetTransactions(n network.Network, asc bool, size, page int, ignoreCoinbase, ignoreStaking bool) ([]*explorer.BlockTransaction, int64, error) {
+func isSupportedFilter() []string {
+	return []string{"include_coinbase_txs", "include_staking_txs"}
+}
+
+func (r *blockTransactionRepository) GetTransactions(n network.Network, p framework.Pagination, s framework.Sort, f framework.Filter) ([]*explorer.BlockTransaction, int64, error) {
 	query := elastic.NewBoolQuery()
-	if ignoreCoinbase {
+
+	options := f.OnlySupportedOptions([]string{"include_coinbase_txs", "include_staking_txs"})
+
+	if option, err := options.GetAsBool("include_coinbase_txs"); err == nil && option == false {
 		query = query.MustNot(elastic.NewTermQuery("type", "coinbase"))
 	}
-	if ignoreStaking {
+
+	if option, err := options.GetAsBool("include_staking_txs"); err == nil && option == false {
 		query = query.MustNot(elastic.NewTermsQuery("type", "staking", "cold_staking", "cold_staking_v2"))
 	}
 
-	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get(n)).
-		Query(query).
-		Sort("height", asc).
-		From((page * size) - size).
-		Size(size).
-		TrackTotalHits(true).
-		Do(context.Background())
+	service := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get(n))
+	service.Query(query)
+	sort(service, s)
+
+	service.Size(p.Size())
+	service.TrackTotalHits(true)
+
+	results, err := service.Do(context.Background())
 	if err != nil {
 		return nil, 0, err
 	}
@@ -90,33 +98,6 @@ func (r *blockTransactionRepository) GetRawTransactionByHash(n network.Network, 
 	return rawTx, err
 }
 
-func (r *blockTransactionRepository) GetTotalAmountByOutputType(n network.Network, voutType explorer.VoutType) (*float64, error) {
-	typeAgg := elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("vout.scriptPubKey.type.keyword", voutType))
-	typeAgg.SubAggregation("value", elastic.NewSumAggregation().Field("vout.value"))
-
-	agg := elastic.NewNestedAggregation().Path("vout")
-	agg.SubAggregation("vout", typeAgg)
-
-	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get(n)).
-		Aggregation("total", agg).
-		Size(0).
-		Do(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	total := new(float64)
-	if agg, found := results.Aggregations.Nested("total"); found {
-		if agg, found = agg.Aggregations.Filter("vout"); found {
-			if value, found := agg.Aggregations.Sum("value"); found {
-				total = value.Value
-			}
-		}
-	}
-
-	return total, nil
-}
-
 func (r *blockTransactionRepository) GetAssociatedStakingAddresses(n network.Network, address string) ([]string, error) {
 	stakingAddresses := make([]string, 0)
 
@@ -152,32 +133,6 @@ func (r *blockTransactionRepository) GetAssociatedStakingAddresses(n network.Net
 	}
 
 	return stakingAddresses, err
-}
-
-func (r *blockTransactionRepository) GetPrivateSupply(n network.Network) (float64, error) {
-	inputAgg := elastic.NewNestedAggregation().Path("vin")
-	inputAgg.SubAggregation("total", elastic.NewSumAggregation().Field("vin.valuesat"))
-
-	outputAgg := elastic.NewNestedAggregation().Path("vout")
-	outputAgg.SubAggregation("total", elastic.NewSumAggregation().Field("vout.valuesat"))
-
-	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get(n)).
-		Aggregation("inputs", inputAgg).
-		Aggregation("outputs", outputAgg).
-		Query(elastic.NewTermQuery("private", true)).
-		Size(0).
-		Do(context.Background())
-	if err != nil {
-		return 0.0, err
-	}
-
-	inputs, _ := results.Aggregations.Nested("inputs")
-	inputTotal, _ := inputs.Aggregations.Sum("total")
-
-	outputs, _ := results.Aggregations.Nested("outputs")
-	outputTotal, _ := outputs.Aggregations.Sum("total")
-
-	return (*inputTotal.Value - *outputTotal.Value) / 100000000, nil
 }
 
 func (r *blockTransactionRepository) findOne(results *elastic.SearchResult, err error) (*explorer.BlockTransaction, error) {

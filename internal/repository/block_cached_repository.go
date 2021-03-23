@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/cache"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/block/entity"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
@@ -18,8 +17,10 @@ func NewCachingBlockRepository(repository BlockRepository, cache *cache.Cache) B
 }
 
 func (r *cachingBlockRepository) GetBestBlock(n network.Network) (*explorer.Block, error) {
+	cacheKey := r.cache.GenerateKey(n.String(), "best-block", "", nil)
+
 	result, err := r.cache.Get(
-		fmt.Sprintf("%s.best-block", n.ToString()),
+		cacheKey,
 		func() (interface{}, error) {
 			return r.repository.GetBestBlock(n)
 		},

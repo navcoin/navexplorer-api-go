@@ -1,7 +1,9 @@
 package cache
 
 import (
+	"crypto/md5"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -59,6 +61,23 @@ type cache struct {
 	mu                sync.RWMutex
 	onEvicted         func(string, interface{})
 	janitor           *janitor
+}
+
+func (c *cache) GenerateKey(network string, name string, args string, filters interface{}) string {
+	var key strings.Builder
+	fmt.Fprintf(&key, "%s.%s", network, name)
+
+	if args != "" {
+		fmt.Fprintf(&key, ".args(%s)", args)
+	}
+	if filters != nil {
+		jsonFilters, _ := json.Marshal(filters)
+		fmt.Fprintf(&key, ".filters(%s)", string(jsonFilters))
+	}
+
+	log.Debug("Cache key " + key.String())
+
+	return fmt.Sprintf("%x", md5.Sum([]byte(key.String())))
 }
 
 // Add an item to the cache, replacing any existing item. If the duration is 0
