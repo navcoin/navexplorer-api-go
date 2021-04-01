@@ -105,13 +105,27 @@ func (r *BlockResource) GetBlockCycle(c *gin.Context) {
 }
 
 func (r *BlockResource) GetBlocks(c *gin.Context) {
-	blocks, total, err := r.blockService.GetBlocks(network(c), pagination(c))
+	req := rest(c)
+
+	callback := func() (interface{}, error) {
+		txs, total, err := r.blockService.GetBlocks(req.Network(), req)
+		e := make([]interface{}, len(txs))
+		for i, v := range txs {
+			e[i] = v
+		}
+		return paginator.Paginated{Elements: e, Total: total}, err
+	}
+
+	cacheKey := fmt.Sprintf("%s.GetBlocks(%s)", req.Network(), req.Query())
+	response, err := r.cache.Get(cacheKey, callback, cache.RefreshingExpiration)
+	blocks := response.(paginator.Paginated).Elements
+
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		errorInternalServerError(c, err.Error())
 		return
 	}
 
-	paginate := paginator.NewPaginator(len(blocks), total, pagination(c))
+	paginate := paginator.NewPaginator(len(blocks), response.(paginator.Paginated).Total, req.Pagination())
 	paginate.WriteHeader(c)
 
 	c.JSON(200, blocks)
@@ -167,6 +181,18 @@ func (r *BlockResource) GetRawTransactionByHash(c *gin.Context) {
 	}
 
 	c.JSON(200, tx)
+}
+
+func (r *BlockResource) CountTransactions(c *gin.Context) {
+	req := rest(c)
+
+	count, err := r.blockService.CountTransactions(req.Network())
+	if err != nil {
+		errorInternalServerError(c, err.Error())
+		return
+	}
+
+	c.JSON(200, count)
 }
 
 func (r *BlockResource) GetTransactions(c *gin.Context) {

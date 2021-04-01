@@ -53,7 +53,7 @@ func (r *addressRepository) GetAddresses(n network.Network, size, page int) ([]*
 
 func (r *addressRepository) GetAddressByHash(n network.Network, hash string) (*explorer.Address, error) {
 	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
-		Query(elastic.NewTermQuery("hash.keyword", hash)).
+		Query(elastic.NewMatchQuery("hash", hash)).
 		Size(1).
 		Do(context.Background())
 

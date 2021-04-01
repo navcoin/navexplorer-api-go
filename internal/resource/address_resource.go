@@ -5,11 +5,9 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/cache"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework/paginator"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/resource/dto"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/group"
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 	"strings"
@@ -66,23 +64,16 @@ func (r *AddressResource) GetSummary(c *gin.Context) {
 }
 
 func (r *AddressResource) GetHistory(c *gin.Context) {
-	var parameters dto.HistoryParameters
-	if err := c.BindQuery(&parameters); err != nil {
-		log.WithError(err).Error("Failed to bind query")
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid request", "status": http.StatusBadRequest,
-		})
-		return
-	}
+	req := rest(c)
 
-	history, total, err := r.addressService.GetHistory(network(c), c.Param("hash"), string(parameters.TxType), pagination(c))
+	history, total, err := r.addressService.GetHistory(req.Network(), c.Param("hash"), req)
 	if err != nil {
 		errorInternalServerError(c, err.Error())
 		return
 	}
 
-	paginator := paginator.NewPaginator(len(history), total, pagination(c))
-	paginator.WriteHeader(c)
+	paginate := paginator.NewPaginator(len(history), total, req.Pagination())
+	paginate.WriteHeader(c)
 
 	c.JSON(200, history)
 }

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/cache"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/block/entity"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
@@ -34,8 +35,8 @@ func (r *cachingBlockRepository) GetBestBlock(n network.Network) (*explorer.Bloc
 	return result.(*explorer.Block), err
 }
 
-func (r *cachingBlockRepository) GetBlocks(n network.Network, asc bool, size int, page int, bestBlock *explorer.Block) ([]*explorer.Block, int64, error) {
-	return r.repository.GetBlocks(n, asc, size, page, bestBlock)
+func (r *cachingBlockRepository) GetBlocks(n network.Network, p framework.Pagination, s framework.Sort, f framework.Filters, bestBlock *explorer.Block) ([]*explorer.Block, int64, error) {
+	return r.repository.GetBlocks(n, p, s, f, bestBlock)
 }
 
 func (r *cachingBlockRepository) GetBlockGroups(n network.Network, period string, count int) ([]*entity.BlockGroup, error) {

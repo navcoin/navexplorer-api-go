@@ -11,7 +11,7 @@ type SoftForkCycle struct {
 }
 
 func GetBlocksInCycle(network network.Network) uint64 {
-	if network.Name == "testnet" {
+	if network.Name != "mainnet" {
 		return 800
 	}
 

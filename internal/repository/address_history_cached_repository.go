@@ -3,6 +3,7 @@ package repository
 import (
 	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/cache"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address/entity"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/group"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
@@ -40,8 +41,8 @@ func (r *cachingAddressHistoryRepository) GetSpendSummary(n network.Network, has
 	return r.repository.GetSpendSummary(n, hash)
 }
 
-func (r *cachingAddressHistoryRepository) GetHistoryByHash(n network.Network, hash, txType string, dir bool, size, page int) ([]*explorer.AddressHistory, int64, error) {
-	return r.repository.GetHistoryByHash(n, hash, txType, dir, size, page)
+func (r *cachingAddressHistoryRepository) GetHistoryByHash(n network.Network, hash string, p framework.Pagination, s framework.Sort, f framework.Filters) ([]*explorer.AddressHistory, int64, error) {
+	return r.repository.GetHistoryByHash(n, hash, p, s, f)
 }
 
 func (r *cachingAddressHistoryRepository) GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error) {

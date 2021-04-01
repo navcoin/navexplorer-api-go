@@ -5,12 +5,16 @@ import (
 	"github.com/olivere/elastic/v7"
 )
 
-func sort(service *elastic.SearchService, sorter framework.Sort) {
+type defaultSort struct {
+	Field     string
+	Ascending bool
+}
+
+func sort(service *elastic.SearchService, sorter framework.Sort, defaultSort *defaultSort) {
 	for _, so := range sorter.Options() {
 		service.Sort(so.Field(), so.Direction().Value())
 	}
-	if sorter.IsEmpty() {
-		service.Sort("txheight", false)
+	if sorter.IsEmpty() && defaultSort != nil {
+		service.Sort(defaultSort.Field, defaultSort.Ascending)
 	}
-
 }

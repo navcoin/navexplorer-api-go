@@ -4,51 +4,59 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"strconv"
+	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
 var ErrInvalidFilterValue = errors.New("The filter parameter is an invalid format")
 
-type Filter interface {
+type Filters interface {
 	Options() FilterOptions
 	OnlySupportedOptions(supported []string) FilterOptions
 	IsEmpty() bool
 }
 
-type filter struct {
+type filters struct {
 	options FilterOptions
 }
 
-func newFilter(options FilterOptions) Filter {
-	return &filter{
+func newFilters(options FilterOptions) Filters {
+	for _, o := range options {
+		log.Infof("%s = %s", o.Field(), o.Values())
+	}
+	return &filters{
 		options: options,
 	}
 }
 
-func newFilterFromContext(c *gin.Context) (Filter, error) {
-	sortQuery, exists := c.GetQuery("filter")
+func newFiltersFromContext(c *gin.Context) (Filters, error) {
+	sortQuery, exists := c.GetQuery("filters")
 	if exists == false {
-		return newFilter(nil), nil
+		return newFilters(nil), nil
 	}
 
 	options := make([]FilterOption, 0)
 	for _, param := range strings.Split(sortQuery, ",") {
 		optionArray := strings.Split(param, ":")
 		if len(optionArray) != 2 {
-			return newFilter(nil), ErrInvalidFilterValue
+			return newFilters(nil), ErrInvalidFilterValue
 		}
-		options = append(options, NewFilterOption(optionArray[0], optionArray[1]))
+
+		values := make([]interface{}, 0)
+		for _, v := range strings.Split(optionArray[1], "|") {
+			values = append(values, v)
+		}
+		options = append(options, NewFilterOption(optionArray[0], values))
 	}
 
-	return newFilter(options), nil
+	return newFilters(options), nil
 }
 
-func (f *filter) Options() FilterOptions {
+func (f *filters) Options() FilterOptions {
 	return f.options
 }
 
-func (f *filter) OnlySupportedOptions(supportedOptions []string) FilterOptions {
+func (f *filters) OnlySupportedOptions(supportedOptions []string) FilterOptions {
 	result := make(FilterOptions, 0)
 
 	for _, option := range f.options {
@@ -61,7 +69,7 @@ func (f *filter) OnlySupportedOptions(supportedOptions []string) FilterOptions {
 	return result
 }
 
-func (f *filter) IsEmpty() bool {
+func (f *filters) IsEmpty() bool {
 	return len(f.options) == 0
 }
 
@@ -77,30 +85,20 @@ func (fos *FilterOptions) Get(field string) (FilterOption, error) {
 	return nil, errors.New(fmt.Sprintf("Filter Option %s not found", field))
 }
 
-func (fos *FilterOptions) GetAsBool(field string) (bool, error) {
-	option, err := fos.Get(field)
-	if err != nil {
-		var b bool
-		return b, err
-	}
-
-	return strconv.ParseBool(option.Value())
-}
-
 type FilterOption interface {
 	Field() string
-	Value() string
+	Values() []interface{}
 }
 
 type filterOption struct {
-	field string
-	value string
+	field  string
+	values []interface{}
 }
 
-func NewFilterOption(field string, value string) FilterOption {
+func NewFilterOption(field string, values []interface{}) FilterOption {
 	return &filterOption{
-		field: field,
-		value: value,
+		field:  field,
+		values: values,
 	}
 }
 
@@ -108,6 +106,6 @@ func (fo *filterOption) Field() string {
 	return fo.field
 }
 
-func (fo *filterOption) Value() string {
-	return fo.value
+func (fo *filterOption) Values() []interface{} {
+	return fo.values
 }

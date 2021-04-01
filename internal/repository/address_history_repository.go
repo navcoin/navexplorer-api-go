@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/elastic_cache"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address/entity"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/group"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
@@ -22,7 +23,7 @@ type AddressHistoryRepository interface {
 	GetCountByHash(n network.Network, hash string) (int64, error)
 	GetStakingSummary(n network.Network, hash string) (count, stakable, spendable, votingWeight int64, err error)
 	GetSpendSummary(n network.Network, hash string) (spendableReceive, spendableSent, stakableReceive, stakableSent, votingWeightReceive, votingWeightSent int64, err error)
-	GetHistoryByHash(n network.Network, hash, txType string, dir bool, size, page int) ([]*explorer.AddressHistory, int64, error)
+	GetHistoryByHash(n network.Network, hash string, p framework.Pagination, s framework.Sort, f framework.Filters) ([]*explorer.AddressHistory, int64, error)
 	GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error)
 	GetStakingChart(n network.Network, period, hash string) (groups []*entity.StakingGroup, err error)
 	StakingRewardsForAddresses(n network.Network, addresses []string) ([]*entity.StakingReward, error)
@@ -42,7 +43,7 @@ func NewAddressHistoryRepository(elastic *elastic_cache.Index) AddressHistoryRep
 
 func (r *addressHistoryRepository) GetLatestByHash(n network.Network, hash string) (*explorer.AddressHistory, error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
+	query = query.Must(elastic.NewMatchQuery("hash", hash))
 
 	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(n)).
 		Query(query).
@@ -55,7 +56,7 @@ func (r *addressHistoryRepository) GetLatestByHash(n network.Network, hash strin
 
 func (r *addressHistoryRepository) GetFirstByHash(n network.Network, hash string) (*explorer.AddressHistory, error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
+	query = query.Must(elastic.NewMatchQuery("hash", hash))
 
 	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(n)).
 		Query(query).
@@ -68,7 +69,7 @@ func (r *addressHistoryRepository) GetFirstByHash(n network.Network, hash string
 
 func (r *addressHistoryRepository) GetCountByHash(n network.Network, hash string) (int64, error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
+	query = query.Must(elastic.NewMatchQuery("hash", hash))
 
 	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(n)).
 		Query(query).
@@ -85,7 +86,7 @@ func (r *addressHistoryRepository) GetCountByHash(n network.Network, hash string
 
 func (r *addressHistoryRepository) GetStakingSummary(n network.Network, hash string) (count, stakable, spendable, votingWeight int64, err error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
+	query = query.Must(elastic.NewMatchQuery("hash", hash))
 
 	changeAgg := elastic.NewNestedAggregation().Path("changes")
 	changeAgg.SubAggregation("stakable", elastic.NewSumAggregation().Field("changes.stakable"))
@@ -124,7 +125,7 @@ func (r *addressHistoryRepository) GetStakingSummary(n network.Network, hash str
 
 func (r *addressHistoryRepository) GetSpendSummary(n network.Network, hash string) (spendableReceive, spendableSent, stakableReceive, stakableSent, votingWeightReceive, votingWeightSent int64, err error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
+	query = query.Must(elastic.NewMatchQuery("hash", hash))
 	query = query.Must(elastic.NewTermQuery("is_stake", false))
 
 	spendableReceiveAgg := elastic.NewRangeAggregation().Field("changes.spendable").Gt(0)
@@ -204,17 +205,17 @@ func (r *addressHistoryRepository) GetSpendSummary(n network.Network, hash strin
 	return
 }
 
-func (r *addressHistoryRepository) GetHistoryByHash(n network.Network, hash, txType string, dir bool, size, page int) ([]*explorer.AddressHistory, int64, error) {
+func (r *addressHistoryRepository) GetHistoryByHash(n network.Network, hash string, p framework.Pagination, s framework.Sort, f framework.Filters) ([]*explorer.AddressHistory, int64, error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
+	query = query.Must(elastic.NewMatchQuery("hash", hash))
 
-	switch txType {
-	case "stake":
-		{
+	options := f.OnlySupportedOptions([]string{"type"})
+	if option, err := options.Get("type"); err == nil {
+		switch option.Values()[0] {
+		case "staking":
 			query.Must(elastic.NewTermQuery("is_stake", true))
-		}
-	case "send":
-		{
+			break
+		case "sending":
 			query.Must(elastic.NewTermQuery("is_stake", false))
 			query.Filter(elastic.NewNestedQuery("changes", elastic.NewBoolQuery().
 				Should(elastic.NewRangeQuery("changes.spendable").Lt(0)).
@@ -222,9 +223,7 @@ func (r *addressHistoryRepository) GetHistoryByHash(n network.Network, hash, txT
 				Should(elastic.NewRangeQuery("changes.voting_weight").Lt(0))),
 			)
 			break
-		}
-	case "receive":
-		{
+		case "receiving":
 			query.Must(elastic.NewTermQuery("is_stake", false))
 			query.Filter(elastic.NewNestedQuery("changes", elastic.NewBoolQuery().
 				Should(elastic.NewRangeQuery("changes.spendable").Gt(0)).
@@ -234,14 +233,18 @@ func (r *addressHistoryRepository) GetHistoryByHash(n network.Network, hash, txT
 			break
 		}
 	}
+	service := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(n))
+	service.Query(query)
+	sort(service, s, &defaultSort{"height", false})
 
-	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(n)).
-		Query(query).
-		Sort("height", dir).
-		From((page * size) - size).
-		Size(size).
-		TrackTotalHits(true).
-		Do(context.Background())
+	service.Size(p.Size())
+	service.From(p.From())
+	service.TrackTotalHits(true)
+
+	results, err := service.Do(context.Background())
+	if err != nil {
+		return nil, 0, err
+	}
 
 	return r.findMany(results, err)
 }

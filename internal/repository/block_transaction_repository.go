@@ -12,7 +12,8 @@ import (
 )
 
 type BlockTransactionRepository interface {
-	GetTransactions(n network.Network, p framework.Pagination, s framework.Sort, f framework.Filter) ([]*explorer.BlockTransaction, int64, error)
+	Count(n network.Network) (int64, error)
+	GetTransactions(n network.Network, p framework.Pagination, s framework.Sort, f framework.Filters) ([]*explorer.BlockTransaction, int64, error)
 	GetTransactionsByBlock(n network.Network, block *explorer.Block) ([]*explorer.BlockTransaction, error)
 	GetTransactionByHash(n network.Network, hash string) (*explorer.BlockTransaction, error)
 	GetRawTransactionByHash(n network.Network, hash string) (*explorer.RawBlockTransaction, error)
@@ -27,28 +28,24 @@ func NewBlockTransactionRepository(elastic *elastic_cache.Index) BlockTransactio
 	return &blockTransactionRepository{elastic: elastic}
 }
 
-func isSupportedFilter() []string {
-	return []string{"include_coinbase_txs", "include_staking_txs"}
+func (r *blockTransactionRepository) Count(n network.Network) (int64, error) {
+	service := r.elastic.Client.Count(elastic_cache.BlockTransactionIndex.Get(n))
+	return service.Do(context.Background())
 }
 
-func (r *blockTransactionRepository) GetTransactions(n network.Network, p framework.Pagination, s framework.Sort, f framework.Filter) ([]*explorer.BlockTransaction, int64, error) {
+func (r *blockTransactionRepository) GetTransactions(n network.Network, p framework.Pagination, s framework.Sort, f framework.Filters) ([]*explorer.BlockTransaction, int64, error) {
 	query := elastic.NewBoolQuery()
-
-	options := f.OnlySupportedOptions([]string{"include_coinbase_txs", "include_staking_txs"})
-
-	if option, err := options.GetAsBool("include_coinbase_txs"); err == nil && option == false {
-		query = query.MustNot(elastic.NewTermQuery("type", "coinbase"))
-	}
-
-	if option, err := options.GetAsBool("include_staking_txs"); err == nil && option == false {
-		query = query.MustNot(elastic.NewTermsQuery("type", "staking", "cold_staking", "cold_staking_v2"))
+	options := f.OnlySupportedOptions([]string{"type"})
+	if option, err := options.Get("type"); err == nil {
+		query = query.Must(elastic.NewTermsQuery("type", option.Values()...))
 	}
 
 	service := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get(n))
 	service.Query(query)
-	sort(service, s)
+	sort(service, s, &defaultSort{"txheight", false})
 
 	service.Size(p.Size())
+	service.From(p.From())
 	service.TrackTotalHits(true)
 
 	results, err := service.Do(context.Background())

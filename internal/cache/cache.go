@@ -163,11 +163,13 @@ func (c *cache) Get(k string, callback func() (interface{}, error), d time.Durat
 	if !found {
 		log.Debugf("Cache create (%s)", k)
 		x, err := callback()
-		c.set(k, x, d)
+		if err == nil {
+			c.set(k, x, d)
 
-		if d == RefreshingExpiration {
-			c.refreshers[k] = Refresher{
-				callback,
+			if d == RefreshingExpiration {
+				c.refreshers[k] = Refresher{
+					callback,
+				}
 			}
 		}
 

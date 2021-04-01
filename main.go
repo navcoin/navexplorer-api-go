@@ -71,6 +71,7 @@ func main() {
 	r.GET("/tx", blockResource.GetTransactions)
 	r.GET("/tx/:hash", blockResource.GetTransactionByHash)
 	r.GET("/tx/:hash/raw", blockResource.GetRawTransactionByHash)
+	r.GET("/txcount", blockResource.CountTransactions)
 
 	stakingResource := resource.NewStakingResource(container.GetStakingService())
 	//r.GET("/staking/blocks", stakingResource.GetBlocks)

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/elastic_cache"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/block/entity"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/group"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
@@ -15,7 +16,7 @@ import (
 
 type BlockRepository interface {
 	GetBestBlock(n network.Network) (*explorer.Block, error)
-	GetBlocks(n network.Network, asc bool, size int, page int, bestBlock *explorer.Block) ([]*explorer.Block, int64, error)
+	GetBlocks(n network.Network, p framework.Pagination, s framework.Sort, f framework.Filters, bestBlock *explorer.Block) ([]*explorer.Block, int64, error)
 	GetBlockGroups(n network.Network, period string, count int) ([]*entity.BlockGroup, error)
 	PopulateBlockGroups(n network.Network, blockGroups *entity.BlockGroups) error
 	GetBlockByHashOrHeight(n network.Network, hash string) (*explorer.Block, error)
@@ -46,18 +47,20 @@ func (r *blockRepository) GetBestBlock(n network.Network) (*explorer.Block, erro
 	return r.findOne(results, err)
 }
 
-func (r *blockRepository) GetBlocks(n network.Network, asc bool, size int, page int, bestBlock *explorer.Block) ([]*explorer.Block, int64, error) {
-	from := int(bestBlock.Height+1) - ((page - 1) * size)
-	if from <= 0 {
-		from = size
-	}
+func (r *blockRepository) GetBlocks(n network.Network, p framework.Pagination, s framework.Sort, f framework.Filters, bestBlock *explorer.Block) ([]*explorer.Block, int64, error) {
+	service := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(n))
+	sort(service, s, &defaultSort{"height", false})
 
-	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(n)).
-		Sort("height", asc).
-		SearchAfter(from).
-		Size(size).
-		TrackTotalHits(true).
-		Do(context.Background())
+	//from := int(bestBlock.Height+1) - ((p.Page() - 1) * p.Size())
+	//if from <= 0 {
+	//	from = p.Size()
+	//}
+
+	service.Size(p.Size())
+	service.From(p.From())
+	service.TrackTotalHits(true)
+
+	results, err := service.Do(context.Background())
 	if err != nil {
 		return nil, 0, err
 	}
@@ -67,7 +70,9 @@ func (r *blockRepository) GetBlocks(n network.Network, asc bool, size int, page 
 		var block *explorer.Block
 		if err := json.Unmarshal(hit.Source, &block); err == nil {
 			block.Best = block.Height == bestBlock.Height
-			block.Confirmations = bestBlock.Height - block.Height + 1
+			if bestBlock.Height >= block.Height {
+				block.Confirmations = bestBlock.Height - block.Height
+			}
 
 			blocks = append(blocks, block)
 		}
@@ -201,7 +206,7 @@ func (r *blockRepository) GetBlockByHashOrHeight(n network.Network, hash string)
 	}
 
 	block.Best = block.Height == bestBlock.Height
-	block.Confirmations = bestBlock.Height - block.Height + 1
+	block.Confirmations = bestBlock.Height - block.Height
 
 	return block, err
 }

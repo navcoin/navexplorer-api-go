@@ -12,7 +12,7 @@ const REST string = "rest"
 type RestRequest interface {
 	Network() networkService.Network
 	Pagination() Pagination
-	Filter() Filter
+	Filters() Filters
 	Sort() Sort
 	Query() string
 }
@@ -20,7 +20,7 @@ type RestRequest interface {
 type restRequest struct {
 	network    networkService.Network
 	pagination Pagination
-	filter     Filter
+	filters    Filters
 	sort       Sort
 	query      string
 }
@@ -52,7 +52,7 @@ func newRestRequestFromContext(c *gin.Context) error {
 		return err
 	}
 
-	filter, err := newFilterFromContext(c)
+	filters, err := newFiltersFromContext(c)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func newRestRequestFromContext(c *gin.Context) error {
 	c.Set(REST, &restRequest{
 		network:    network,
 		pagination: pagination,
-		filter:     filter,
+		filters:    filters,
 		sort:       sorter,
 		query:      c.Request.URL.RawQuery,
 	})
@@ -81,8 +81,8 @@ func (rr *restRequest) Pagination() Pagination {
 	return rr.pagination
 }
 
-func (rr *restRequest) Filter() Filter {
-	return rr.filter
+func (rr *restRequest) Filters() Filters {
+	return rr.filters
 }
 
 func (rr *restRequest) Sort() Sort {
