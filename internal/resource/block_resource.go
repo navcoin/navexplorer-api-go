@@ -107,25 +107,13 @@ func (r *BlockResource) GetBlockCycle(c *gin.Context) {
 func (r *BlockResource) GetBlocks(c *gin.Context) {
 	req := rest(c)
 
-	callback := func() (interface{}, error) {
-		txs, total, err := r.blockService.GetBlocks(req.Network(), req)
-		e := make([]interface{}, len(txs))
-		for i, v := range txs {
-			e[i] = v
-		}
-		return paginator.Paginated{Elements: e, Total: total}, err
-	}
-
-	cacheKey := fmt.Sprintf("%s.GetBlocks(%s)", req.Network(), req.Query())
-	response, err := r.cache.Get(cacheKey, callback, cache.RefreshingExpiration)
-	blocks := response.(paginator.Paginated).Elements
-
+	blocks, total, err := r.blockService.GetBlocks(req.Network(), req)
 	if err != nil {
 		errorInternalServerError(c, err.Error())
 		return
 	}
 
-	paginate := paginator.NewPaginator(len(blocks), response.(paginator.Paginated).Total, req.Pagination())
+	paginate := paginator.NewPaginator(len(blocks), total, req.Pagination())
 	paginate.WriteHeader(c)
 
 	c.JSON(200, blocks)
@@ -198,26 +186,14 @@ func (r *BlockResource) CountTransactions(c *gin.Context) {
 func (r *BlockResource) GetTransactions(c *gin.Context) {
 	req := rest(c)
 
-	callback := func() (interface{}, error) {
-		txs, total, err := r.blockService.GetTransactions(req.Network(), req)
-		e := make([]interface{}, len(txs))
-		for i, v := range txs {
-			e[i] = v
-		}
-		return paginator.Paginated{Elements: e, Total: total}, err
-	}
-
-	cacheKey := fmt.Sprintf("%s.GetTransactions(%s)", req.Network(), req.Query())
-	response, err := r.cache.Get(cacheKey, callback, cache.RefreshingExpiration)
-	transactions := response.(paginator.Paginated).Elements
-
+	txs, total, err := r.blockService.GetTransactions(req.Network(), req)
 	if err != nil {
 		errorInternalServerError(c, err.Error())
 		return
 	}
 
-	paginate := paginator.NewPaginator(len(transactions), response.(paginator.Paginated).Total, req.Pagination())
+	paginate := paginator.NewPaginator(len(txs), total, req.Pagination())
 	paginate.WriteHeader(c)
 
-	c.JSON(200, transactions)
+	c.JSON(200, txs)
 }
