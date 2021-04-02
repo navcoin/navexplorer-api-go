@@ -42,3 +42,12 @@ func GetNetwork(name string) (Network, error) {
 
 	return Network{}, ErrNetworkNotFound
 }
+
+func (n Network) NetworkNeedsPolyfill() bool {
+	log.WithFields(log.Fields{
+		"name":  n.Name,
+		"index": n.Index,
+	}).Debug("NetworkNeedsPolyfill")
+
+	return n.Name == "mainnet" && n.Index == "tiger"
+}
