@@ -77,7 +77,7 @@ func (c *cache) GenerateKey(network string, name string, args string, filters in
 
 	log.Debug("Cache key " + key.String())
 
-	return fmt.Sprintf("%x", md5.Sum([]byte(key.String())))
+	return fmt.Sprintf("%s.%x", network, md5.Sum([]byte(key.String())))
 }
 
 // Add an item to the cache, replacing any existing item. If the duration is 0
@@ -103,7 +103,6 @@ func (c *cache) Set(k string, x interface{}, d time.Duration) {
 }
 
 func (c *cache) set(k string, x interface{}, d time.Duration) {
-
 	var e int64
 
 	if d == DefaultExpiration {
@@ -135,6 +134,7 @@ func (c *cache) Add(k string, x interface{}, d time.Duration) error {
 		c.mu.Unlock()
 		return fmt.Errorf("Item %s already exists", k)
 	}
+
 	c.set(k, x, d)
 	c.mu.Unlock()
 	return nil
@@ -149,6 +149,7 @@ func (c *cache) Replace(k string, x interface{}, d time.Duration) error {
 		c.mu.Unlock()
 		return fmt.Errorf("Item %s doesn't exist", k)
 	}
+
 	c.set(k, x, d)
 	c.mu.Unlock()
 	return nil
