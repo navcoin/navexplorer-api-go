@@ -57,7 +57,7 @@ func newRestRequestFromContext(c *gin.Context) error {
 		return err
 	}
 
-	sorter, err := newSortFromContext(c)
+	sorter, err := newSortFromContext(c, network)
 	if err != nil {
 		return err
 	}
