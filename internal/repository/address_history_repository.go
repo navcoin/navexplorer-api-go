@@ -12,7 +12,6 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
-	"strings"
 	"sync"
 	"time"
 )
@@ -43,7 +42,7 @@ func NewAddressHistoryRepository(elastic *elastic_cache.Index) AddressHistoryRep
 
 func (r *addressHistoryRepository) GetLatestByHash(n network.Network, hash string) (*explorer.AddressHistory, error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("hash", hash))
+	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
 	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(n)).
 		Query(query).
@@ -56,7 +55,7 @@ func (r *addressHistoryRepository) GetLatestByHash(n network.Network, hash strin
 
 func (r *addressHistoryRepository) GetFirstByHash(n network.Network, hash string) (*explorer.AddressHistory, error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("hash", hash))
+	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
 	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(n)).
 		Query(query).
@@ -69,7 +68,7 @@ func (r *addressHistoryRepository) GetFirstByHash(n network.Network, hash string
 
 func (r *addressHistoryRepository) GetCountByHash(n network.Network, hash string) (int64, error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("hash", hash))
+	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
 	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(n)).
 		Query(query).
@@ -86,7 +85,7 @@ func (r *addressHistoryRepository) GetCountByHash(n network.Network, hash string
 
 func (r *addressHistoryRepository) GetStakingSummary(n network.Network, hash string) (count, stakable, spendable, votingWeight int64, err error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("hash", hash))
+	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
 	changeAgg := elastic.NewNestedAggregation().Path("changes")
 	changeAgg.SubAggregation("stakable", elastic.NewSumAggregation().Field("changes.stakable"))
@@ -125,7 +124,7 @@ func (r *addressHistoryRepository) GetStakingSummary(n network.Network, hash str
 
 func (r *addressHistoryRepository) GetSpendSummary(n network.Network, hash string) (spendableReceive, spendableSent, stakableReceive, stakableSent, votingWeightReceive, votingWeightSent int64, err error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("hash", hash))
+	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 	query = query.Must(elastic.NewTermQuery("is_stake", false))
 
 	spendableReceiveAgg := elastic.NewRangeAggregation().Field("changes.spendable").Gt(0)
@@ -207,7 +206,7 @@ func (r *addressHistoryRepository) GetSpendSummary(n network.Network, hash strin
 
 func (r *addressHistoryRepository) GetHistoryByHash(n network.Network, hash string, p framework.Pagination, s framework.Sort, f framework.Filters) ([]*explorer.AddressHistory, int64, error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("hash", hash))
+	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 
 	options := f.OnlySupportedOptions([]string{"type"})
 	if option, err := options.Get("type"); err == nil {
@@ -307,7 +306,7 @@ func (r *addressHistoryRepository) GetStakingChart(n network.Network, period str
 	now := time.Now().UTC().Truncate(time.Second)
 
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("hash", hash))
+	query = query.Must(elastic.NewTermQuery("hash.keyword", hash))
 	query = query.Must(elastic.NewMatchQuery("is_stake", true))
 
 	agg := elastic.NewFilterAggregation().Filter(query)
@@ -398,7 +397,7 @@ func (r *addressHistoryRepository) GetStakingChart(n network.Network, period str
 
 func (r *addressHistoryRepository) StakingRewardsForAddresses(n network.Network, addresses []string) ([]*entity.StakingReward, error) {
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewMatchQuery("hash", strings.Join(addresses, " ")))
+	query = query.Must(elastic.NewTermsQuery("hash.keyword", addresses))
 	query = query.Must(elastic.NewTermQuery("is_stake", "true"))
 
 	now := time.Now().UTC().Truncate(time.Second)

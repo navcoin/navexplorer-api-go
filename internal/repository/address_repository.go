@@ -10,7 +10,6 @@ import (
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 type AddressRepository interface {
@@ -53,7 +52,7 @@ func (r *addressRepository) GetAddresses(n network.Network, size, page int) ([]*
 
 func (r *addressRepository) GetAddressByHash(n network.Network, hash string) (*explorer.Address, error) {
 	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
-		Query(elastic.NewMatchQuery("hash", hash)).
+		Query(elastic.NewTermQuery("hash.keyword", hash)).
 		Size(1).
 		Do(context.Background())
 
@@ -62,7 +61,7 @@ func (r *addressRepository) GetAddressByHash(n network.Network, hash string) (*e
 
 func (r *addressRepository) GetBalancesForAddresses(n network.Network, addresses []string) ([]*explorer.Address, error) {
 	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
-		Query(elastic.NewMatchQuery("hash", strings.Join(addresses, " "))).
+		Query(elastic.NewTermsQuery("hash.keyword", addresses)).
 		Size(5000).
 		Do(context.Background())
 	if err != nil {

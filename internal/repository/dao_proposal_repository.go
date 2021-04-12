@@ -39,7 +39,7 @@ func (r *daoProposalRepository) GetProposals(n network.Network, status *explorer
 		if *status == explorer.ProposalAccepted {
 			statusQuery = fmt.Sprintf("%s %s", statusQuery, explorer.ProposalPendingVotingPreq.Status)
 		}
-		query = query.Must(elastic.NewMatchQuery("status", statusQuery))
+		query = query.Must(elastic.NewTermQuery("status.keyword", statusQuery))
 	}
 
 	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get(n)).
@@ -93,7 +93,7 @@ func (r *daoProposalRepository) GetProposal(n network.Network, hash string) (*ex
 
 func (r *daoProposalRepository) GetValueLocked(n network.Network) (*float64, error) {
 	query := elastic.NewBoolQuery()
-	query = query.Should(elastic.NewMatchQuery("state", explorer.ProposalAccepted.State))
+	query = query.Should(elastic.NewTermQuery("state.keyword", explorer.ProposalAccepted.State))
 	query = query.Should(elastic.NewMatchQuery("state", explorer.ProposalPendingVotingPreq.State))
 
 	lockedAgg := elastic.NewFilterAggregation().Filter(query)

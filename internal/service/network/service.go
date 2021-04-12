@@ -44,10 +44,14 @@ func GetNetwork(name string) (Network, error) {
 }
 
 func (n Network) NetworkNeedsPolyfill() bool {
-	log.WithFields(log.Fields{
-		"name":  n.Name,
-		"index": n.Index,
-	}).Debug("NetworkNeedsPolyfill")
+	if n.Name == "mainnet" && n.Index == "tiger" {
+		log.WithFields(log.Fields{
+			"name":  n.Name,
+			"index": n.Index,
+		}).Debug("NetworkNeedsPolyfill")
 
-	return n.Name == "mainnet" && n.Index == "tiger"
+		return true
+	}
+
+	return false
 }

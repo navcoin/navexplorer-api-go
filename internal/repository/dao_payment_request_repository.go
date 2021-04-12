@@ -76,7 +76,7 @@ func (r *daoPaymentRequestRepository) GetPaymentRequest(n network.Network, hash 
 }
 
 func (r *daoPaymentRequestRepository) GetValuePaid(n network.Network) (*float64, error) {
-	paidAgg := elastic.NewFilterAggregation().Filter(elastic.NewMatchQuery("state", explorer.PaymentRequestPaid.State))
+	paidAgg := elastic.NewFilterAggregation().Filter(elastic.NewTermQuery("state.keyword", explorer.PaymentRequestPaid.State))
 	paidAgg.SubAggregation("requestedAmount", elastic.NewSumAggregation().Field("requestedAmount"))
 
 	results, err := r.elastic.Client.Search(elastic_cache.PaymentRequestIndex.Get(n)).

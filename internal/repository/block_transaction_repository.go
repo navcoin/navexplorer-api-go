@@ -66,7 +66,7 @@ func (r *blockTransactionRepository) GetTransactions(n network.Network, p framew
 
 func (r *blockTransactionRepository) GetTransactionsByBlock(n network.Network, block *explorer.Block) ([]*explorer.BlockTransaction, error) {
 	results, err := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get(n)).
-		Query(elastic.NewMatchPhraseQuery("blockhash", block.Hash)).
+		Query(elastic.NewTermQuery("blockhash.keyword", block.Hash)).
 		Sort("index", true).
 		Size(10000).
 		Do(context.Background())
@@ -99,8 +99,8 @@ func (r *blockTransactionRepository) GetAssociatedStakingAddresses(n network.Net
 	stakingAddresses := make([]string, 0)
 
 	outputsQuery := elastic.NewBoolQuery()
-	outputsQuery = outputsQuery.Must(elastic.NewMatchQuery("outputs.type", "COLD_STAKING"))
-	outputsQuery = outputsQuery.Must(elastic.NewMatchQuery("outputs.addresses.keyword", address))
+	outputsQuery = outputsQuery.Must(elastic.NewTermQuery("outputs.type.keyword", "COLD_STAKING"))
+	outputsQuery = outputsQuery.Must(elastic.NewTermQuery("outputs.addresses.keyword", address))
 
 	query := elastic.NewNestedQuery("outputs", outputsQuery)
 
