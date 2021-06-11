@@ -88,6 +88,7 @@ func (fos *FilterOptions) Get(field string) (FilterOption, error) {
 type FilterOption interface {
 	Field() string
 	Values() []interface{}
+	SingleValue() interface{}
 }
 
 type filterOption struct {
@@ -108,4 +109,8 @@ func (fo *filterOption) Field() string {
 
 func (fo *filterOption) Values() []interface{} {
 	return fo.values
+}
+
+func (fo *filterOption) SingleValue() interface{} {
+	return fo.values[0]
 }

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
@@ -35,9 +36,18 @@ func (r *blockTransactionRepository) Count(n network.Network) (int64, error) {
 
 func (r *blockTransactionRepository) GetTransactions(n network.Network, p framework.Pagination, s framework.Sort, f framework.Filters) ([]*explorer.BlockTransaction, int64, error) {
 	query := elastic.NewBoolQuery()
-	options := f.OnlySupportedOptions([]string{"type"})
+	options := f.OnlySupportedOptions([]string{"type", "wOrXNav"})
 	if option, err := options.Get("type"); err == nil {
 		query = query.Must(elastic.NewTermsQuery("type", option.Values()...))
+	}
+
+	if wOrXNav, err := options.Get("wOrXNav"); err == nil {
+		value := fmt.Sprintf("%v", wOrXNav.SingleValue())
+		if value == "wNav" {
+			query = query.Must(elastic.NewTermQuery("wrapped", true))
+		} else if value == "xNav" {
+			query = query.Must(elastic.NewTermQuery("private", true))
+		}
 	}
 
 	service := r.elastic.Client.Search(elastic_cache.BlockTransactionIndex.Get(n))
