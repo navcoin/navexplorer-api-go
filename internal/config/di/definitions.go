@@ -39,10 +39,7 @@ var Definitions = []dingo.Def{
 	{
 		Name: "address.history.repo",
 		Build: func(elastic *elastic_cache.Index, cache *cache.Cache) (repository.AddressHistoryRepository, error) {
-			return repository.NewCachingAddressHistoryRepository(
-				repository.NewAddressHistoryRepository(elastic),
-				cache,
-			), nil
+			return repository.NewAddressHistoryRepository(elastic), nil
 		},
 	},
 	{
@@ -59,10 +56,7 @@ var Definitions = []dingo.Def{
 	{
 		Name: "block.repo",
 		Build: func(elastic *elastic_cache.Index, cache *cache.Cache) (repository.BlockRepository, error) {
-			return repository.NewCachingBlockRepository(
-				repository.NewBlockRepository(elastic),
-				cache,
-			), nil
+			return repository.NewBlockRepository(elastic), nil
 		},
 	},
 	{
