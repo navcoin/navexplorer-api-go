@@ -43,7 +43,7 @@ func (r *DaoResource) GetConsensusParameters(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, consensus.All())
+	c.JSON(200, consensus)
 }
 
 func (r *DaoResource) GetConsensusParameter(c *gin.Context) {
@@ -62,15 +62,16 @@ func (r *DaoResource) GetConsensusParameter(c *gin.Context) {
 		return
 	}
 
-	parameter := consensus.Get(id)
-	if parameter == nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-			"message": "Consensus parameter not found", "status": http.StatusInternalServerError,
-		})
-		return
+	for _, parameter := range consensus.All() {
+		if parameter.Id == id {
+			c.JSON(200, parameter)
+			return
+		}
 	}
 
-	c.JSON(200, parameter)
+	c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+		"message": "Consensus parameter not found", "status": http.StatusInternalServerError,
+	})
 }
 
 func (r *DaoResource) GetCfundStats(c *gin.Context) {
@@ -122,7 +123,7 @@ func (r *DaoResource) GetProposal(c *gin.Context) {
 }
 
 func (r *DaoResource) GetProposalVotes(c *gin.Context) {
-	votes, err := r.daoService.GetProposalVotes(network(c), c.Param("hash"))
+	votes, _, err := r.daoService.GetProposalVotes(network(c), c.Param("hash"))
 	if err == repository.ErrProposalNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
@@ -204,7 +205,7 @@ func (r *DaoResource) GetPaymentRequest(c *gin.Context) {
 }
 
 func (r *DaoResource) GetPaymentRequestVotes(c *gin.Context) {
-	votes, err := r.daoService.GetPaymentRequestVotes(network(c), c.Param("hash"))
+	votes, _, err := r.daoService.GetPaymentRequestVotes(network(c), c.Param("hash"))
 	if err == repository.ErrPaymentRequestNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
@@ -286,7 +287,7 @@ func (r *DaoResource) GetAnswer(c *gin.Context) {
 }
 
 func (r *DaoResource) GetAnswerVotes(c *gin.Context) {
-	votes, err := r.daoService.GetAnswerVotes(network(c), c.Param("hash"), c.Param("answer"))
+	votes, _, err := r.daoService.GetAnswerVotes(network(c), c.Param("hash"), c.Param("answer"))
 	if err == repository.ErrAnswerNotFound {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
 		return
