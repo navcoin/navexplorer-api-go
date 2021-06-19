@@ -180,7 +180,7 @@ func (s *service) GetPublicWealthDistribution(n network.Network, groups []int) (
 	if err != nil {
 		return nil, err
 	}
-	return s.addressRepository.GetWealthDistribution(n, groups, block.SupplyBalance.Public)
+	return s.addressRepository.GetWealthDistribution(n, groups, block.SupplyBalance.Total())
 }
 
 func (s *service) UpdateCreatedAt(n network.Network, address *explorer.Address) {
