@@ -13,25 +13,25 @@ import (
 type Service interface {
 	GetBlockCycleByHeight(n network.Network, height uint64) (*entity.LegacyBlockCycle, error)
 	GetBlockCycleByBlock(n network.Network, block *explorer.Block) (*entity.LegacyBlockCycle, error)
-	GetConsensus(n network.Network) (*explorer.ConsensusParameters, error)
+	GetConsensus(n network.Network) (explorer.ConsensusParameters, error)
 	GetCfundStats(n network.Network) (*entity.CfundStats, error)
 
 	GetProposals(n network.Network, parameters ProposalParameters, pagination framework.Pagination) ([]*explorer.Proposal, int64, error)
 	GetProposal(n network.Network, hash string) (*explorer.Proposal, error)
 	GetVotingCycles(n network.Network, element explorer.ChainHeight, count uint) ([]*entity.VotingCycle, error)
-	GetProposalVotes(n network.Network, hash string) ([]*entity.CfundVote, error)
+	GetProposalVotes(n network.Network, hash string) ([]*entity.CfundVote, []*entity.VotingCycle, error)
 	GetProposalTrend(n network.Network, hash string) ([]*entity.CfundTrend, error)
 
 	GetPaymentRequests(n network.Network, parameters PaymentRequestParameters, pagination framework.Pagination) ([]*explorer.PaymentRequest, int64, error)
 	GetPaymentRequestsForProposal(n network.Network, proposal *explorer.Proposal) ([]*explorer.PaymentRequest, error)
 	GetPaymentRequest(n network.Network, hash string) (*explorer.PaymentRequest, error)
-	GetPaymentRequestVotes(n network.Network, hash string) ([]*entity.CfundVote, error)
+	GetPaymentRequestVotes(n network.Network, hash string) ([]*entity.CfundVote, []*entity.VotingCycle, error)
 	GetPaymentRequestTrend(n network.Network, hash string) ([]*entity.CfundTrend, error)
 
 	GetConsultations(n network.Network, parameters ConsultationParameters, pagination framework.Pagination) ([]*explorer.Consultation, int64, error)
 	GetConsultation(n network.Network, hash string) (*explorer.Consultation, error)
 	GetAnswer(n network.Network, hash string) (*explorer.Answer, error)
-	GetAnswerVotes(n network.Network, consultationHash string, hash string) ([]*entity.CfundVote, error)
+	GetAnswerVotes(n network.Network, consultationHash string, hash string) ([]*entity.CfundVote, []*entity.VotingCycle, error)
 	GetConsensusConsultations(n network.Network, pagination framework.Pagination) ([]*explorer.Consultation, int64, error)
 }
 
@@ -114,7 +114,7 @@ func (s *service) GetBlockCycleByBlock(n network.Network, block *explorer.Block)
 	return blockCycle, nil
 }
 
-func (s *service) GetConsensus(n network.Network) (*explorer.ConsensusParameters, error) {
+func (s *service) GetConsensus(n network.Network) (explorer.ConsensusParameters, error) {
 	return s.consensusService.GetParameters(n)
 }
 
@@ -175,20 +175,25 @@ func (s *service) GetVotingCycles(n network.Network, element explorer.ChainHeigh
 	), nil
 }
 
-func (s *service) GetProposalVotes(n network.Network, hash string) ([]*entity.CfundVote, error) {
+func (s *service) GetProposalVotes(n network.Network, hash string) ([]*entity.CfundVote, []*entity.VotingCycle, error) {
 	log.WithField("hash", hash).Info("GetProposalVotes")
 
 	proposal, err := s.GetProposal(n, hash)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	votingCycles, err := s.GetVotingCycles(n, proposal, proposal.VotingCycle)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return s.voteRepository.GetVotes(n, explorer.ProposalVote, hash, votingCycles)
+	votes, err := s.voteRepository.GetVotes(n, explorer.ProposalVote, hash, votingCycles)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return votes, votingCycles, err
 }
 
 func (s *service) GetProposalTrend(n network.Network, hash string) ([]*entity.CfundTrend, error) {
@@ -260,18 +265,23 @@ func (s *service) GetPaymentRequest(n network.Network, hash string) (*explorer.P
 	return s.paymentRequestRepository.GetPaymentRequest(n, hash)
 }
 
-func (s *service) GetPaymentRequestVotes(n network.Network, hash string) ([]*entity.CfundVote, error) {
+func (s *service) GetPaymentRequestVotes(n network.Network, hash string) ([]*entity.CfundVote, []*entity.VotingCycle, error) {
 	paymentRequest, err := s.GetPaymentRequest(n, hash)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	votingCycles, err := s.GetVotingCycles(n, paymentRequest, paymentRequest.VotingCycle)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return s.voteRepository.GetVotes(n, explorer.PaymentRequestVote, hash, votingCycles)
+	votes, err := s.voteRepository.GetVotes(n, explorer.PaymentRequestVote, hash, votingCycles)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return votes, votingCycles, err
 }
 
 func (s *service) GetPaymentRequestTrend(n network.Network, hash string) ([]*entity.CfundTrend, error) {
@@ -336,28 +346,23 @@ func (s *service) GetAnswer(n network.Network, hash string) (*explorer.Answer, e
 	return s.consultationRepository.GetAnswer(n, hash)
 }
 
-func (s *service) GetAnswerVotes(n network.Network, consultationHash string, hash string) ([]*entity.CfundVote, error) {
+func (s *service) GetAnswerVotes(n network.Network, consultationHash string, hash string) ([]*entity.CfundVote, []*entity.VotingCycle, error) {
 	consultation, err := s.GetConsultation(n, consultationHash)
 	if err != nil {
-		return nil, err
-	}
-
-	var answer *explorer.Answer
-	for _, a := range consultation.Answers {
-		if a.Hash == hash {
-			answer = a
-		}
-	}
-	if answer == nil {
-
+		return nil, nil, err
 	}
 
 	votingCycles, err := s.GetVotingCycles(n, consultation, uint(consultation.VotingCyclesFromCreation))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return s.voteRepository.GetVotes(n, explorer.DaoVote, hash, votingCycles)
+	votes, err := s.voteRepository.GetVotes(n, explorer.DaoVote, hash, votingCycles)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return votes, votingCycles, err
 }
 
 func (s *service) GetConsensusConsultations(n network.Network, pagination framework.Pagination) ([]*explorer.Consultation, int64, error) {
