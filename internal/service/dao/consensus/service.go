@@ -8,7 +8,7 @@ import (
 )
 
 type Service interface {
-	GetParameters(n network.Network) (*explorer.ConsensusParameters, error)
+	GetParameters(n network.Network) (explorer.ConsensusParameters, error)
 	GetParameter(n network.Network, parameter Parameter) *explorer.ConsensusParameter
 }
 
@@ -20,11 +20,11 @@ func NewConsensusService(consensusRepository repository.DaoConsensusRepository) 
 	return &service{consensusRepository}
 }
 
-func (s *service) GetParameters(n network.Network) (*explorer.ConsensusParameters, error) {
+func (s *service) GetParameters(n network.Network) (explorer.ConsensusParameters, error) {
 	p, err := s.consensusRepository.GetConsensusParameters(n)
 	if err != nil {
 		log.WithError(err).Error("Failed to get consensus parameters")
-		return nil, err
+		return explorer.ConsensusParameters{}, err
 	}
 
 	return p, nil
@@ -32,6 +32,11 @@ func (s *service) GetParameters(n network.Network) (*explorer.ConsensusParameter
 
 func (s *service) GetParameter(n network.Network, parameter Parameter) *explorer.ConsensusParameter {
 	parameters, _ := s.GetParameters(n)
+	for _, p := range parameters.All() {
+		if p.Id == int(parameter) {
+			return &p
+		}
+	}
 
-	return parameters.Get(int(parameter))
+	return nil
 }
