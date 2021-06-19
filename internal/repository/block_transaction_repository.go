@@ -43,7 +43,10 @@ func (r *blockTransactionRepository) GetTransactions(n network.Network, p framew
 
 	if wOrXNav, err := options.Get("wOrXNav"); err == nil {
 		value := fmt.Sprintf("%v", wOrXNav.SingleValue())
-		if value == "wNav" {
+		if value == "Nav" {
+			query = query.MustNot(elastic.NewTermQuery("wrapped", true))
+			query = query.MustNot(elastic.NewTermQuery("private", true))
+		} else if value == "wNav" {
 			query = query.Must(elastic.NewTermQuery("wrapped", true))
 		} else if value == "xNav" {
 			query = query.Must(elastic.NewTermQuery("private", true))
