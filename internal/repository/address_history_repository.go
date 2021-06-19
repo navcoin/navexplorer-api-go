@@ -396,8 +396,13 @@ func (r *addressHistoryRepository) GetStakingChart(n network.Network, period str
 }
 
 func (r *addressHistoryRepository) StakingRewardsForAddresses(n network.Network, addresses []string) ([]*entity.StakingReward, error) {
+	values := make([]interface{}, len(addresses))
+	for i, v := range addresses {
+		values[i] = v
+	}
+
 	query := elastic.NewBoolQuery()
-	query = query.Must(elastic.NewTermsQuery("hash.keyword", addresses))
+	query = query.Must(elastic.NewTermsQuery("hash.keyword", values...))
 	query = query.Must(elastic.NewTermQuery("is_stake", "true"))
 
 	now := time.Now().UTC().Truncate(time.Second)
