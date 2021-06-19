@@ -5,8 +5,9 @@ go 1.14
 replace github.com/ugorji/go v1.1.4 => github.com/ugorji/go/codec v0.0.0-20190204201341-e444a5086c43
 
 require (
-	github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.4-0.20210401195926-c68dc638a11c
-	github.com/getsentry/raven-go v0.2.0
+	github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.5-0.20210614203907-9611703eaacd
+	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef // indirect
+	github.com/getsentry/raven-go v0.2.0 // indirect
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-contrib/gzip v0.0.3
 	github.com/gin-gonic/gin v1.6.3
@@ -16,4 +17,5 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/streadway/amqp v1.0.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 )
