@@ -138,7 +138,12 @@ func (r *AddressResource) GetBalancesForAddresses(c *gin.Context) {
 
 	addresses := make([]string, 0)
 	if addressesParam := c.Request.Form.Get("addresses"); addressesParam != "" {
-		addresses = strings.Split(addressesParam, ",")
+		addressArray := strings.Split(addressesParam, ",")
+		for _, a := range addressArray {
+			if a != "" {
+				addresses = append(addresses, a)
+			}
+		}
 	}
 
 	balances, err := r.addressService.GetNamedAddresses(rest(c).Network(), addresses)
