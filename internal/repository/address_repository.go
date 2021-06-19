@@ -60,8 +60,13 @@ func (r *addressRepository) GetAddressByHash(n network.Network, hash string) (*e
 }
 
 func (r *addressRepository) GetBalancesForAddresses(n network.Network, addresses []string) ([]*explorer.Address, error) {
+	values := make([]interface{}, len(addresses))
+	for i, v := range addresses {
+		values[i] = v
+	}
+
 	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
-		Query(elastic.NewTermsQuery("hash.keyword", addresses)).
+		Query(elastic.NewTermsQuery("hash.keyword", values...)).
 		Size(5000).
 		Do(context.Background())
 	if err != nil {
@@ -81,9 +86,14 @@ func (r *addressRepository) GetWealthDistribution(n network.Network, groups []in
 
 	distribution := make([]*entity.Wealth, 0)
 
+	// Exclude the wNav miltisig staking address
+	query := elastic.NewBoolQuery().MustNot(
+		elastic.NewTermQuery("hash.keyword", "a456b36048ce2e732ef729d044a1f744738df5fa-0277fa3f4f6d447c5914d8d69c259f94c76aa6eae829c5bd54e3cd6fc3f7e12f2f-033a0879f9ab601b4ee20ec9fed77ea1a48e9026b48e0d2a425d874b40ef13d022-034a51aa6aafbd6c6075ecaee0fbcf2c9ffbac05a49007a0f02c9d6680dccee6d4-03ad915271a0b327f5379585c00c42a732530f246b60f9bb1c19af7db59363897e"))
+
 	for i := 0; i < len(groups); i++ {
 		results, _ := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
 			From(0).
+			Query(query).
 			Size(groups[i]).
 			Sort("spendable", false).
 			Do(context.Background())
