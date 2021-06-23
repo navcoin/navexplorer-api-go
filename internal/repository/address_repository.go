@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/elastic_cache"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address/entity"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
@@ -13,7 +14,7 @@ import (
 )
 
 type AddressRepository interface {
-	GetAddresses(n network.Network, size, page int) ([]*explorer.Address, int64, error)
+	GetAddresses(n network.Network, size, page int, sort framework.Sort) ([]*explorer.Address, int64, error)
 	GetAddressByHash(n network.Network, hash string) (*explorer.Address, error)
 	GetBalancesForAddresses(n network.Network, addresses []string) ([]*explorer.Address, error)
 	GetWealthDistribution(n network.Network, groups []int, totalSupply uint64) ([]*entity.Wealth, error)
@@ -33,12 +34,14 @@ func NewAddressRepository(elastic *elastic_cache.Index) AddressRepository {
 	return &addressRepository{elastic: elastic}
 }
 
-func (r *addressRepository) GetAddresses(n network.Network, size, page int) ([]*explorer.Address, int64, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
-		Sort("spendable", false).
+func (r *addressRepository) GetAddresses(n network.Network, size, page int, s framework.Sort) ([]*explorer.Address, int64, error) {
+	service := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
 		From((page * size) - size).
-		Size(size).
-		Do(context.Background())
+		Size(size)
+
+	sort(service, s, &defaultSort{"spendable", false})
+
+	results, err := service.Do(context.Background())
 
 	addresses, total, err := r.findMany(results, err)
 	for idx := range addresses {
