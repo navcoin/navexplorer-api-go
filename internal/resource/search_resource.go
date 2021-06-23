@@ -29,13 +29,7 @@ func NewSearchResource(addressService address.Service, blockService block.Servic
 }
 
 func (r *SearchResource) Search(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
-	network := n
+	network := network(c)
 	query := c.Query("query")
 
 	if _, err := r.daoService.GetProposal(network, query); err == nil {

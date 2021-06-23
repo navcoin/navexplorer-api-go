@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/cache"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/block/entity"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
@@ -18,8 +18,10 @@ func NewCachingBlockRepository(repository BlockRepository, cache *cache.Cache) B
 }
 
 func (r *cachingBlockRepository) GetBestBlock(n network.Network) (*explorer.Block, error) {
+	cacheKey := r.cache.GenerateKey(n.String(), "best-block", "", nil)
+
 	result, err := r.cache.Get(
-		fmt.Sprintf("%s.best-block", n.ToString()),
+		cacheKey,
 		func() (interface{}, error) {
 			return r.repository.GetBestBlock(n)
 		},
@@ -33,8 +35,8 @@ func (r *cachingBlockRepository) GetBestBlock(n network.Network) (*explorer.Bloc
 	return result.(*explorer.Block), err
 }
 
-func (r *cachingBlockRepository) GetBlocks(n network.Network, asc bool, size int, page int, bestBlock *explorer.Block) ([]*explorer.Block, int64, error) {
-	return r.repository.GetBlocks(n, asc, size, page, bestBlock)
+func (r *cachingBlockRepository) GetBlocks(n network.Network, p framework.Pagination, s framework.Sort, f framework.Filters, bestBlock *explorer.Block) ([]*explorer.Block, int64, error) {
+	return r.repository.GetBlocks(n, p, s, f, bestBlock)
 }
 
 func (r *cachingBlockRepository) GetBlockGroups(n network.Network, period string, count int) ([]*entity.BlockGroup, error) {
@@ -63,4 +65,8 @@ func (r *cachingBlockRepository) GetRawBlockByHashOrHeight(n network.Network, ha
 
 func (r *cachingBlockRepository) GetFeesForLastBlocks(n network.Network, blocks int) (fees float64, err error) {
 	return r.repository.GetFeesForLastBlocks(n, blocks)
+}
+
+func (r *cachingBlockRepository) GetSupply(n network.Network, blocks int, fillEmpty bool) (supply []entity.Supply, err error) {
+	return r.repository.GetSupply(n, blocks, fillEmpty)
 }

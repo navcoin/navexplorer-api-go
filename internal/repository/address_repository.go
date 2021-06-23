@@ -5,20 +5,18 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/elastic_cache"
-	entitycoin "github.com/NavExplorer/navexplorer-api-go/v2/internal/service/coin/entity"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address/entity"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 type AddressRepository interface {
 	GetAddresses(n network.Network, size, page int) ([]*explorer.Address, int64, error)
 	GetAddressByHash(n network.Network, hash string) (*explorer.Address, error)
 	GetBalancesForAddresses(n network.Network, addresses []string) ([]*explorer.Address, error)
-	GetWealthDistribution(n network.Network, groups []int) ([]*entitycoin.Wealth, error)
-	GetTotalSupply(n network.Network) (totalSupply float64, err error)
+	GetWealthDistribution(n network.Network, groups []int, totalSupply uint64) ([]*entity.Wealth, error)
 	UpdateAddress(n network.Network, address *explorer.Address) error
 }
 
@@ -62,8 +60,13 @@ func (r *addressRepository) GetAddressByHash(n network.Network, hash string) (*e
 }
 
 func (r *addressRepository) GetBalancesForAddresses(n network.Network, addresses []string) ([]*explorer.Address, error) {
+	values := make([]interface{}, len(addresses))
+	for i, v := range addresses {
+		values[i] = v
+	}
+
 	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
-		Query(elastic.NewMatchQuery("hash", strings.Join(addresses, " "))).
+		Query(elastic.NewTermsQuery("hash.keyword", values...)).
 		Size(5000).
 		Do(context.Background())
 	if err != nil {
@@ -74,31 +77,34 @@ func (r *addressRepository) GetBalancesForAddresses(n network.Network, addresses
 	return a, err
 }
 
-func (r *addressRepository) GetWealthDistribution(n network.Network, groups []int) ([]*entitycoin.Wealth, error) {
-	totalSupply, err := r.GetTotalSupply(n)
-	if err != nil {
-		return nil, err
-	}
+func (r *addressRepository) GetWealthDistribution(n network.Network, groups []int, totalSupply uint64) ([]*entity.Wealth, error) {
 
-	totalWealth := &entitycoin.Wealth{
-		Balance:    totalSupply,
+	totalWealth := &entity.Wealth{
+		Balance:    float64(totalSupply) / 100000000,
 		Percentage: 100,
 	}
 
-	distribution := make([]*entitycoin.Wealth, 0)
+	distribution := make([]*entity.Wealth, 0)
+
+	// Exclude the wNav miltisig staking address
+	query := elastic.NewBoolQuery().MustNot(
+		elastic.NewTermQuery("hash.keyword", "a456b36048ce2e732ef729d044a1f744738df5fa-0277fa3f4f6d447c5914d8d69c259f94c76aa6eae829c5bd54e3cd6fc3f7e12f2f-033a0879f9ab601b4ee20ec9fed77ea1a48e9026b48e0d2a425d874b40ef13d022-034a51aa6aafbd6c6075ecaee0fbcf2c9ffbac05a49007a0f02c9d6680dccee6d4-03ad915271a0b327f5379585c00c42a732530f246b60f9bb1c19af7db59363897e"))
 
 	for i := 0; i < len(groups); i++ {
 		results, _ := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
 			From(0).
+			Query(query).
 			Size(groups[i]).
 			Sort("spendable", false).
 			Do(context.Background())
 
-		wealth := &entitycoin.Wealth{Group: groups[i]}
+		wealth := &entity.Wealth{Group: groups[i]}
 
 		for _, element := range results.Hits.Hits {
 			address := new(explorer.Address)
-			err = json.Unmarshal(element.Source, &address)
+			if err := json.Unmarshal(element.Source, &address); err != nil {
+				return nil, err
+			}
 
 			wealth.Balance += float64(address.Spendable) / 100000000
 			wealth.Percentage = int64((wealth.Balance / totalWealth.Balance) * 100)
@@ -109,23 +115,7 @@ func (r *addressRepository) GetWealthDistribution(n network.Network, groups []in
 
 	distribution = append(distribution, totalWealth)
 
-	return distribution, err
-}
-
-func (r *addressRepository) GetTotalSupply(n network.Network) (totalSupply float64, err error) {
-	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
-		Aggregation("totalWealth", elastic.NewSumAggregation().Field("spendable")).
-		Size(0).
-		Do(context.Background())
-	if err != nil {
-		return
-	}
-
-	if total, found := results.Aggregations.Sum("totalWealth"); found {
-		totalSupply = *total.Value / 100000000
-	}
-
-	return
+	return distribution, nil
 }
 
 func (r *addressRepository) UpdateAddress(n network.Network, address *explorer.Address) error {

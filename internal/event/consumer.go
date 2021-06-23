@@ -20,7 +20,7 @@ func NewConsumer(user string, password string, host string, port int, prefix str
 }
 
 func (c *Consumer) Consume(network network.Network, name string, callback func(msg string)) {
-	xname := fmt.Sprintf("%s.%s", network.ToString(), name)
+	xname := fmt.Sprintf("%s.%s", network.String(), name)
 	qname := fmt.Sprintf("%s.%s", xname, c.prefix)
 
 	conn, err := amqp.Dial(c.address)
@@ -70,7 +70,7 @@ func (c *Consumer) Consume(network network.Network, name string, callback func(m
 		}
 	}()
 
-	log.WithFields(log.Fields{"network": network.ToString(), "exchange": xname, "queue": qname}).Debugf("[Event] Waiting for messages")
+	log.WithFields(log.Fields{"network": network.String(), "exchange": xname, "queue": qname}).Debugf("[Event] Waiting for messages")
 	<-forever
 }
 

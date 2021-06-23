@@ -2,22 +2,24 @@ package resource
 
 import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/config"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
+	networkService "github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/gin-gonic/gin"
-	"strings"
+	"github.com/sirupsen/logrus"
+	"net/http"
 )
 
-func getFilters(c *gin.Context) []string {
-	filters := make([]string, 0)
-	if filtersParam := c.DefaultQuery("filters", ""); filtersParam != "" {
-		filters = strings.Split(filtersParam, ",")
-	}
-
-	return filters
+func rest(c *gin.Context) framework.RestRequest {
+	return c.MustGet(framework.REST).(framework.RestRequest)
 }
 
-func getNetwork(c *gin.Context) (network.Network, error) {
-	return network.GetNetwork(networkHeader(c))
+func network(c *gin.Context) networkService.Network {
+	logrus.Info(rest(c).Query())
+	return rest(c).Network()
+}
+
+func pagination(c *gin.Context) framework.Pagination {
+	return rest(c).Pagination()
 }
 
 func networkHeader(c *gin.Context) string {
@@ -27,4 +29,42 @@ func networkHeader(c *gin.Context) string {
 	}
 
 	return n
+}
+
+func errorNetworkNotAvailable(c *gin.Context) {
+	c.AbortWithStatusJSON(
+		http.StatusNotFound,
+		gin.H{"message": "Network not available", "status": http.StatusNotFound},
+	)
+}
+
+func errorNotFound(c *gin.Context, msg string) {
+	c.AbortWithStatusJSON(
+		http.StatusNotFound,
+		gin.H{"message": msg, "status": http.StatusNotFound},
+	)
+}
+
+func ErrorBadRequest(c *gin.Context, msg string) {
+	c.AbortWithStatusJSON(
+		http.StatusBadRequest,
+		gin.H{"message": msg, "status": http.StatusBadRequest},
+	)
+}
+
+func errorRequestError(c *gin.Context, err error) {
+	errorInternalServerError(c, "Failed to process request:"+err.Error())
+}
+
+func errorInternalServerError(c *gin.Context, msg string) {
+	c.AbortWithStatusJSON(
+		http.StatusInternalServerError,
+		gin.H{"message": msg, "status": http.StatusInternalServerError})
+}
+
+func handleError(c *gin.Context, err error, status int) {
+	c.AbortWithStatusJSON(status, gin.H{
+		"status":  status,
+		"message": err.Error(),
+	})
 }

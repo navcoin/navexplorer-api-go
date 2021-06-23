@@ -22,5 +22,5 @@ var (
 )
 
 func (i *Indices) Get(network network.Network) string {
-	return fmt.Sprintf("%s.%s", network.ToString(), string(*i))
+	return fmt.Sprintf("%s.%s", network.String(), string(*i))
 }

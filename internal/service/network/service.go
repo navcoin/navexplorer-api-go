@@ -16,7 +16,7 @@ var (
 	ErrNetworkNotFound = errors.New("Network not found")
 )
 
-func (n *Network) ToString() string {
+func (n *Network) String() string {
 	return fmt.Sprintf("%s.%s", n.Name, n.Index)
 }
 
@@ -41,4 +41,17 @@ func GetNetwork(name string) (Network, error) {
 	log.Errorf("Failed to find network (%s)", name)
 
 	return Network{}, ErrNetworkNotFound
+}
+
+func (n Network) NetworkNeedsPolyfill() bool {
+	if n.Name == "mainnet" && n.Index == "tiger" {
+		log.WithFields(log.Fields{
+			"name":  n.Name,
+			"index": n.Index,
+		}).Debug("NetworkNeedsPolyfill")
+
+		return true
+	}
+
+	return false
 }

@@ -80,7 +80,7 @@ func (r *daoConsultationRepository) GetAnswer(n network.Network, hash string) (*
 
 	for _, a := range c.Answers {
 		if a.Hash == hash {
-			return a, nil
+			return &a, nil
 		}
 	}
 

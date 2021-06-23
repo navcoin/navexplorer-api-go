@@ -1,14 +1,18 @@
 package config
 
 import (
+	"fmt"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/log"
 	"github.com/joho/godotenv"
-	"log"
+	"go.uber.org/zap"
 	"os"
 	"strconv"
 	"strings"
 )
 
 type Config struct {
+	Logging        bool
+	LogPath        string
 	Debug          bool
 	ElasticSearch  ElasticSearchConfig
 	Index          map[string]string
@@ -43,13 +47,17 @@ type RabbitMqConfig struct {
 func Init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal(err)
+		zap.L().With(zap.Error(err)).Fatal("Unable to init config")
 	}
+
+	log.NewLogger(fmt.Sprintf("%s/indexer.log", Get().LogPath), Get().Debug)
 }
 
 func Get() *Config {
 	return &Config{
-		Debug: getBool("DEBUG", false),
+		Logging: getBool("LOGGING", false),
+		LogPath: getString("LOG_PATH", "/app/logs"),
+		Debug:   getBool("DEBUG", false),
 		ElasticSearch: ElasticSearchConfig{
 			Hosts:       getSlice("ELASTIC_SEARCH_HOSTS", make([]string, 0), ","),
 			Sniff:       getBool("ELASTIC_SEARCH_SNIFF", true),

@@ -9,7 +9,6 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/block"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/coin"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
@@ -40,10 +39,7 @@ var Definitions = []dingo.Def{
 	{
 		Name: "address.history.repo",
 		Build: func(elastic *elastic_cache.Index, cache *cache.Cache) (repository.AddressHistoryRepository, error) {
-			return repository.NewCachingAddressHistoryRepository(
-				repository.NewAddressHistoryRepository(elastic),
-				cache,
-			), nil
+			return repository.NewAddressHistoryRepository(elastic), nil
 		},
 	},
 	{
@@ -60,10 +56,7 @@ var Definitions = []dingo.Def{
 	{
 		Name: "block.repo",
 		Build: func(elastic *elastic_cache.Index, cache *cache.Cache) (repository.BlockRepository, error) {
-			return repository.NewCachingBlockRepository(
-				repository.NewBlockRepository(elastic),
-				cache,
-			), nil
+			return repository.NewBlockRepository(elastic), nil
 		},
 	},
 	{
@@ -94,12 +87,6 @@ var Definitions = []dingo.Def{
 		Name: "block.subscriber",
 		Build: func(consumer *event.Consumer, cache2 *cache.Cache) (*block.Subscriber, error) {
 			return block.NewBlockSubscriber(network.GetNetworks(), consumer, cache2), nil
-		},
-	},
-	{
-		Name: "coin.service",
-		Build: func(addressRepository repository.AddressRepository) (coin.Service, error) {
-			return coin.NewCoinService(addressRepository), nil
 		},
 	},
 	{
@@ -169,12 +156,6 @@ var Definitions = []dingo.Def{
 		Name: "staking.service",
 		Build: func(addressHistoryRepo repository.AddressHistoryRepository) (service.StakingService, error) {
 			return service.NewStakingService(addressHistoryRepo), nil
-		},
-	},
-	{
-		Name: "supply.service",
-		Build: func(addressRepo repository.AddressRepository, blocktxRepository repository.BlockTransactionRepository) (service.SupplyService, error) {
-			return service.NewSupplyService(addressRepo, blocktxRepository), nil
 		},
 	},
 	{

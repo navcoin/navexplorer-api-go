@@ -1,7 +1,9 @@
 package cache
 
 import (
+	"crypto/md5"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -61,6 +63,23 @@ type cache struct {
 	janitor           *janitor
 }
 
+func (c *cache) GenerateKey(network string, name string, args string, filters interface{}) string {
+	var key strings.Builder
+	fmt.Fprintf(&key, "%s.%s", network, name)
+
+	if args != "" {
+		fmt.Fprintf(&key, ".args(%s)", args)
+	}
+	if filters != nil {
+		jsonFilters, _ := json.Marshal(filters)
+		fmt.Fprintf(&key, ".filters(%s)", string(jsonFilters))
+	}
+
+	log.Debug("Cache key " + key.String())
+
+	return fmt.Sprintf("%s.%x", network, md5.Sum([]byte(key.String())))
+}
+
 // Add an item to the cache, replacing any existing item. If the duration is 0
 // (DefaultExpiration), the cache's default expiration time is used. If it is -1
 // (NoExpiration), the item never expires.
@@ -84,7 +103,6 @@ func (c *cache) Set(k string, x interface{}, d time.Duration) {
 }
 
 func (c *cache) set(k string, x interface{}, d time.Duration) {
-
 	var e int64
 
 	if d == DefaultExpiration {
@@ -116,6 +134,7 @@ func (c *cache) Add(k string, x interface{}, d time.Duration) error {
 		c.mu.Unlock()
 		return fmt.Errorf("Item %s already exists", k)
 	}
+
 	c.set(k, x, d)
 	c.mu.Unlock()
 	return nil
@@ -130,6 +149,7 @@ func (c *cache) Replace(k string, x interface{}, d time.Duration) error {
 		c.mu.Unlock()
 		return fmt.Errorf("Item %s doesn't exist", k)
 	}
+
 	c.set(k, x, d)
 	c.mu.Unlock()
 	return nil
@@ -144,11 +164,13 @@ func (c *cache) Get(k string, callback func() (interface{}, error), d time.Durat
 	if !found {
 		log.Debugf("Cache create (%s)", k)
 		x, err := callback()
-		c.set(k, x, d)
+		if err == nil {
+			c.set(k, x, d)
 
-		if d == RefreshingExpiration {
-			c.refreshers[k] = Refresher{
-				callback,
+			if d == RefreshingExpiration {
+				c.refreshers[k] = Refresher{
+					callback,
+				}
 			}
 		}
 

@@ -2,7 +2,6 @@ package resource
 
 import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
-	network "github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/softfork"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -18,8 +17,7 @@ func NewSoftForkResource(softForkService softfork.Service, softForkRepository re
 }
 
 func (r *SoftForkResource) GetSoftForks(c *gin.Context) {
-	n, err := network.GetNetwork(networkHeader(c))
-	softForks, err := r.softForkRepository.GetSoftForks(n)
+	softForks, err := r.softForkRepository.GetSoftForks(network(c))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -29,8 +27,7 @@ func (r *SoftForkResource) GetSoftForks(c *gin.Context) {
 }
 
 func (r *SoftForkResource) GetSoftForkCycle(c *gin.Context) {
-	n, err := network.GetNetwork(networkHeader(c))
-	cycle, err := r.softForkService.GetCycle(n)
+	cycle, err := r.softForkService.GetCycle(network(c))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return

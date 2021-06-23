@@ -3,13 +3,11 @@ package resource
 import (
 	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/cache"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework/pagination"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework/paginator"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/resource/dto"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/group"
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 	"strings"
@@ -25,18 +23,12 @@ func NewAddressResource(addressService address.Service, cache *cache.Cache) *Add
 }
 
 func (r *AddressResource) GetAddress(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
-	a, err := r.addressService.GetAddress(n, c.Param("hash"))
+	a, err := r.addressService.GetAddress(network(c), c.Param("hash"))
 	if err != nil {
 		if err == repository.ErrAddressNotFound {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
+			errorNotFound(c, err.Error())
 		} else {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+			errorInternalServerError(c, err.Error())
 		}
 		return
 	}
@@ -45,39 +37,25 @@ func (r *AddressResource) GetAddress(c *gin.Context) {
 }
 
 func (r *AddressResource) GetAddresses(c *gin.Context) {
-	n, err := getNetwork(c)
+	addresses, total, err := r.addressService.GetAddresses(network(c), pagination(c))
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		errorInternalServerError(c, err.Error())
 		return
 	}
 
-	cfg, _ := pagination.Bind(c)
-
-	addresses, total, err := r.addressService.GetAddresses(n, cfg)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
-		return
-	}
-
-	paginator := pagination.NewPaginator(len(addresses), total, cfg)
+	paginator := paginator.NewPaginator(len(addresses), total, pagination(c))
 	paginator.WriteHeader(c)
 
 	c.JSON(200, addresses)
 }
 
 func (r *AddressResource) GetSummary(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
-	summary, err := r.addressService.GetAddressSummary(n, c.Param("hash"))
+	summary, err := r.addressService.GetAddressSummary(network(c), c.Param("hash"))
 	if err != nil {
 		if err == repository.ErrAddressHistoryNotFound {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": err, "status": http.StatusNotFound})
+			errorNotFound(c, err.Error())
 		} else {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+			errorInternalServerError(c, err.Error())
 		}
 		return
 	}
@@ -86,45 +64,24 @@ func (r *AddressResource) GetSummary(c *gin.Context) {
 }
 
 func (r *AddressResource) GetHistory(c *gin.Context) {
-	n, err := getNetwork(c)
+	req := rest(c)
+
+	history, total, err := r.addressService.GetHistory(req.Network(), c.Param("hash"), req)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
+		errorInternalServerError(c, err.Error())
 		return
 	}
 
-	cfg, _ := pagination.Bind(c)
-
-	var parameters dto.HistoryParameters
-	if err := c.BindQuery(&parameters); err != nil {
-		log.WithError(err).Error("Failed to bind query")
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid request", "status": http.StatusBadRequest,
-		})
-		return
-	}
-
-	history, total, err := r.addressService.GetHistory(n, c.Param("hash"), string(parameters.TxType), cfg)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
-		return
-	}
-
-	paginator := pagination.NewPaginator(len(history), total, cfg)
-	paginator.WriteHeader(c)
+	paginate := paginator.NewPaginator(len(history), total, req.Pagination())
+	paginate.WriteHeader(c)
 
 	c.JSON(200, history)
 }
 
 func (r *AddressResource) ValidateAddress(c *gin.Context) {
-	n, err := getNetwork(c)
+	validateAddress, err := r.addressService.ValidateAddress(network(c), c.Param("hash"))
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
-	validateAddress, err := r.addressService.ValidateAddress(n, c.Param("hash"))
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		errorInternalServerError(c, err.Error())
 		return
 	}
 
@@ -132,12 +89,6 @@ func (r *AddressResource) ValidateAddress(c *gin.Context) {
 }
 
 func (r *AddressResource) GetAddressGroups(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
 	period := group.GetPeriod(c.DefaultQuery("period", "daily"))
 	if period == nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -152,7 +103,7 @@ func (r *AddressResource) GetAddressGroups(c *gin.Context) {
 		count = 10
 	}
 
-	groups, err := r.addressService.GetAddressGroups(n, period, count)
+	groups, err := r.addressService.GetAddressGroups(network(c), period, count)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -162,15 +113,8 @@ func (r *AddressResource) GetAddressGroups(c *gin.Context) {
 }
 
 func (r *AddressResource) GetStakingChart(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
 	period := c.DefaultQuery("period", "daily")
-
-	chart, err := r.addressService.GetStakingChart(n, period, c.Param("hash"))
+	chart, err := r.addressService.GetStakingChart(network(c), period, c.Param("hash"))
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
@@ -180,13 +124,7 @@ func (r *AddressResource) GetStakingChart(c *gin.Context) {
 }
 
 func (r *AddressResource) GetAssociatedStakingAddresses(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
-	addresses, err := r.addressService.GetAssociatedStakingAddresses(n, c.Param("hash"))
+	addresses, err := r.addressService.GetAssociatedStakingAddresses(network(c), c.Param("hash"))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
 		return
@@ -196,20 +134,19 @@ func (r *AddressResource) GetAssociatedStakingAddresses(c *gin.Context) {
 }
 
 func (r *AddressResource) GetBalancesForAddresses(c *gin.Context) {
-	n, err := getNetwork(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"message": "Network not available", "status": http.StatusNotFound})
-		return
-	}
-
 	_ = c.Request.ParseForm()
 
 	addresses := make([]string, 0)
 	if addressesParam := c.Request.Form.Get("addresses"); addressesParam != "" {
-		addresses = strings.Split(addressesParam, ",")
+		addressArray := strings.Split(addressesParam, ",")
+		for _, a := range addressArray {
+			if a != "" {
+				addresses = append(addresses, a)
+			}
+		}
 	}
 
-	balances, err := r.addressService.GetNamedAddresses(n, addresses)
+	balances, err := r.addressService.GetNamedAddresses(rest(c).Network(), addresses)
 	if err != nil {
 		handleError(c, err, http.StatusInternalServerError)
 		return
