@@ -66,3 +66,7 @@ func (r *cachingBlockRepository) GetRawBlockByHashOrHeight(n network.Network, ha
 func (r *cachingBlockRepository) GetFeesForLastBlocks(n network.Network, blocks int) (fees float64, err error) {
 	return r.repository.GetFeesForLastBlocks(n, blocks)
 }
+
+func (r *cachingBlockRepository) GetSupply(n network.Network, blocks int, fillEmpty bool) (supply []entity.Supply, err error) {
+	return r.repository.GetSupply(n, blocks, fillEmpty)
+}

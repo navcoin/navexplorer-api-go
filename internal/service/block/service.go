@@ -20,6 +20,7 @@ type Service interface {
 	GetTransactionsByBlockHash(n network.Network, blockHash string) ([]*explorer.BlockTransaction, error)
 	GetTransactionByHash(n network.Network, hash string) (*explorer.BlockTransaction, error)
 	GetRawTransactionByHash(n network.Network, hash string) (*explorer.RawBlockTransaction, error)
+	GetSupply(n network.Network, blocks int, fillEmpty bool) ([]entity.Supply, error)
 }
 
 type service struct {
@@ -104,4 +105,8 @@ func (s *service) GetTransactionByHash(n network.Network, hash string) (*explore
 
 func (s *service) GetRawTransactionByHash(n network.Network, hash string) (*explorer.RawBlockTransaction, error) {
 	return s.transactionRepo.GetRawTransactionByHash(n, hash)
+}
+
+func (s service) GetSupply(n network.Network, blocks int, fillEmpty bool) ([]entity.Supply, error) {
+	return s.blockRepo.GetSupply(n, blocks, fillEmpty)
 }

@@ -11,7 +11,9 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
+	"go.uber.org/zap"
 	"strconv"
+	"time"
 )
 
 type BlockRepository interface {
@@ -24,6 +26,7 @@ type BlockRepository interface {
 	GetBlockByHeight(n network.Network, height uint64) (*explorer.Block, error)
 	GetRawBlockByHashOrHeight(n network.Network, hash string) (*explorer.RawBlock, error)
 	GetFeesForLastBlocks(n network.Network, blocks int) (fees float64, err error)
+	GetSupply(n network.Network, blocks int, fillEmpty bool) (supply []entity.Supply, err error)
 }
 
 var (
@@ -259,6 +262,120 @@ func (r *blockRepository) GetFeesForLastBlocks(n network.Network, blocks int) (f
 
 	if feesValue, found := results.Aggregations.Sum("fees"); found {
 		fees = *feesValue.Value / 100000000
+	}
+
+	return
+}
+
+func (r *blockRepository) GetSupply(n network.Network, blocks int, fillEmpty bool) (supplySlice []entity.Supply, err error) {
+	supplyMap := make(map[uint64]*entity.Supply)
+
+	bestBlock, err := r.GetBestBlock(n)
+	if err != nil {
+		return
+	}
+	supplyMap[bestBlock.Height] = &entity.Supply{
+		Height: bestBlock.Height,
+		Balance: entity.SupplyBalance{
+			Public:  bestBlock.SupplyBalance.Public,
+			Private: bestBlock.SupplyBalance.Private,
+			Wrapped: bestBlock.SupplyBalance.Wrapped,
+		},
+		Change: entity.SupplyChange{
+			Public:  bestBlock.SupplyChange.Public,
+			Private: bestBlock.SupplyChange.Private,
+			Wrapped: bestBlock.SupplyChange.Wrapped,
+		},
+	}
+
+	from := bestBlock.Height - uint64(blocks)
+	for i := from + 1; i < bestBlock.Height; i++ {
+		supplyMap[i] = &entity.Supply{
+			Height: i,
+		}
+	}
+
+	zap.L().With(zap.Uint64("lte", bestBlock.Height), zap.Uint64("gt", from)).Info("blocks in supply range")
+	query := elastic.NewBoolQuery().Must(elastic.NewRangeQuery("height").Gt(bestBlock.Height - uint64(blocks)).Lte(bestBlock.Height))
+
+	agg := elastic.NewTermsAggregation().Field("height").Size(blocks).
+		SubAggregation("time", elastic.NewTermsAggregation().Field("time")).
+		SubAggregation("balance", elastic.NewNestedAggregation().Path("supply_balance").
+			SubAggregation("public", elastic.NewSumAggregation().Field("supply_balance.public")).
+			SubAggregation("private", elastic.NewSumAggregation().Field("supply_balance.private")).
+			SubAggregation("wrapped", elastic.NewSumAggregation().Field("supply_balance.wrapped"))).
+		SubAggregation("change", elastic.NewNestedAggregation().Path("supply_change").
+			SubAggregation("public", elastic.NewSumAggregation().Field("supply_change.public")).
+			SubAggregation("private", elastic.NewSumAggregation().Field("supply_change.private")).
+			SubAggregation("wrapped", elastic.NewSumAggregation().Field("supply_change.wrapped")))
+
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(n)).
+		Query(query).
+		Aggregation("block", agg).
+		Size(0).
+		Do(context.Background())
+	if err != nil {
+		zap.L().With(zap.Error(err)).Error("Failed to get supply")
+		return
+	}
+
+	if blockResult, found := results.Aggregations.Terms("block"); found {
+		for _, bucket := range blockResult.Buckets {
+			supply := entity.Supply{}
+			block, _ := bucket.KeyNumber.Int64()
+			supply.Height = uint64(block)
+			if timeResult, found := bucket.Aggregations.Terms("time"); found {
+				supply.Time, _ = time.Parse(time.RFC3339, *timeResult.Buckets[0].KeyAsString)
+			}
+			if balanceResult, found := bucket.Aggregations.Nested("balance"); found {
+				if publicResult, found := balanceResult.Aggregations.Sum("public"); found {
+					publicValue := publicResult.Value
+					supply.Balance.Public = uint64(*publicValue)
+				}
+				if privateResult, found := balanceResult.Aggregations.Sum("private"); found {
+					value := privateResult.Value
+					supply.Balance.Private = uint64(*value)
+				}
+				if wrappedResult, found := balanceResult.Aggregations.Sum("wrapped"); found {
+					value := wrappedResult.Value
+					supply.Balance.Wrapped = uint64(*value)
+				}
+			}
+			if changeResult, found := bucket.Aggregations.Nested("change"); found {
+				if publicResult, found := changeResult.Aggregations.Sum("public"); found {
+					publicValue := publicResult.Value
+					supply.Change.Public = int64(*publicValue)
+				}
+				if privateResult, found := changeResult.Aggregations.Sum("private"); found {
+					value := privateResult.Value
+					supply.Change.Private = int64(*value)
+				}
+				if wrappedResult, found := changeResult.Aggregations.Sum("wrapped"); found {
+					value := wrappedResult.Value
+					supply.Change.Wrapped = int64(*value)
+				}
+			}
+			zap.S().Infof("Adding to supply slice at height %d", supply.Height)
+
+			supplyMap[supply.Height] = &supply
+		}
+	}
+
+	for i := bestBlock.Height; i > from; i-- {
+		if supplyMap[i].Change.Public == 0 {
+			if fillEmpty {
+				supplyMap[i].Change.Public = 200000000
+				supplyMap[i].Balance.Public = uint64(int64(supplyMap[i+1].Balance.Public) - supplyMap[i+1].Change.Public)
+				supplyMap[i].Balance.Private = uint64(int64(supplyMap[i+1].Balance.Private) - supplyMap[i+1].Change.Private)
+				supplyMap[i].Balance.Wrapped = uint64(int64(supplyMap[i+1].Balance.Wrapped) - supplyMap[i+1].Change.Wrapped)
+			} else {
+				delete(supplyMap, i)
+			}
+		}
+
+		if val, ok := supplyMap[i]; ok {
+			supplySlice = append(supplySlice, *val)
+		}
 	}
 
 	return
