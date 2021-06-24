@@ -39,7 +39,7 @@ func (r *AddressResource) GetAddress(c *gin.Context) {
 func (r *AddressResource) GetAddresses(c *gin.Context) {
 	req := rest(c)
 
-	addresses, total, err := r.addressService.GetAddresses(network(c), pagination(c), req.Sort())
+	addresses, total, err := r.addressService.GetAddresses(network(c), pagination(c), req.Filters(), req.Sort())
 	if err != nil {
 		errorInternalServerError(c, err.Error())
 		return

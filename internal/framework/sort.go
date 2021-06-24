@@ -14,6 +14,7 @@ var ErrInvalidSortDirection = errors.New("The sort direction is invalid format")
 type Sort interface {
 	Options() []SortOption
 	IsEmpty() bool
+	HasOption(field string) bool
 }
 
 type sort struct {
@@ -61,6 +62,16 @@ func newSortFromContext(c *gin.Context, n network.Network) (Sort, error) {
 
 func (s *sort) Options() []SortOption {
 	return s.options
+}
+
+func (s *sort) HasOption(field string) bool {
+	for _, option := range s.options {
+		if option.field == field {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s *sort) IsEmpty() bool {
