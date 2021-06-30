@@ -5,15 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/elastic_cache"
+	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address/entity"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type AddressRepository interface {
-	GetAddresses(n network.Network, size, page int) ([]*explorer.Address, int64, error)
+	GetAddresses(n network.Network, size, page int, f framework.Filters, s framework.Sort) ([]*explorer.Address, int64, error)
 	GetAddressByHash(n network.Network, hash string) (*explorer.Address, error)
 	GetBalancesForAddresses(n network.Network, addresses []string) ([]*explorer.Address, error)
 	GetWealthDistribution(n network.Network, groups []int, totalSupply uint64) ([]*entity.Wealth, error)
@@ -33,12 +35,33 @@ func NewAddressRepository(elastic *elastic_cache.Index) AddressRepository {
 	return &addressRepository{elastic: elastic}
 }
 
-func (r *addressRepository) GetAddresses(n network.Network, size, page int) ([]*explorer.Address, int64, error) {
-	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
-		Sort("spendable", false).
+func (r *addressRepository) GetAddresses(n network.Network, size, page int, f framework.Filters, s framework.Sort) ([]*explorer.Address, int64, error) {
+	service := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
 		From((page * size) - size).
 		Size(size).
-		Do(context.Background())
+		TrackTotalHits(true)
+
+	options := f.OnlySupportedOptions([]string{"exclude"})
+	if option, err := options.Get("exclude"); err == nil {
+		zap.L().Info("Has the exclude filter")
+		switch option.Values()[0] {
+		case "empty":
+			if s.HasOption("spendable") {
+				service.Query(elastic.NewRangeQuery("spendable").Gt(0))
+			}
+			if s.HasOption("stakable") {
+				service.Query(elastic.NewRangeQuery("stakable").Gt(0))
+			}
+			if s.HasOption("voting_weight") {
+				service.Query(elastic.NewRangeQuery("voting_weight").Gt(0))
+			}
+			break
+		}
+	}
+
+	sort(service, s, &defaultSort{"spendable", false})
+
+	results, err := service.Do(context.Background())
 
 	addresses, total, err := r.findMany(results, err)
 	for idx := range addresses {
@@ -51,8 +74,10 @@ func (r *addressRepository) GetAddresses(n network.Network, size, page int) ([]*
 }
 
 func (r *addressRepository) GetAddressByHash(n network.Network, hash string) (*explorer.Address, error) {
+	query := elastic.NewBoolQuery().Filter(elastic.NewMatchPhraseQuery("hash", hash))
+
 	results, err := r.elastic.Client.Search(elastic_cache.AddressIndex.Get(n)).
-		Query(elastic.NewTermQuery("hash.keyword", hash)).
+		Query(query).
 		Size(1).
 		Do(context.Background())
 

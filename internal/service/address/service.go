@@ -12,7 +12,7 @@ import (
 
 type Service interface {
 	GetAddress(n network.Network, hash string) (*explorer.Address, error)
-	GetAddresses(n network.Network, pagination framework.Pagination) ([]*explorer.Address, int64, error)
+	GetAddresses(n network.Network, pagination framework.Pagination, filters framework.Filters, sort framework.Sort) ([]*explorer.Address, int64, error)
 	GetAddressSummary(n network.Network, hash string) (*entity.AddressSummary, error)
 	GetStakingChart(n network.Network, period string, address string) ([]*entity.StakingGroup, error)
 	GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error)
@@ -55,8 +55,8 @@ func (s *service) GetAddress(n network.Network, hash string) (*explorer.Address,
 	return address, err
 }
 
-func (s *service) GetAddresses(n network.Network, pagination framework.Pagination) ([]*explorer.Address, int64, error) {
-	return s.addressRepository.GetAddresses(n, pagination.Size(), pagination.Page())
+func (s *service) GetAddresses(n network.Network, pagination framework.Pagination, filters framework.Filters, sort framework.Sort) ([]*explorer.Address, int64, error) {
+	return s.addressRepository.GetAddresses(n, pagination.Size(), pagination.Page(), filters, sort)
 }
 
 func (s *service) GetHistory(n network.Network, hash string, request framework.RestRequest) ([]*explorer.AddressHistory, int64, error) {

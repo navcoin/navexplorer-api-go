@@ -19,6 +19,7 @@ FROM alpine:latest
 RUN apk update && apk add --no-cache zeromq
 
 WORKDIR /app
+RUN mkdir /app/logs
 
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /go/bin/api /app/api
