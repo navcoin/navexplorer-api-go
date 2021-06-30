@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/elastic_cache"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao/entity"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
@@ -34,16 +33,17 @@ func NewDaoProposalRepository(elastic *elastic_cache.Index) DaoProposalRepositor
 
 func (r *daoProposalRepository) GetProposals(n network.Network, status *explorer.ProposalStatus, dir bool, size int, page int) ([]*explorer.Proposal, int64, error) {
 	query := elastic.NewBoolQuery()
-	if status != nil {
-		statusQuery := status.Status
-		if *status == explorer.ProposalAccepted {
-			statusQuery = fmt.Sprintf("%s %s", statusQuery, explorer.ProposalPendingVotingPreq.Status)
-		}
-		query = query.Must(elastic.NewTermQuery("status.keyword", statusQuery))
+	if *status == explorer.ProposalAccepted {
+		query = query.Should(elastic.NewTermQuery("status.keyword", status.Status))
+		query = query.Should(elastic.NewTermQuery("status.keyword", explorer.ProposalPendingVotingPreq.Status))
+		query = query.Should(elastic.NewTermQuery("status.keyword", explorer.ProposalAcceptedExpired.Status))
+	} else {
+		query = query.Must(elastic.NewTermQuery("status.keyword", status.Status))
 	}
 
 	results, err := r.elastic.Client.Search(elastic_cache.ProposalIndex.Get(n)).
 		Query(query).
+		Sort("state.keyword", !dir).
 		Sort("height", dir).
 		From((page * size) - size).
 		Size(size).
