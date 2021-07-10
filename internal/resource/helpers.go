@@ -5,7 +5,6 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
 	networkService "github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -14,7 +13,6 @@ func rest(c *gin.Context) framework.RestRequest {
 }
 
 func network(c *gin.Context) networkService.Network {
-	logrus.Info(rest(c).Query())
 	return rest(c).Network()
 }
 

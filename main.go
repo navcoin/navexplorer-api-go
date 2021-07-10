@@ -44,6 +44,8 @@ func main() {
 		c.String(http.StatusOK, "Welcome to NavExplorer API!")
 	})
 
+	authorized := r.Group("/auth", gin.BasicAuth(config.Account()))
+
 	addressResource := resource.NewAddressResource(container.GetAddressService(), container.GetCache())
 	r.GET("/address", addressResource.GetAddresses)
 	r.GET("/address/:hash", addressResource.GetAddress)
@@ -54,6 +56,7 @@ func main() {
 	r.GET("/address/:hash/assoc/staking", addressResource.GetAssociatedStakingAddresses)
 	r.GET("/balance", addressResource.GetBalancesForAddresses)
 	r.GET("/addressgroup", addressResource.GetAddressGroups)
+	authorized.PUT("/address/:hash/meta", addressResource.PutAddressMeta)
 
 	distributionResource := resource.NewDistributionResource(container.GetAddressService(), container.GetBlockService())
 	r.GET("/distribution/supply", distributionResource.GetSupply)

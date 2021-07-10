@@ -21,6 +21,7 @@ type Service interface {
 	GetNamedAddresses(n network.Network, addresses []string) ([]*explorer.Address, error)
 	ValidateAddress(n network.Network, hash string) (bool, error)
 	GetPublicWealthDistribution(n network.Network, groups []int) ([]*entity.Wealth, error)
+	PutAddressMeta(n network.Network, address, key, value string) error
 }
 
 type service struct {
@@ -202,4 +203,32 @@ func (s *service) UpdateCreatedAt(n network.Network, address *explorer.Address) 
 	} else {
 		log.WithField("hash", address.Hash).Info("Updated address created fields")
 	}
+}
+
+func (s *service) PutAddressMeta(n network.Network, hash, key, value string) error {
+	address, err := s.GetAddress(n, hash)
+	if err != nil {
+		return err
+	}
+
+	if address.Meta == nil {
+		address.Meta = map[string]string{}
+	}
+
+	if value == "" {
+		log.WithFields(log.Fields{
+			"address": hash,
+			"key":     key,
+		}).Info("Deleting Address Meta")
+		delete(address.Meta, key)
+	} else {
+		log.WithFields(log.Fields{
+			"address": hash,
+			"key":     key,
+			"value":   value,
+		}).Info("Updating Address Meta")
+		address.Meta[key] = value
+	}
+
+	return s.addressRepository.UpdateAddress(n, address)
 }

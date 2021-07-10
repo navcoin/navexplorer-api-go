@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"errors"
 	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/cache"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework/paginator"
@@ -155,4 +156,23 @@ func (r *AddressResource) GetBalancesForAddresses(c *gin.Context) {
 	}
 
 	c.JSON(200, balances)
+}
+
+func (r *AddressResource) PutAddressMeta(c *gin.Context) {
+	_ = c.Request.ParseForm()
+
+	key := c.Request.PostForm.Get("key")
+	value := c.Request.PostForm.Get("value")
+	if key == "" {
+		handleError(c, errors.New("Missing Meta Data"), http.StatusBadRequest)
+		return
+	}
+
+	err := r.addressService.PutAddressMeta(network(c), c.Param("hash"), key, value)
+	if err != nil {
+		handleError(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(200, nil)
 }
