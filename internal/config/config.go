@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/log"
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 	"os"
@@ -21,6 +22,8 @@ type Config struct {
 	Subscribe      bool
 	RabbitMq       RabbitMqConfig
 	DefaultNetwork string
+	User           string
+	Password       string
 }
 
 type ElasticSearchConfig struct {
@@ -84,6 +87,15 @@ func Get() *Config {
 			Prefix:   getString("RABBITMQ_PREFIX", os.Getenv("POD_NAME")),
 		},
 		DefaultNetwork: getString("DEFAULT_NETWORK", "mainnet"),
+		User:           getString("AUTH_USER", "user"),
+		Password:       getString("AUTH_PASSWORD", "password"),
+	}
+}
+
+func Account() gin.Accounts {
+	config := Get()
+	return gin.Accounts{
+		config.User: config.Password,
 	}
 }
 
