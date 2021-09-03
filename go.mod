@@ -10,7 +10,7 @@ require (
 	github.com/getsentry/raven-go v0.2.0 // indirect
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-contrib/gzip v0.0.3
-	github.com/gin-gonic/gin v1.6.3
+	github.com/gin-gonic/gin v1.7.0
 	github.com/joho/godotenv v1.3.0
 	github.com/mattn/go-colorable v0.1.8
 	github.com/olivere/elastic/v7 v7.0.21
