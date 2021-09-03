@@ -72,6 +72,10 @@ func (r *cachingAddressHistoryRepository) GetStakingChart(n network.Network, per
 	return r.repository.GetStakingChart(n, period, hash)
 }
 
+func (r *cachingAddressHistoryRepository) GetStakingRange(n network.Network, from, to uint64, addresses []string) (*entity.StakingBlocks, error) {
+	return r.repository.GetStakingRange(n, from, to, addresses)
+}
+
 func (r *cachingAddressHistoryRepository) StakingRewardsForAddresses(n network.Network, addresses []string) ([]*entity.StakingReward, error) {
 	return r.repository.StakingRewardsForAddresses(n, addresses)
 }

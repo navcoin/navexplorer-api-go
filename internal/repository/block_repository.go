@@ -27,6 +27,7 @@ type BlockRepository interface {
 	GetRawBlockByHashOrHeight(n network.Network, hash string) (*explorer.RawBlock, error)
 	GetFeesForLastBlocks(n network.Network, blocks int) (fees float64, err error)
 	GetSupply(n network.Network, blocks int, fillEmpty bool) (supply []entity.Supply, err error)
+	GetStakingAddresses(n network.Network, from, to uint64) ([]string, error)
 }
 
 var (
@@ -47,7 +48,12 @@ func (r *blockRepository) GetBestBlock(n network.Network) (*explorer.Block, erro
 		Size(1).
 		Do(context.Background())
 
-	return r.findOne(results, err)
+	block, err := r.findOne(results, err)
+	if err == nil {
+		zap.S().With(zap.Uint64("height", block.Height)).Infof("Block: GetBestBlock(%s)", n.String())
+	}
+
+	return block, err
 }
 
 func (r *blockRepository) GetBlocks(n network.Network, p framework.Pagination, s framework.Sort, f framework.Filters, bestBlock *explorer.Block) ([]*explorer.Block, int64, error) {
@@ -379,6 +385,49 @@ func (r *blockRepository) GetSupply(n network.Network, blocks int, fillEmpty boo
 	}
 
 	return
+}
+
+func (r *blockRepository) FeesForLastBlocks(n network.Network, blocks int) (float64, error) {
+	bestBlock, err := r.GetBestBlock(n)
+	if err != nil {
+		return 0, err
+	}
+
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(n)).
+		Query(elastic.NewRangeQuery("height").Gt(bestBlock.Height-uint64(blocks))).
+		Aggregation("fees", elastic.NewSumAggregation().Field("fees")).
+		Size(0).
+		Do(context.Background())
+	if err != nil {
+		return 0, err
+	}
+
+	var fees float64
+	if feesValue, found := results.Aggregations.Sum("fees"); found {
+		fees += *feesValue.Value / 100000000
+	}
+
+	return fees, nil
+}
+
+func (r *blockRepository) GetStakingAddresses(n network.Network, from, to uint64) ([]string, error) {
+	addresses := make([]string, 0)
+
+	results, err := r.elastic.Client.Search(elastic_cache.BlockIndex.Get(n)).
+		Query(elastic.NewRangeQuery("height").Gt(from).Lte(to)).
+		Aggregation("stakedBy", elastic.NewTermsAggregation().Field("stakedBy.keyword").Size(int(to-from))).
+		Size(0).
+		Do(context.Background())
+
+	if err == nil {
+		if stakedBy, found := results.Aggregations.Terms("stakedBy"); found {
+			for _, bucket := range stakedBy.Buckets {
+				addresses = append(addresses, bucket.Key.(string))
+			}
+		}
+	}
+
+	return addresses, err
 }
 
 func (r *blockRepository) findOne(results *elastic.SearchResult, err error) (*explorer.Block, error) {

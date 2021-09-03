@@ -27,12 +27,19 @@ type Reporter struct {
 }
 
 type StakingBlocks struct {
-	BlockCount  int     `json:"blockCount"`
+	BlockCount  int64   `json:"blockCount"`
 	Staking     float64 `json:"staking"`
 	ColdStaking float64 `json:"coldStaking"`
 	Fees        float64 `json:"fees"`
 	From        uint64  `json:"from,omitempty"`
 	To          uint64  `json:"to,omitempty"`
+
+	Addresses map[string]StakingBlocksAddress `json:"addresses,omitempty"`
+}
+
+type StakingBlocksAddress struct {
+	Txs     int     `json:"txs"`
+	Balance float64 `json:"balance"`
 }
 
 type StakingReward struct {
