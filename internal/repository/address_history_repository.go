@@ -24,6 +24,7 @@ type AddressHistoryRepository interface {
 	GetSpendSummary(n network.Network, hash string) (spendableReceive, spendableSent, stakableReceive, stakableSent, votingWeightReceive, votingWeightSent int64, err error)
 	GetHistoryByHash(n network.Network, hash string, p framework.Pagination, s framework.Sort, f framework.Filters) ([]*explorer.AddressHistory, int64, error)
 	GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error)
+	GetAddressGroupsTotal(n network.Network, period *group.Period, count int) ([]entity.AddressGroupTotal, error)
 	GetStakingChart(n network.Network, period, hash string) (groups []*entity.StakingGroup, err error)
 	StakingRewardsForAddresses(n network.Network, addresses []string) ([]*entity.StakingReward, error)
 }
@@ -288,6 +289,46 @@ func (r *addressHistoryRepository) GetAddressGroups(n network.Network, period *g
 				if hash, found := agg.Cardinality("hash"); found {
 					addressGroups[idx].Stake = int64(*hash.Value)
 				}
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	return addressGroups, nil
+}
+
+func (r *addressHistoryRepository) GetAddressGroupsTotal(n network.Network, period *group.Period, count int) ([]entity.AddressGroupTotal, error) {
+	timeGroups := group.CreateTimeGroup(period, count)
+
+	addressGroups := make([]entity.AddressGroupTotal, 0)
+	for i := range timeGroups {
+		blockGroup := entity.AddressGroupTotal{
+			TimeGroup: *timeGroups[i],
+			Period:    *period,
+		}
+		addressGroups = append(addressGroups, blockGroup)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(addressGroups))
+
+	for i := range addressGroups {
+		go func(idx int) {
+			defer wg.Done()
+			totalAgg := elastic.NewCardinalityAggregation().Field("hash.keyword")
+
+			results, err := r.elastic.Client.
+				Search(elastic_cache.AddressHistoryIndex.Get(n)).
+				Query(elastic.NewRangeQuery("time").From(addressGroups[idx].Start).To(addressGroups[idx].End)).
+				Size(0).
+				Aggregation("total", totalAgg).
+				Do(context.Background())
+			if err != nil {
+				return
+			}
+
+			if agg, found := results.Aggregations.Cardinality("total"); found {
+				addressGroups[idx].Addresses = int64(*agg.Value)
 			}
 		}(i)
 	}

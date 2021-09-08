@@ -68,6 +68,10 @@ func (r *cachingAddressHistoryRepository) GetAddressGroups(n network.Network, pe
 	return addressGroup, nil
 }
 
+func (r *cachingAddressHistoryRepository) GetAddressGroupsTotal(n network.Network, period *group.Period, count int) ([]entity.AddressGroupTotal, error) {
+	return r.repository.GetAddressGroupsTotal(n, period, count)
+}
+
 func (r *cachingAddressHistoryRepository) GetStakingChart(n network.Network, period string, hash string) (groups []*entity.StakingGroup, err error) {
 	return r.repository.GetStakingChart(n, period, hash)
 }

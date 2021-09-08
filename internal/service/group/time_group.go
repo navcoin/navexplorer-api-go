@@ -47,22 +47,16 @@ func CreateTimeGroup(period *Period, size int) []*TimeGroup {
 			break
 		case &PeriodWeekly:
 			if i == 0 {
-				group = &TimeGroup{
-					Start: time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location()),
-					End:   start,
-				}
+				group = &TimeGroup{Start: start.AddDate(0, 0, -7), End: start.Add(time.Second)}
 			} else {
-				group = &TimeGroup{Start: groups[i-1].Start.AddDate(0, 0, -7), End: groups[i-1].Start}
+				group = &TimeGroup{Start: groups[i-1].Start.AddDate(0, 0, -7), End: groups[i-1].Start.Add(time.Second)}
 			}
 			break
 		case &PeriodMonthly:
 			if i == 0 {
-				group = &TimeGroup{
-					Start: time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, start.Location()),
-					End:   start,
-				}
+				group = &TimeGroup{Start: start.AddDate(0, -1, 0), End: start.Add(time.Second)}
 			} else {
-				group = &TimeGroup{Start: groups[i-1].Start.AddDate(0, -1, 0), End: groups[i-1].Start}
+				group = &TimeGroup{Start: groups[i-1].Start.AddDate(0, -1, 0), End: groups[i-1].Start.Add(time.Second)}
 			}
 			break
 		}

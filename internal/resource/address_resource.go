@@ -115,6 +115,30 @@ func (r *AddressResource) GetAddressGroups(c *gin.Context) {
 	c.JSON(200, groups)
 }
 
+func (r *AddressResource) GetAddressGroupsTotal(c *gin.Context) {
+	period := group.GetPeriod(c.DefaultQuery("period", "daily"))
+	if period == nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": fmt.Sprintf("Invalid period `%s`", c.Query("period")),
+			"status":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	count, err := strconv.Atoi(c.DefaultQuery("count", "10"))
+	if err != nil || count > 100 {
+		count = 10
+	}
+
+	groups, err := r.addressService.GetAddressGroupsTotal(network(c), period, count)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err, "status": http.StatusInternalServerError})
+		return
+	}
+
+	c.JSON(200, groups)
+}
+
 func (r *AddressResource) GetStakingChart(c *gin.Context) {
 	period := c.DefaultQuery("period", "daily")
 	chart, err := r.addressService.GetStakingChart(network(c), period, c.Param("hash"))

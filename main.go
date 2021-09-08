@@ -56,6 +56,7 @@ func main() {
 	r.GET("/address/:hash/assoc/staking", addressResource.GetAssociatedStakingAddresses)
 	r.GET("/balance", addressResource.GetBalancesForAddresses)
 	r.GET("/addressgroup", addressResource.GetAddressGroups)
+	r.GET("/addresses", addressResource.GetAddressGroupsTotal)
 	authorized.PUT("/address/:hash/meta", addressResource.PutAddressMeta)
 
 	distributionResource := resource.NewDistributionResource(container.GetAddressService(), container.GetBlockService())

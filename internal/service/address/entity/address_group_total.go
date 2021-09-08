@@ -4,9 +4,8 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/group"
 )
 
-type AddressGroup struct {
+type AddressGroupTotal struct {
 	Period group.Period `json:"period"`
 	group.TimeGroup
-	Stake int64 `json:"stake"`
-	Spend int64 `json:"spend"`
+	Addresses int64 `json:"addresses"`
 }

@@ -16,6 +16,7 @@ type Service interface {
 	GetAddressSummary(n network.Network, hash string) (*entity.AddressSummary, error)
 	GetStakingChart(n network.Network, period string, address string) ([]*entity.StakingGroup, error)
 	GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error)
+	GetAddressGroupsTotal(n network.Network, period *group.Period, count int) ([]entity.AddressGroupTotal, error)
 	GetHistory(n network.Network, hash string, request framework.RestRequest) ([]*explorer.AddressHistory, int64, error)
 	GetAssociatedStakingAddresses(n network.Network, address string) ([]string, error)
 	GetNamedAddresses(n network.Network, addresses []string) ([]*explorer.Address, error)
@@ -110,6 +111,10 @@ func (s *service) GetAddressSummary(n network.Network, hash string) (*entity.Add
 
 func (s *service) GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error) {
 	return s.addressHistoryRepository.GetAddressGroups(n, period, count)
+}
+
+func (s *service) GetAddressGroupsTotal(n network.Network, period *group.Period, count int) ([]entity.AddressGroupTotal, error) {
+	return s.addressHistoryRepository.GetAddressGroupsTotal(n, period, count)
 }
 
 //func (s *service) GetBalanceChart(address string) (entity.Chart, error) {
