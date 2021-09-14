@@ -12,6 +12,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
+	"go.uber.org/zap"
 	"sync"
 	"time"
 )
@@ -26,6 +27,7 @@ type AddressHistoryRepository interface {
 	GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error)
 	GetAddressGroupsTotal(n network.Network, period *group.Period, count int) ([]entity.AddressGroupTotal, error)
 	GetStakingChart(n network.Network, period, hash string) (groups []*entity.StakingGroup, err error)
+	GetStakingRange(n network.Network, from, to uint64, address []string) (*entity.StakingBlocks, error)
 	StakingRewardsForAddresses(n network.Network, addresses []string) ([]*entity.StakingReward, error)
 }
 
@@ -429,6 +431,102 @@ func (r *addressHistoryRepository) GetStakingChart(n network.Network, period str
 	}
 
 	return groups, err
+}
+
+func (r *addressHistoryRepository) GetStakingRange(n network.Network, from, to uint64, addresses []string) (*entity.StakingBlocks, error) {
+	zap.S().Infof("AddressHistory: GetStakingRange(%s, %d, %d)", n.String(), from, to)
+
+	values := make([]interface{}, len(addresses))
+	for i, v := range addresses {
+		values[i] = v
+	}
+
+	query := elastic.NewBoolQuery().
+		Must(elastic.NewRangeQuery("height").Gt(from).Lte(to)).
+		Must(elastic.NewTermsQuery("hash.keyword", values...)).
+		MustNot(elastic.NewNestedQuery("balance", elastic.NewTermQuery("balance.stakable", 0)))
+
+	hashAgg := elastic.NewTermsAggregation().Field("hash.keyword").Size(int(to - from))
+	hashAgg.SubAggregation("balance", elastic.NewNestedAggregation().Path("balance").
+		SubAggregation("stakable", elastic.NewMaxAggregation().Field("balance.stakable")))
+
+	stakeAgg := elastic.NewFilterAggregation().Filter(elastic.NewBoolQuery().
+		Must(elastic.NewTermQuery("is_stake", true)).
+		Must(elastic.NewTermQuery("is_coldstake", false)))
+	stakeAgg.SubAggregation("hash", hashAgg)
+
+	coldStakeAgg := elastic.NewFilterAggregation().Filter(elastic.NewBoolQuery().
+		Must(elastic.NewTermQuery("is_stake", true)).
+		Must(elastic.NewTermQuery("is_coldstake", true)))
+	coldStakeAgg.SubAggregation("hash", hashAgg)
+
+	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(n)).
+		Query(query).
+		Aggregation("stake", stakeAgg).
+		Aggregation("coldStake", coldStakeAgg).
+		Size(0).
+		Do(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	stakingBlocks := &entity.StakingBlocks{
+		From: from,
+		To:   to,
+		//Addresses: make(map[string]entity.StakingBlocksAddress),
+	}
+
+	stakeBalance := float64(0)
+	if stake, found := results.Aggregations.Filter("stake"); found {
+		if hash, found := stake.Aggregations.Terms("hash"); found {
+			for _, bucket := range hash.Buckets {
+				stakingBlocks.BlockCount += bucket.DocCount
+				if balance, found := bucket.Aggregations.Nested("balance"); found {
+					if stakable, found := balance.Max("stakable"); found {
+						zap.S().With(
+							zap.String("hash", bucket.Key.(string)),
+							zap.Float64("balance", *stakable.Value/100000000),
+						).Infof("Staking balance found")
+
+						//stakingBlocks.Addresses[bucket.Key.(string)] = entity.StakingBlocksAddress{
+						//	Txs:     int(bucket.DocCount),
+						//	Balance: *stakable.Value / 100000000,
+						//}
+						stakeBalance += *stakable.Value
+					}
+				}
+			}
+		}
+	}
+
+	coldStakeBalance := float64(0)
+	if stake, found := results.Aggregations.Filter("coldStake"); found {
+		if hash, found := stake.Aggregations.Terms("hash"); found {
+			for _, bucket := range hash.Buckets {
+				stakingBlocks.BlockCount += bucket.DocCount
+
+				if balance, found := bucket.Aggregations.Nested("balance"); found {
+					if stakable, found := balance.Max("stakable"); found {
+						zap.S().With(
+							zap.String("hash", bucket.Key.(string)),
+							zap.Float64("balance", *stakable.Value/100000000),
+						).Infof("ColdStaking balance found")
+
+						//stakingBlocks.Addresses[bucket.Key.(string)] = entity.StakingBlocksAddress{
+						//	Txs:     int(bucket.DocCount),
+						//	Balance: *stakable.Value / 100000000,
+						//}
+						coldStakeBalance += *stakable.Value
+					}
+				}
+			}
+		}
+	}
+
+	stakingBlocks.Staking = stakeBalance / 100000000
+	stakingBlocks.ColdStaking = coldStakeBalance / 100000000
+
+	return stakingBlocks, nil
 }
 
 func (r *addressHistoryRepository) StakingRewardsForAddresses(n network.Network, addresses []string) ([]*entity.StakingReward, error) {

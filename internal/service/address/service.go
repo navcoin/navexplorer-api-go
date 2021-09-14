@@ -15,6 +15,7 @@ type Service interface {
 	GetAddresses(n network.Network, pagination framework.Pagination, filters framework.Filters, sort framework.Sort) ([]*explorer.Address, int64, error)
 	GetAddressSummary(n network.Network, hash string) (*entity.AddressSummary, error)
 	GetStakingChart(n network.Network, period string, address string) ([]*entity.StakingGroup, error)
+	GetStakingByBlockCount(n network.Network, blockCount int) (*entity.StakingBlocks, error)
 	GetAddressGroups(n network.Network, period *group.Period, count int) ([]entity.AddressGroup, error)
 	GetAddressGroupsTotal(n network.Network, period *group.Period, count int) ([]entity.AddressGroupTotal, error)
 	GetHistory(n network.Network, hash string, request framework.RestRequest) ([]*explorer.AddressHistory, int64, error)
@@ -143,31 +144,35 @@ func (s *service) GetStakingChart(n network.Network, period string, address stri
 //	return report, nil
 //}
 //
-//func (s *service) GetStakingByBlockCount(blockCount int, extended bool) (*entity.StakingBlocks, error) {
-//	bestBlock, err := s.blockRepository.BestBlock()
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	height := uint64(0)
-//	if blockCount < int(bestBlock.Height) {
-//		height = bestBlock.Height - uint64(blockCount)
-//	}
-//
-//	stakingBlocks, err := s.addressTransactionRepository.GetStakingRange(height, bestBlock.Height)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	fees, err := s.blockRepository.FeesForLastBlocks(blockCount)
-//	if err == nil {
-//		stakingBlocks.Fees = fees
-//	}
-//
-//	stakingBlocks.BlockCount = blockCount
-//
-//	return stakingBlocks, err
-//}
+func (s *service) GetStakingByBlockCount(n network.Network, blockCount int) (*entity.StakingBlocks, error) {
+	bestBlock, err := s.blockRepository.GetBestBlock(n)
+	if err != nil {
+		return nil, err
+	}
+	to := bestBlock.Height
+
+	from := uint64(0)
+	if blockCount < int(bestBlock.Height) {
+		from = bestBlock.Height - uint64(blockCount)
+	}
+
+	addresses, err := s.blockRepository.GetStakingAddresses(n, from, to)
+	if err != nil {
+		return nil, err
+	}
+
+	stakingBlocks, err := s.addressHistoryRepository.GetStakingRange(n, from, to, addresses)
+	if err != nil {
+		return nil, err
+	}
+
+	fees, err := s.blockRepository.GetFeesForLastBlocks(n, blockCount)
+	if err == nil {
+		stakingBlocks.Fees = fees
+	}
+
+	return stakingBlocks, err
+}
 
 func (s *service) GetAssociatedStakingAddresses(n network.Network, address string) ([]string, error) {
 	return s.blockTransactionRepository.GetAssociatedStakingAddresses(n, address)

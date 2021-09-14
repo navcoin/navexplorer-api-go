@@ -70,3 +70,7 @@ func (r *cachingBlockRepository) GetFeesForLastBlocks(n network.Network, blocks 
 func (r *cachingBlockRepository) GetSupply(n network.Network, blocks int, fillEmpty bool) (supply []entity.Supply, err error) {
 	return r.repository.GetSupply(n, blocks, fillEmpty)
 }
+
+func (r *cachingBlockRepository) GetStakingAddresses(n network.Network, from, to uint64) ([]string, error) {
+	return r.repository.GetStakingAddresses(n, from, to)
+}
