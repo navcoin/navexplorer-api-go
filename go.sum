@@ -23,6 +23,7 @@ github.com/NavExplorer/navcoind-go v1.1.0/go.mod h1:CEjLeqFkhdtqOUbpd5Aoo288nX1X
 github.com/NavExplorer/navcoind-go v1.1.1/go.mod h1:CEjLeqFkhdtqOUbpd5Aoo288nX1X1M/TXUpGXCkm1tk=
 github.com/NavExplorer/navcoind-go v1.1.3/go.mod h1:CEjLeqFkhdtqOUbpd5Aoo288nX1X1M/TXUpGXCkm1tk=
 github.com/NavExplorer/navcoind-go v1.1.4/go.mod h1:nQeIk4SPp9qGqGiN2I9aYrLLPc5QJuROcm62FhHX3gM=
+github.com/NavExplorer/navcoind-go v1.1.6/go.mod h1:nQeIk4SPp9qGqGiN2I9aYrLLPc5QJuROcm62FhHX3gM=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200513132948-2da7193dae99 h1:frqNMEphRwyfsWFINjeMVmWXeHv8CfwWpf0lcOiSmkQ=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200513132948-2da7193dae99/go.mod h1:57ARY0cfP1M3kBEcsqOGKrhfRS3Fo6vq2IRm6hWwPaM=
 github.com/NavExplorer/navexplorer-indexer-go v0.0.0-20200518231923-1329821deb7e h1:wW7zHdzLpArQQGBIYfbsRIolBv3R14v8kdJro933RHk=
@@ -129,6 +130,12 @@ github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.7-0.20210710190918-49afd06
 github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.7-0.20210710190918-49afd0680153/go.mod h1:faeFJ5mIQHw19ielkx46x/JaXr3zlMHB9bZH9ntGXXE=
 github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.7 h1:eRmsPmOrJNnIBbp3aM4ALUjs7uRRVCZPPqewowGx6cQ=
 github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.7/go.mod h1:faeFJ5mIQHw19ielkx46x/JaXr3zlMHB9bZH9ntGXXE=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.8 h1:AJ0UXlWfMa1nR4wlcqDFrh+pymf+BRy1ohGqazzy8Qw=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.8/go.mod h1:faeFJ5mIQHw19ielkx46x/JaXr3zlMHB9bZH9ntGXXE=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.9-0.20210923112853-bcf7ae4de29d h1:mcau5JGL6Mk62dme2ngvDbHlUQrEpcAHxhW0fLv9vZw=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.9-0.20210923112853-bcf7ae4de29d/go.mod h1:4QfEnsAH5kJDtkQXDfxEckMgANlHaXaElypQgcBzvvQ=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.9 h1:qzMY6Mtg9WRfv++4OX79QSmvRTbQBDacgrWHibPwRxk=
+github.com/NavExplorer/navexplorer-indexer-go/v2 v2.1.9/go.mod h1:faeFJ5mIQHw19ielkx46x/JaXr3zlMHB9bZH9ntGXXE=
 github.com/NavExplorer/subscriber v0.0.0-20200601205031-4135a91491af h1:KWrfS1eDXRPSpY6pyBMGYiqLSIJ08TargSgbFeUTaMA=
 github.com/NavExplorer/subscriber v0.0.0-20200601205031-4135a91491af/go.mod h1:b9UVwdUV1OVGDsOMqOJeu5Rk5SPyOgfHfvM0HH4fvdU=
 github.com/NavExplorer/subscriber v0.0.0-20200601212953-3a6c48dd3d5d h1:4tlsQCkBbil7rexH6A0CGyRh5I7z1QP/ftiFLWP7ADo=

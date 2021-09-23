@@ -105,6 +105,7 @@ func main() {
 	cfundGroup.GET("/payment-request/:hash", daoResource.GetPaymentRequest)
 	cfundGroup.GET("/payment-request/:hash/votes", daoResource.GetPaymentRequestVotes)
 	cfundGroup.GET("/payment-request/:hash/trend", daoResource.GetPaymentRequestTrend)
+	cfundGroup.GET("/votes/excluded", daoResource.GetExcludedVotesForCycle)
 
 	searchResource := resource.NewSearchResource(container.GetAddressService(), container.GetBlockService(), container.GetDaoService())
 	r.GET("/search", searchResource.Search)
