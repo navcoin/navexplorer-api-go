@@ -15,7 +15,6 @@ require (
 	github.com/mattn/go-colorable v0.1.8
 	github.com/olivere/elastic/v7 v7.0.21
 	github.com/sarulabs/di/v2 v2.4.2
-	github.com/sarulabs/dingo/v3 v3.1.0
 	github.com/sarulabs/dingo/v4 v4.2.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/streadway/amqp v1.0.0
