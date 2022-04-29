@@ -8,7 +8,6 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/resource"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
-	"github.com/sarulabs/dingo/v3"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 )
@@ -18,7 +17,7 @@ var container *dic.Container
 func main() {
 	config.Init()
 
-	container, _ = dic.NewContainer(dingo.App)
+	container, _ = dic.NewContainer()
 
 	if config.Get().Debug {
 		log.SetLevel(log.DebugLevel)

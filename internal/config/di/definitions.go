@@ -13,7 +13,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao/consensus"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/softfork"
-	"github.com/sarulabs/dingo/v3"
+	"github.com/sarulabs/dingo/v4"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
