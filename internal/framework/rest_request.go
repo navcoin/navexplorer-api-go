@@ -1,8 +1,8 @@
 package framework
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/config"
-	networkService "github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/config"
+	networkService "github.com/navcoin/navexplorer-api-go/v2/internal/service/network"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )

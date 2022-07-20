@@ -2,7 +2,7 @@ package elastic_cache
 
 import (
 	"fmt"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/network"
 )
 
 type Indices string

@@ -2,7 +2,7 @@ package framework
 
 import (
 	"errors"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/network"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"strings"

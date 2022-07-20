@@ -2,8 +2,8 @@ package resource
 
 import (
 	"errors"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/address"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"

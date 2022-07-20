@@ -1,7 +1,7 @@
 package elastic_cache
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/config"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/config"
 	"github.com/olivere/elastic/v7"
 	"log"
 	"os"

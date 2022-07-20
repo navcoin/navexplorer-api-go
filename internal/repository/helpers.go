@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/framework"
 	"github.com/olivere/elastic/v7"
 )
 

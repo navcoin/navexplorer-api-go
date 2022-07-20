@@ -1,10 +1,10 @@
 package resource
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework/paginator"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/block"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/framework/paginator"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/repository"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/block"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/dao"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"net/http"

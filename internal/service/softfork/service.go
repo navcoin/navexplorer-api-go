@@ -1,9 +1,9 @@
 package softfork
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/softfork/entity"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/repository"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/network"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/softfork/entity"
 	"github.com/navcoin/navexplorer-indexer-go/v2/pkg/explorer"
 )
 

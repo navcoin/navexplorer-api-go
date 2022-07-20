@@ -2,12 +2,12 @@ package resource
 
 import (
 	"fmt"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/cache"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework/paginator"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/block"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/group"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/cache"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/framework/paginator"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/repository"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/block"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/dao"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/group"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"

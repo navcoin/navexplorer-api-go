@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/group"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/group"
 	log "github.com/sirupsen/logrus"
 )
 

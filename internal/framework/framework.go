@@ -1,7 +1,7 @@
 package framework
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/config"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/config"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"

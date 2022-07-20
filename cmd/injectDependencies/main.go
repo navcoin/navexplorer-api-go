@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/config/di"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/config/di"
 	"github.com/sarulabs/dingo/v4"
 	"os"
 )

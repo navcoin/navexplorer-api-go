@@ -1,8 +1,8 @@
 package resource
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/softfork"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/repository"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/softfork"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

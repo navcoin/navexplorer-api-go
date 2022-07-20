@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/log"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/log"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"

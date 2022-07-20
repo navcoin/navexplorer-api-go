@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 	"encoding/json"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/elastic_cache"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/elastic_cache"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/network"
 	"github.com/navcoin/navexplorer-indexer-go/v2/pkg/explorer"
 )
 

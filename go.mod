@@ -1,4 +1,4 @@
-module github.com/NavExplorer/navexplorer-api-go/v2
+module github.com/navcoin/navexplorer-api-go/v2
 
 go 1.14
 

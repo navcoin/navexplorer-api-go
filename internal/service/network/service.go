@@ -3,7 +3,7 @@ package network
 import (
 	"errors"
 	"fmt"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/config"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/config"
 	log "github.com/sirupsen/logrus"
 )
 

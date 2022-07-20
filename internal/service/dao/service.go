@@ -1,11 +1,11 @@
 package dao
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao/consensus"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao/entity"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/framework"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/repository"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/dao/consensus"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/dao/entity"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/network"
 	"github.com/navcoin/navexplorer-indexer-go/v2/pkg/explorer"
 	log "github.com/sirupsen/logrus"
 )

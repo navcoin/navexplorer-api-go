@@ -1,10 +1,10 @@
 package repository
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/cache"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/block/entity"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/cache"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/framework"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/block/entity"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/network"
 	"github.com/navcoin/navexplorer-indexer-go/v2/pkg/explorer"
 )
 

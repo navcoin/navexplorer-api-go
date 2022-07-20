@@ -1,8 +1,8 @@
 package resource
 
 import (
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/block"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao/consensus"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/block"
+	"github.com/navcoin/navexplorer-api-go/v2/internal/service/dao/consensus"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
