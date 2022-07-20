@@ -8,7 +8,7 @@ import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/framework"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address/entity"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
-	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
+	"github.com/navcoin/navexplorer-indexer-go/v2/pkg/explorer"
 	"github.com/olivere/elastic/v7"
 	log "github.com/sirupsen/logrus"
 	"go.uber.org/zap"

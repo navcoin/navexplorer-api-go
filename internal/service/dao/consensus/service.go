@@ -3,7 +3,7 @@ package consensus
 import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
-	"github.com/NavExplorer/navexplorer-indexer-go/v2/pkg/explorer"
+	"github.com/navcoin/navexplorer-indexer-go/v2/pkg/explorer"
 	log "github.com/sirupsen/logrus"
 )
 
