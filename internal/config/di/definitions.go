@@ -2,16 +2,13 @@ package di
 
 import (
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/cache"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/config"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/elastic_cache"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/event"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/repository"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/address"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/block"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/dao/consensus"
-	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/network"
 	"github.com/NavExplorer/navexplorer-api-go/v2/internal/service/softfork"
 	"github.com/sarulabs/dingo/v4"
 	log "github.com/sirupsen/logrus"
@@ -69,24 +66,6 @@ var Definitions = []dingo.Def{
 		Name: "block.service",
 		Build: func(blockRepository repository.BlockRepository, blockTransactionRepository repository.BlockTransactionRepository) (block.Service, error) {
 			return block.NewBlockService(blockRepository, blockTransactionRepository), nil
-		},
-	},
-	{
-		Name: "event.consumer",
-		Build: func() (*event.Consumer, error) {
-			return event.NewConsumer(
-				config.Get().RabbitMq.User,
-				config.Get().RabbitMq.Password,
-				config.Get().RabbitMq.Host,
-				config.Get().RabbitMq.Port,
-				config.Get().RabbitMq.Prefix,
-			), nil
-		},
-	},
-	{
-		Name: "block.subscriber",
-		Build: func(consumer *event.Consumer, cache2 *cache.Cache) (*block.Subscriber, error) {
-			return block.NewBlockSubscriber(network.GetNetworks(), consumer, cache2), nil
 		},
 	},
 	{

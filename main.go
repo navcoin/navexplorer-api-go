@@ -23,10 +23,6 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	if config.Get().Subscribe {
-		go container.GetBlockSubscriber().Subscribe()
-	}
-
 	framework.SetReleaseMode(config.Get().Debug)
 
 	r := gin.New()
