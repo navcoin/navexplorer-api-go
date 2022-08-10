@@ -5,7 +5,7 @@ go 1.14
 replace github.com/ugorji/go v1.1.4 => github.com/ugorji/go/codec v0.0.0-20190204201341-e444a5086c43
 
 require (
-	github.com/navcoin/navexplorer-indexer-go/v2 v2.2.1
+	github.com/navcoin/navexplorer-indexer-go/v2 v2.2.2
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef // indirect
 	github.com/getsentry/raven-go v0.2.0 // indirect
 	github.com/gin-contrib/cors v1.3.1
