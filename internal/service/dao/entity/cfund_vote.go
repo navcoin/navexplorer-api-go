@@ -11,6 +11,7 @@ type CfundVote struct {
 	Yes     int `json:"yes"`
 	No      int `json:"no"`
 	Abstain int `json:"abstain"`
+	Exclude int `json:"exclude"`
 
 	Addresses []*CfundVoteAddress `json:"addresses"`
 }
@@ -20,6 +21,7 @@ type CfundVoteAddress struct {
 	Yes     int    `json:"yes"`
 	No      int    `json:"no"`
 	Abstain int    `json:"abstain"`
+	Exclude int    `json:"exclude"`
 }
 
 func NewCfundVote(cycle int, start uint, end uint) *CfundVote {
@@ -45,4 +47,5 @@ type Votes struct {
 	Yes     int `json:"yes"`
 	No      int `json:"no"`
 	Abstain int `json:"abstain"`
+	Exclude int `json:"exclude"`
 }
