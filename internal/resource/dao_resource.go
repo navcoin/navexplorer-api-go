@@ -299,3 +299,17 @@ func (r *DaoResource) GetAnswerVotes(c *gin.Context) {
 
 	c.JSON(200, votes)
 }
+
+func (r *DaoResource) GetExcludedVotesForCycle(c *gin.Context) {
+	cycle, err := strconv.Atoi(c.DefaultQuery("cycle", "0"))
+	if err != nil || cycle == 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid block cycle", "status": http.StatusBadRequest,
+		})
+		return
+	}
+
+	votes, err := r.daoService.GetExcludedVotes(network(c), uint(cycle))
+
+	c.JSON(200, votes)
+}

@@ -15,6 +15,7 @@ type Service interface {
 	GetBlockCycleByBlock(n network.Network, block *explorer.Block) (*entity.LegacyBlockCycle, error)
 	GetConsensus(n network.Network) (explorer.ConsensusParameters, error)
 	GetCfundStats(n network.Network) (*entity.CfundStats, error)
+	GetExcludedVotes(n network.Network, cycle uint) (uint, error)
 
 	GetProposals(n network.Network, parameters ProposalParameters, pagination framework.Pagination) ([]*explorer.Proposal, int64, error)
 	GetProposal(n network.Network, hash string) (*explorer.Proposal, error)
@@ -133,6 +134,10 @@ func (s *service) GetCfundStats(n network.Network) (*entity.CfundStats, error) {
 	return cfundStats, nil
 }
 
+func (s *service) GetExcludedVotes(n network.Network, cycle uint) (uint, error) {
+	return s.voteRepository.GetExcludedVotes(n, cycle)
+}
+
 func (s *service) GetProposals(n network.Network, parameters ProposalParameters, pagination framework.Pagination) ([]*explorer.Proposal, int64, error) {
 	var status *explorer.ProposalStatus
 	if parameters.State != nil && explorer.IsProposalStateValid(*parameters.State) {
@@ -140,11 +145,23 @@ func (s *service) GetProposals(n network.Network, parameters ProposalParameters,
 		status = &s
 	}
 
-	return s.proposalRepository.GetProposals(n, status, false, pagination.Size(), pagination.Page())
+	proposals, total, err := s.proposalRepository.GetProposals(n, status, false, pagination.Size(), pagination.Page())
+	if err == nil {
+		for _, proposal := range proposals {
+			proposal.VotesExcluded = s.getExcludedVotesForProposal(n, *proposal)
+		}
+	}
+
+	return proposals, total, err
 }
 
 func (s *service) GetProposal(n network.Network, hash string) (*explorer.Proposal, error) {
-	return s.proposalRepository.GetProposal(n, hash)
+	proposal, err := s.proposalRepository.GetProposal(n, hash)
+	if err == nil {
+		proposal.VotesExcluded = s.getExcludedVotesForProposal(n, *proposal)
+	}
+
+	return proposal, err
 }
 
 func (s *service) GetVotingCycles(n network.Network, element explorer.ChainHeight, count uint) ([]*entity.VotingCycle, error) {
@@ -229,11 +246,13 @@ func (s *service) GetProposalTrend(n network.Network, hash string) ([]*entity.Cf
 				Yes:     cfundVote.Yes,
 				No:      cfundVote.No,
 				Abstain: cfundVote.Abstain,
+				Exclude: cfundVote.Exclude,
 			},
 			Trend: entity.Votes{
-				Yes:     int(float64(cfundVote.Yes*10) / float64(size) * 100),
-				No:      int(float64(cfundVote.No*10) / float64(size) * 100),
-				Abstain: int(float64(cfundVote.Abstain*10) / float64(size) * 100),
+				Yes:     int(float64(cfundVote.Yes*10) / float64(size-uint(cfundVote.Exclude*10)) * 100),
+				No:      int(float64(cfundVote.No*10) / float64(size-uint(cfundVote.Exclude*10)) * 100),
+				Abstain: int(float64(cfundVote.Abstain*10) / float64(size-uint(cfundVote.Exclude*10)) * 100),
+				Exclude: int(float64(cfundVote.Exclude*10) / float64(size) * 100),
 			},
 		}
 		cfundTrends = append(cfundTrends, cfundTrend)
@@ -254,15 +273,32 @@ func (s *service) GetPaymentRequests(n network.Network, parameters PaymentReques
 		hash = parameters.Proposal
 	}
 
-	return s.paymentRequestRepository.GetPaymentRequests(n, hash, status, false, pagination.Size(), pagination.Page())
+	paymentRequests, total, err := s.paymentRequestRepository.GetPaymentRequests(n, hash, status, false, pagination.Size(), pagination.Page())
+	if err == nil {
+		for _, paymentRequest := range paymentRequests {
+			paymentRequest.VotesExcluded = s.getExcludedVotesForPaymentRequest(n, *paymentRequest)
+		}
+	}
+
+	return paymentRequests, total, err
 }
 
 func (s *service) GetPaymentRequestsForProposal(n network.Network, proposal *explorer.Proposal) ([]*explorer.PaymentRequest, error) {
-	return s.paymentRequestRepository.GetPaymentRequestsForProposal(n, proposal)
+	paymentRequests, err := s.paymentRequestRepository.GetPaymentRequestsForProposal(n, proposal)
+
+	for _, paymentRequest := range paymentRequests {
+		paymentRequest.VotesExcluded = s.getExcludedVotesForPaymentRequest(n, *paymentRequest)
+	}
+
+	return paymentRequests, err
 }
 
 func (s *service) GetPaymentRequest(n network.Network, hash string) (*explorer.PaymentRequest, error) {
-	return s.paymentRequestRepository.GetPaymentRequest(n, hash)
+	paymentRequest, err := s.paymentRequestRepository.GetPaymentRequest(n, hash)
+	if err == nil {
+		paymentRequest.VotesExcluded = s.getExcludedVotesForPaymentRequest(n, *paymentRequest)
+	}
+	return paymentRequest, err
 }
 
 func (s *service) GetPaymentRequestVotes(n network.Network, hash string) ([]*entity.CfundVote, []*entity.VotingCycle, error) {
@@ -316,11 +352,13 @@ func (s *service) GetPaymentRequestTrend(n network.Network, hash string) ([]*ent
 				Yes:     cfundVote.Yes,
 				No:      cfundVote.No,
 				Abstain: cfundVote.Abstain,
+				Exclude: cfundVote.Exclude,
 			},
 			Trend: entity.Votes{
-				Yes:     int(float64(cfundVote.Yes*10) / float64(size) * 100),
-				No:      int(float64(cfundVote.No*10) / float64(size) * 100),
-				Abstain: int(float64(cfundVote.Abstain*10) / float64(size) * 100),
+				Yes:     int(float64(cfundVote.Yes*10) / float64(size-uint(cfundVote.Exclude*10)) * 100),
+				No:      int(float64(cfundVote.No*10) / float64(size-uint(cfundVote.Exclude*10)) * 100),
+				Abstain: int(float64(cfundVote.Abstain*10) / float64(size-uint(cfundVote.Exclude*10)) * 100),
+				Exclude: int(float64(cfundVote.Exclude*10) / float64(size) * 100),
 			},
 		}
 		cfundTrends = append(cfundTrends, cfundTrend)
@@ -385,4 +423,32 @@ func (s *service) getMax(n network.Network, status string, stateChangedOnBlock s
 
 	log.Info("max ", block.Height)
 	return uint(block.Height), nil
+}
+
+func (s *service) getExcludedVotesForProposal(n network.Network, proposal explorer.Proposal) uint {
+	creationBlock, err := s.blockRepository.GetBlockByHeight(n, proposal.Height)
+	if err != nil {
+		return 0
+	}
+
+	excluded, err := s.voteRepository.GetExcludedVotes(n, creationBlock.BlockCycle.Cycle+proposal.VotingCycle)
+	if err != nil {
+		return 0
+	}
+
+	return excluded
+}
+
+func (s *service) getExcludedVotesForPaymentRequest(n network.Network, paymentRequest explorer.PaymentRequest) uint {
+	creationBlock, err := s.blockRepository.GetBlockByHeight(n, paymentRequest.Height)
+	if err != nil {
+		return 0
+	}
+
+	excluded, err := s.voteRepository.GetExcludedVotes(n, creationBlock.BlockCycle.Cycle+paymentRequest.VotingCycle)
+	if err != nil {
+		return 0
+	}
+
+	return excluded
 }
