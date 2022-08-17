@@ -2,3 +2,5 @@
 .env
 /generated
 /vendor
+
+navexplorer-api-go
