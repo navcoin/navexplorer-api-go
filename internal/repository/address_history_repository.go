@@ -49,6 +49,7 @@ func (r *addressHistoryRepository) GetLatestByHash(n network.Network, hash strin
 	results, err := r.elastic.Client.Search(elastic_cache.AddressHistoryIndex.Get(n)).
 		Query(query).
 		Sort("height", false).
+		Sort("txindex", false).
 		Size(1).
 		Do(context.Background())
 
@@ -98,6 +99,7 @@ func (r *addressHistoryRepository) GetStakingSummary(n network.Network, hash str
 		Query(query).
 		Aggregation("stake", stakeAgg).
 		Sort("height", false).
+		Sort("txindex", false).
 		Size(0).
 		Do(context.Background())
 
@@ -157,6 +159,7 @@ func (r *addressHistoryRepository) GetSpendSummary(n network.Network, hash strin
 		Query(query).
 		Aggregation("changes", changeAgg).
 		Sort("height", false).
+		Sort("txindex", false).
 		Size(0).
 		Do(context.Background())
 
